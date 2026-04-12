@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -8,6 +8,18 @@ export default function Home() {
   const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('studio_platforms');
+    if (saved) {
+      try {
+        setEnabledPlatforms(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load platforms', e);
+      }
+    }
+  }, []);
 
   const stats = [
     { label: 'Total Posts', value: '128', change: '+12%', icon: '📝' },
@@ -20,8 +32,11 @@ export default function Home() {
     e.preventDefault();
     if (!session) return;
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const file = formData.get('file') as File;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
 
     if (!file || file.size === 0) {
       alert('Please select a video file.');
@@ -32,23 +47,26 @@ export default function Home() {
     setUploadStatus('Uploading to YouTube...');
 
     try {
-      const response = await fetch('/api/upload/youtube', {
+      // 1. YouTube Upload
+      const ytResponse = await fetch('/api/upload/youtube', {
         method: 'POST',
         body: formData,
       });
 
-      const result = await response.json();
+      const ytResult = await ytResponse.json();
 
-      if (result.success) {
-        setUploadStatus('Success! Video uploaded.');
-        alert('Video uploaded successfully!');
-      } else {
-        setUploadStatus(`Error: ${result.error}`);
-        alert(`Failed to upload: ${result.error}`);
+      if (!ytResult.success) {
+        throw new Error(`YouTube Upload Failed: ${ytResult.error}`);
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadStatus('An error occurred during upload.');
+
+      setUploadStatus('YouTube Upload Success!');
+
+      form.reset();
+      alert('Post completed successfully!');
+    } catch (error: any) {
+      console.error('Process error:', error);
+      setUploadStatus(`Error: ${error.message}`);
+      alert(error.message);
     } finally {
       setIsUploading(false);
     }
@@ -94,8 +112,8 @@ export default function Home() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
         {/* Upload Form */}
-        <section className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload New Video</h2>
+        <section id="create-post-section" className="glass-card" style={{ padding: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload & Automate</h2>
           
           {session ? (
             <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -122,6 +140,7 @@ export default function Home() {
                   type="text" 
                   name="title" 
                   placeholder="Enter a catchy title..."
+                  required
                   style={{ 
                     background: 'hsla(var(--muted) / 0.3)', 
                     padding: '0.75rem 1rem', 
@@ -151,6 +170,7 @@ export default function Home() {
                 />
               </div>
 
+
               <button 
                 type="submit" 
                 disabled={isUploading}
@@ -162,15 +182,16 @@ export default function Home() {
                   borderRadius: '0.75rem', 
                   fontWeight: 700,
                   cursor: isUploading ? 'not-allowed' : 'pointer',
-                  marginTop: '1rem',
-                  transition: 'all 0.2s'
+                  marginTop: '0.5rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
                 }}
               >
-                {isUploading ? '📤 Uploading...' : '🚀 Post to YouTube'}
+                {isUploading ? '📤 Processing...' : '🚀 Post Video'}
               </button>
               
               {uploadStatus && (
-                <p style={{ fontSize: '0.85rem', textAlign: 'center', color: 'hsl(var(--primary))' }}>
+                <p style={{ fontSize: '0.85rem', textAlign: 'center', color: 'hsl(var(--primary))', fontWeight: 500 }}>
                   {uploadStatus}
                 </p>
               )}
@@ -178,7 +199,7 @@ export default function Home() {
           ) : (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
               <p style={{ marginBottom: '1.5rem', color: 'hsl(var(--muted-foreground))' }}>
-                Please connect your YouTube account in Settings to start uploading.
+                Please connect your account in Settings to start uploading.
               </p>
               <Link href="/settings">
                 <button style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
@@ -189,26 +210,43 @@ export default function Home() {
           )}
         </section>
 
-        {/* Upcoming Posts / Info */}
-        <section className="glass-card" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upcoming Posts</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
-              Feature in development: Automatic scheduling and cross-platform posting.
-            </p>
-            {[1, 2].map((i) => (
-              <div key={i} style={{ display: 'flex', gap: '1rem', opacity: 0.5 }}>
-                <div style={{ 
-                  width: '2px', 
-                  background: 'hsl(var(--primary))', 
-                  borderRadius: '2px',
-                }} />
-                <div>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>Example Scheduled Post</p>
-                  <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Pending connection...</p>
+        {/* Info Box */}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Active Platforms</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+              {['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter'].map((p) => (
+                <div key={p} style={{ 
+                  textAlign: 'center', 
+                  padding: '0.75rem', 
+                  background: enabledPlatforms.includes(p.toLowerCase().replace(' shorts', '').replace(' reels', '')) ? 'hsla(var(--primary) / 0.1)' : 'hsla(var(--muted) / 0.2)',
+                  borderRadius: '0.75rem',
+                  fontSize: '0.8rem',
+                  opacity: enabledPlatforms.includes(p.toLowerCase().replace(' shorts', '').replace(' reels', '')) ? 1 : 0.5
+                }}>
+                  {p}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-card" style={{ padding: '2rem', flex: 1 }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upcoming Posts</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {[1, 2].map((i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', opacity: 0.5 }}>
+                  <div style={{ 
+                    width: '2px', 
+                    background: 'hsl(var(--primary))', 
+                    borderRadius: '2px',
+                  }} />
+                  <div>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>Post Scenario {i}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Feature in dev...</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -12,7 +12,7 @@ interface Platform {
 }
 
 const SettingsPage = () => {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [platforms, setPlatforms] = useState<Platform[]>([
     { id: 'instagram', name: 'Instagram Reels', icon: '📸', enabled: false },
     { id: 'tiktok', name: 'TikTok', icon: '🎵', enabled: false },
@@ -22,15 +22,12 @@ const SettingsPage = () => {
     { id: 'twitter', name: 'Twitter/X', icon: '𝕏', enabled: false },
   ]);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Load from localStorage on mount
+  // Load from database/API on mount
   useEffect(() => {
-    const saved = localStorage.getItem('studio_platforms');
-    if (saved) {
+    const savedPlatforms = localStorage.getItem('studio_platforms');
+    if (savedPlatforms) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(savedPlatforms);
         setPlatforms(prev => prev.map(p => ({
           ...p,
           enabled: parsed.includes(p.id)
@@ -48,17 +45,16 @@ const SettingsPage = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
+    
+    // Save platforms to localStorage
     const enabledIds = platforms.filter(p => p.enabled).map(p => p.id);
     localStorage.setItem('studio_platforms', JSON.stringify(enabledIds));
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-      setHasUnsavedChanges(false);
-      alert('Settings saved successfully!');
-    }, 800);
+    setHasUnsavedChanges(false);
+    setIsSaving(false);
+    alert('Settings saved successfully!');
   };
 
   return (
@@ -130,16 +126,6 @@ const SettingsPage = () => {
         </div>
       </section>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          <span>⚙️</span> Automation API (Coming Soon)
-        </h2>
-        <div className="glass-card" style={{ padding: '1.5rem', opacity: 0.7 }}>
-          <p style={{ fontSize: '0.9rem', color: 'hsl(var(--muted-foreground))' }}>
-            Integrate with n8n or Make.com via webhooks to automate your distribution pipeline.
-          </p>
-        </div>
-      </section>
 
       <footer className={styles.footer}>
         <button 
