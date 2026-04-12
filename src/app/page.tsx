@@ -1,6 +1,14 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function Home() {
+  const { data: session } = useSession();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+
   const stats = [
     { label: 'Total Posts', value: '128', change: '+12%', icon: '📝' },
     { label: 'Avg. Reach', value: '45.2K', change: '+8.4%', icon: '🚀' },
@@ -8,17 +16,53 @@ export default function Home() {
     { label: 'Scheduled', value: '12', change: 'Next 7 days', icon: '📅' },
   ];
 
-  const recentMedia = [
-    { id: 1, type: 'video', title: 'Product Launch Teaser', platform: 'Instagram', date: '2 hours ago' },
-    { id: 2, type: 'image', title: 'Behind the Scenes', platform: 'TikTok', date: '5 hours ago' },
-    { id: 3, type: 'video', title: 'Feature Walkthrough', platform: 'YouTube', date: 'Yesterday' },
-  ];
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!session) return;
+
+    const formData = new FormData(e.currentTarget);
+    const file = formData.get('file') as File;
+
+    if (!file || file.size === 0) {
+      alert('Please select a video file.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus('Uploading to YouTube...');
+
+    try {
+      const response = await fetch('/api/upload/youtube', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadStatus('Success! Video uploaded.');
+        alert('Video uploaded successfully!');
+      } else {
+        setUploadStatus(`Error: ${result.error}`);
+        alert(`Failed to upload: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus('An error occurred during upload.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="fade-in">
-      <header style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>Dashboard Overview</h1>
-        <p style={{ color: 'hsl(var(--muted-foreground))' }}>Welcome back, Thoufeeque. Here's what's happening today.</p>
+      <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem' }}>Dashboard Overview</h1>
+          <p style={{ color: 'hsl(var(--muted-foreground))' }}>
+            {session ? `Welcome back, ${session.user?.name}.` : "Welcome to Social Studio. Connect your account to get started."}
+          </p>
+        </div>
       </header>
 
       {/* Stats Grid */}
@@ -48,71 +92,120 @@ export default function Home() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
-        {/* Recent Media */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+        {/* Upload Form */}
         <section className="glass-card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Recent Media</h2>
-            <button style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'hsl(var(--primary))', 
-              fontSize: '0.9rem', 
-              fontWeight: 500,
-              cursor: 'pointer' 
-            }}>
-              View All
-            </button>
-          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload New Video</h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recentMedia.map((media) => (
-              <div key={media.id} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '1rem', 
-                padding: '1rem',
-                background: 'hsla(var(--muted) / 0.3)',
-                borderRadius: '0.75rem',
-                border: '1px solid hsla(var(--border) / 0.5)'
-              }}>
-                <div style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  background: 'hsla(var(--primary) / 0.2)', 
-                  borderRadius: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.2rem'
-                }}>
-                  {media.type === 'video' ? '📽️' : '🖼️'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600 }}>{media.title}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'hsl(var(--muted-foreground))' }}>{media.platform} • {media.date}</p>
-                </div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer' }}>⋮</button>
+          {session ? (
+            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
+                <input 
+                  type="file" 
+                  name="file" 
+                  accept="video/*" 
+                  required
+                  style={{ 
+                    background: 'hsla(var(--muted) / 0.3)', 
+                    padding: '1rem', 
+                    borderRadius: '0.75rem', 
+                    border: '1px dashed hsla(var(--border) / 0.5)',
+                    cursor: 'pointer'
+                  }} 
+                />
               </div>
-            ))}
-          </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
+                <input 
+                  type="text" 
+                  name="title" 
+                  placeholder="Enter a catchy title..."
+                  style={{ 
+                    background: 'hsla(var(--muted) / 0.3)', 
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '0.75rem', 
+                    border: '1px solid hsla(var(--border) / 0.5)',
+                    color: 'white',
+                    outline: 'none'
+                  }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
+                <textarea 
+                  name="description" 
+                  placeholder="Tell your viewers about the video..."
+                  rows={3}
+                  style={{ 
+                    background: 'hsla(var(--muted) / 0.3)', 
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '0.75rem', 
+                    border: '1px solid hsla(var(--border) / 0.5)',
+                    color: 'white',
+                    outline: 'none',
+                    resize: 'none'
+                  }} 
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isUploading}
+                style={{ 
+                  background: 'hsl(var(--primary))', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '1rem', 
+                  borderRadius: '0.75rem', 
+                  fontWeight: 700,
+                  cursor: isUploading ? 'not-allowed' : 'pointer',
+                  marginTop: '1rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isUploading ? '📤 Uploading...' : '🚀 Post to YouTube'}
+              </button>
+              
+              {uploadStatus && (
+                <p style={{ fontSize: '0.85rem', textAlign: 'center', color: 'hsl(var(--primary))' }}>
+                  {uploadStatus}
+                </p>
+              )}
+            </form>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem', color: 'hsl(var(--muted-foreground))' }}>
+                Please connect your YouTube account in Settings to start uploading.
+              </p>
+              <Link href="/settings">
+                <button style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                  Go to Settings
+                </button>
+              </Link>
+            </div>
+          )}
         </section>
 
-        {/* Quick Actions / Activity */}
+        {/* Upcoming Posts / Info */}
         <section className="glass-card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upcoming Posts</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} style={{ display: 'flex', gap: '1rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
+              Feature in development: Automatic scheduling and cross-platform posting.
+            </p>
+            {[1, 2].map((i) => (
+              <div key={i} style={{ display: 'flex', gap: '1rem', opacity: 0.5 }}>
                 <div style={{ 
                   width: '2px', 
                   background: 'hsl(var(--primary))', 
                   borderRadius: '2px',
-                  opacity: 0.5 
                 }} />
                 <div>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>Instagram Reel Upload</p>
-                  <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Today at 6:00 PM</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>Example Scheduled Post</p>
+                  <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Pending connection...</p>
                 </div>
               </div>
             ))}

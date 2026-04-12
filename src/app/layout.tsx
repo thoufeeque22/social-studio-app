@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Next-gen social media distribution dashboard",
 };
 
+import { Providers } from "@/components/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,15 +21,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="layout-wrapper">
-          <Sidebar />
-          <div className="main-content">
-            <Header />
-            <main className="page-content">
-              {children}
-            </main>
+        <Providers>
+          <div className="layout-wrapper">
+            <Sidebar />
+            <div className="main-content">
+              <Header />
+              <main className="page-content">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </Providers>
 
       </body>
     </html>
