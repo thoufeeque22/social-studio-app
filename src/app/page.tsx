@@ -44,25 +44,38 @@ export default function Home() {
     }
 
     setIsUploading(true);
-    setUploadStatus('Uploading to YouTube...');
+    const results: any = {};
 
     try {
-      // 1. YouTube Upload
-      const ytResponse = await fetch('/api/upload/youtube', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const ytResult = await ytResponse.json();
-
-      if (!ytResult.success) {
-        throw new Error(`YouTube Upload Failed: ${ytResult.error}`);
+      // 1. YouTube Upload (Conditional)
+      if (enabledPlatforms.includes('youtube')) {
+        setUploadStatus('Uploading to YouTube...');
+        const ytResponse = await fetch('/api/upload/youtube', {
+          method: 'POST',
+          body: formData,
+        });
+        const ytResult = await ytResponse.json();
+        if (!ytResult.success) throw new Error(`YouTube: ${ytResult.error}`);
+        results.youtube = ytResult.data;
+        setUploadStatus('YouTube Success! ➡️ Next...');
       }
 
-      setUploadStatus('YouTube Upload Success!');
+      // 2. Instagram Upload (Conditional)
+      if (enabledPlatforms.includes('instagram')) {
+        setUploadStatus('Uploading to Instagram Reels...');
+        const igResponse = await fetch('/api/upload/instagram', {
+          method: 'POST',
+          body: formData,
+        });
+        const igResult = await igResponse.json();
+        if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
+        results.instagram = igResult.data;
+        setUploadStatus('Gram success! 🚀');
+      }
 
+      setUploadStatus('All uploads completed successfully!');
       form.reset();
-      alert('Post completed successfully!');
+      alert('Post completed across active platforms!');
     } catch (error: any) {
       console.error('Process error:', error);
       setUploadStatus(`Error: ${error.message}`);

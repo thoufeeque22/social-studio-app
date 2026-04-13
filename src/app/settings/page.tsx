@@ -21,6 +21,8 @@ const SettingsPage = () => {
     { id: 'linkedin', name: 'LinkedIn', icon: '💼', enabled: false },
     { id: 'twitter', name: 'Twitter/X', icon: '𝕏', enabled: false },
   ]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load from database/API on mount
   useEffect(() => {
@@ -100,29 +102,40 @@ const SettingsPage = () => {
         <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
-              {session ? `Connected as ${session.user?.name}` : 'YouTube Not Connected'}
+              YouTube Distribution
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
-              {session 
-                ? 'Your app has permission to upload videos to your channel.' 
-                : 'Connect your YouTube account to start automating uploads.'}
+              Connect your Google account to start automating YouTube Shorts.
             </p>
           </div>
-          {session ? (
-            <button 
-              onClick={() => signOut()}
-              style={{ background: 'hsla(var(--destructive) / 0.1)', color: 'hsl(var(--destructive))', border: '1px solid hsla(var(--destructive) / 0.2)', padding: '0.6rem 1.2rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}
-            >
-              Disconnect
-            </button>
-          ) : (
-            <button 
-              onClick={() => signIn('google')}
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)' }}
-            >
-              Connect Channel
-            </button>
-          )}
+          <button 
+            onClick={() => signIn('google')}
+            style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)' }}
+          >
+            Connect Channel
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>
+          <span>📸</span> Instagram Connection
+        </h2>
+        <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
+              Instagram Reels
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
+              Connect your Facebook account to manage Instagram Business Reels.
+            </p>
+          </div>
+          <button 
+            onClick={() => signIn('facebook')}
+            style={{ background: '#1877F2', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(214, 89%, 52%, 0.2)' }}
+          >
+            Connect Instagram
+          </button>
         </div>
       </section>
 

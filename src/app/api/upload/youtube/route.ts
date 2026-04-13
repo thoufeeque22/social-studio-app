@@ -6,13 +6,6 @@ import path from "path";
 import { createWriteStream } from "fs";
 import { pipeline } from "stream/promises";
 
-// Max body size: 500MB (adjust as needed)
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
-
 export async function POST(req: NextRequest) {
   const session = await auth();
 
