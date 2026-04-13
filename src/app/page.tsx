@@ -11,12 +11,14 @@ export default function Home() {
   const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
   
   // AI & Trend States
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
   const [trends, setTrends] = useState<TrendingTrack[]>([]);
   const [selectedAudioId, setSelectedAudioId] = useState<string>('');
+  const [muxAudio, setMuxAudio] = useState<boolean>(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('studio_platforms');
@@ -69,6 +71,7 @@ export default function Home() {
 
     formData.append('contentMode', contentMode);
     if (selectedAudioId) formData.append('musicId', selectedAudioId);
+    formData.append('muxAudio', muxAudio.toString());
 
     if (!file || file.size === 0) {
       alert('Please select a video file.');
@@ -89,6 +92,7 @@ export default function Home() {
         const ytResult = await ytResponse.json();
         if (!ytResult.success) throw new Error(`YouTube: ${ytResult.error}`);
         results.youtube = ytResult.data;
+        if (ytResult.data.previewUrl) setPreviewUrl(ytResult.data.previewUrl);
         setUploadStatus('YouTube Success! ➡️ Next...');
       }
 
@@ -102,7 +106,8 @@ export default function Home() {
         const igResult = await igResponse.json();
         if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
         results.instagram = igResult.data;
-        setUploadStatus('Gram success! 🚀');
+        if (igResult.data.previewUrl) setPreviewUrl(igResult.data.previewUrl);
+        setUploadStatus('All uploads finished successfully!');
       }
 
       setUploadStatus('All uploads completed successfully!');
@@ -160,6 +165,28 @@ export default function Home() {
         <section id="create-post-section" className="glass-card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload & Automate</h2>
           
+          {uploadStatus && (
+            <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', borderColor: 'hsl(var(--primary))' }}>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
+                {uploadStatus}
+              </p>
+              {previewUrl && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <a 
+                    href={previewUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="glass-button"
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', color: 'hsl(var(--primary))' }}
+                  >
+                    📥 Download/Preview Muxed Video
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           {session ? (
             <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -262,6 +289,25 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Muxing Fallback Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <input 
+                  type="checkbox" 
+                  id="mux-audio-toggle"
+                  checked={muxAudio}
+                  onChange={(e) => setMuxAudio(e.target.checked)}
+                  style={{ 
+                    width: '1.2rem', 
+                    height: '1.2rem', 
+                    cursor: 'pointer',
+                    accentColor: 'hsl(var(--primary))'
+                  }}
+                />
+                <label htmlFor="mux-audio-toggle" style={{ fontSize: '0.85rem', cursor: 'pointer', color: 'hsl(var(--muted-foreground))' }}>
+                  Burn Audio into Video (Required for YT Shorts Fallback)
+                </label>
               </div>
 
               <button 
