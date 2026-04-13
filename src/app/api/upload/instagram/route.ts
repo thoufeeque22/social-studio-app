@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { publishInstagramReel } from "@/lib/instagram";
+import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import fs from "fs/promises";
 import path from "path";
 
@@ -19,7 +20,10 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const caption = formData.get("title") as string; // Title used as caption for now
+    const rawCaption = formData.get("title") as string; // Title used as caption for now
+    const rawDescription = formData.get("description") as string;
+    const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
+    const musicId = (formData.get("musicId") as string) || undefined;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -43,11 +47,22 @@ export async function POST(req: NextRequest) {
 
     console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
 
-    // 3. Orchestrate the Instagram Publishing Flow
+    // 3. Enrich through Intelligence Layer
+    const enrichedContent = await generatePostContent(
+      contentMode,
+      rawCaption || file.name,
+      rawDescription,
+      "instagram"
+    );
+
+    const finalCaption = `${enrichedContent.title}\n\n${enrichedContent.description}\n\n${enrichedContent.hashtags.join(" ")}`;
+
+    // 4. Orchestrate the Instagram Publishing Flow
     const result = await publishInstagramReel({
       userId: session.user.id,
       videoUrl: videoUrl,
-      caption: caption || "",
+      caption: finalCaption,
+      musicId,
     });
 
     // 4. Cleanup: We keep the file slightly longer to ensure Meta finished fetching,

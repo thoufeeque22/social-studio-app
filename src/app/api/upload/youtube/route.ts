@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadToYouTube } from "@/lib/youtube";
+import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import fs from "fs/promises";
 import path from "path";
 import { createWriteStream } from "fs";
@@ -16,9 +17,11 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
+    const rawTitle = formData.get("title") as string;
+    const rawDescription = formData.get("description") as string;
     const privacy = (formData.get("privacy") as "private" | "public" | "unlisted") || "private";
+    const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
+    const musicId = (formData.get("musicId") as string) || undefined;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -35,13 +38,22 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(tempFilePath, buffer);
 
+    // Enrich through Intelligence Layer
+    const enrichedContent = await generatePostContent(
+      contentMode,
+      rawTitle || file.name,
+      rawDescription,
+      "youtube"
+    );
+
     // Call YouTube service
     const result = await uploadToYouTube({
       userId: session.user.id,
       filePath: tempFilePath,
-      title: title || file.name,
-      description: description || "",
+      title: enrichedContent.title,
+      description: enrichedContent.description,
       privacy,
+      musicId,
     });
 
     // Clean up temp file

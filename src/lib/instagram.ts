@@ -40,12 +40,14 @@ interface PublishReelParams {
   userId: string;
   videoUrl: string;
   caption: string;
+  musicId?: string;
 }
 
 export const publishInstagramReel = async ({
   userId,
   videoUrl,
   caption,
+  musicId,
 }: PublishReelParams) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId);
 
@@ -53,16 +55,23 @@ export const publishInstagramReel = async ({
 
   // STEP 1: Create Media Container
   const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
+  
+  const bodyPayload: any = {
+    video_url: videoUrl,
+    caption: caption,
+    media_type: "REELS",
+    share_to_feed: true,
+    access_token: userAccessToken,
+  };
+
+  if (musicId) {
+    bodyPayload.audio_id = musicId;
+  }
+
   const containerRes = await fetch(containerUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      video_url: videoUrl,
-      caption: caption,
-      media_type: "REELS",
-      share_to_feed: true,
-      access_token: userAccessToken,
-    }),
+    body: JSON.stringify(bodyPayload),
   });
 
   const containerData = await containerRes.json();

@@ -56,6 +56,7 @@ interface UploadParams {
   title: string;
   description: string;
   privacy: "private" | "public" | "unlisted";
+  musicId?: string;
 }
 
 export const uploadToYouTube = async ({
@@ -64,6 +65,7 @@ export const uploadToYouTube = async ({
   title,
   description,
   privacy = "private",
+  musicId,
 }: UploadParams) => {
   const youtube = await getYouTubeClient(userId);
 
@@ -73,7 +75,7 @@ export const uploadToYouTube = async ({
       requestBody: {
         snippet: {
           title,
-          description,
+          description: musicId ? `${description}\n\n[Auto-Attached Audio: ${musicId}]` : description,
           tags: ["SocialStudio", "Automated"],
           categoryId: "22", // People & Blogs
         },
