@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { publishInstagramReel } from "@/lib/instagram";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
-import fs from "fs/promises";
+import { promises as fs } from "fs";
+import fsSync from "fs";
 import path from "path";
 
 /**
@@ -41,7 +42,6 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(tempFilePath, buffer);
 
     // 2. Generate the Public URL for Meta Crawler
-    // IMPORTANT: This requires your app to be accessible via a Tunnel (Cloudflare, ngrok, etc.)
     const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
     const videoUrl = `${baseUrl}/api/media/${fileId}`;
 
@@ -57,6 +57,21 @@ export async function POST(req: NextRequest) {
 
     const finalCaption = `${enrichedContent.title}\n\n${enrichedContent.description}\n\n${enrichedContent.hashtags.join(" ")}`;
 
+    // If MOCK_UPLOAD is enabled, skip the actual API call
+    if (process.env.MOCK_UPLOAD === "true") {
+      console.log("🚀 [MOCK MODE] Skipping actual Instagram API publish.");
+      // Simulate API response
+      const mockResult = {
+        id: `mock-ig-${Date.now()}`,
+        status: "PUBLISHED (MOCK)"
+      };
+      
+      // Cleanup temp files immediately
+      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
+
+      return NextResponse.json({ success: true, data: mockResult });
+    }
+
     // 4. Orchestrate the Instagram Publishing Flow
     const result = await publishInstagramReel({
       userId: session.user.id,
@@ -65,15 +80,11 @@ export async function POST(req: NextRequest) {
       musicId,
     });
 
-    // 4. Cleanup: We keep the file slightly longer to ensure Meta finished fetching,
-    // though in a real-world app, we would use a webhook or a background job.
-    // For now, we'll delete it after the API call returns successfully.
-    setTimeout(async () => {
-      try {
-        await fs.unlink(tempFilePath);
-        console.log(`Cleaned up temporary file: ${fileId}`);
+           await fs.unlink(finalFilePath);
+        }
+        console.log(`Cleaned up temporary files for: ${fileId}`);
       } catch (e) {
-        console.error("Failed to cleanup temp file", e);
+        console.error("Failed to cleanup temp files", e);
       }
     }, 60000); // Wait 60 seconds to be safe
 

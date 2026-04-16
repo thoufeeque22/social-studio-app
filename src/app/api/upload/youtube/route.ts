@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadToYouTube } from "@/lib/youtube";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
-import fs from "fs/promises";
+import { getTrackById } from "@/lib/trends";
+import { promises as fs } from "fs";
+import fsSync from "fs";
 import path from "path";
-import { createWriteStream } from "fs";
-import { pipeline } from "stream/promises";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
     const rawDescription = formData.get("description") as string;
     const privacy = (formData.get("privacy") as "private" | "public" | "unlisted") || "private";
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
-    const musicId = (formData.get("musicId") as string) || undefined;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -38,7 +37,6 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(tempFilePath, buffer);
 
-    // Enrich through Intelligence Layer
     const enrichedContent = await generatePostContent(
       contentMode,
       rawTitle || file.name,
@@ -46,22 +44,39 @@ export async function POST(req: NextRequest) {
       "youtube"
     );
 
+    const finalTitle = enrichedContent.title;
+    const finalDescription = enrichedContent.description;
+
+    // If MOCK_UPLOAD is enabled, skip the actual API call
+    if (process.env.MOCK_UPLOAD === "true") {
+      console.log("🚀 [MOCK MODE] Skipping actual YouTube API upload.");
+      const mockResult = {
+        id: `mock-yt-${Date.now()}`,
+        snippet: { title: finalTitle },
+        status: { uploadStatus: "uploaded", privacyStatus: "private" }
+      };
+      
+      // Cleanup temp files immediately
+      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
+
+      return NextResponse.json({ success: true, data: mockResult });
+    }
+
     // Call YouTube service
-    const result = await uploadToYouTube({
+    const videoData = await uploadToYouTube({
       userId: session.user.id,
-      filePath: tempFilePath,
-      title: enrichedContent.title,
-      description: enrichedContent.description,
-      privacy,
-      musicId,
+      videoPath: tempFilePath,
+      title: finalTitle,
+      description: finalDescription,
+      privacy: 'private'
     });
 
-    // Clean up temp file
-    await fs.unlink(tempFilePath);
+    // Cleanup temp file
+    if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: videoData });
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

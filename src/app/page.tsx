@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { TrendingTrack } from '@/lib/trends';
 
 type StyleMode = 'Hook' | 'SEO' | 'Gen-Z' | 'Manual';
 
@@ -13,10 +12,7 @@ export default function Home() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
   
-  // AI & Trend States
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
-  const [trends, setTrends] = useState<TrendingTrack[]>([]);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
 
   useEffect(() => {
     const saved = localStorage.getItem('studio_platforms');
@@ -27,27 +23,6 @@ export default function Home() {
         console.error('Failed to load platforms', e);
       }
     }
-
-    // Fetch dynamic trends based on browser locale
-    const fetchTrends = async () => {
-      try {
-        const locale = navigator.language || 'en-US';
-        const regionCode = locale.split('-')[1] || 'US';
-        // Mocking the trend fetch purely on client side for the UI prototype, 
-        // in prod we would call an API route hitting /api/automate/trends
-        const mockTrends = [
-          { id: "12345001", title: "Midnight City (Sped Up)", artist: "M83", usages: 1540000 },
-          { id: "12345002", title: "Aesthetic Vibes", artist: "LoFi Chill", usages: 850000 },
-          { id: "12345003", title: "Funny Goofy Beat", artist: "CreatorTools", usages: 420000 },
-        ];
-        if (regionCode === 'JP') mockTrends.unshift({ id: "8888001", title: "Tokyo Drift (Fast)", artist: "Teriyaki Boyz", usages: 2100000 });
-        if (regionCode === 'IN') mockTrends.unshift({ id: "9999001", title: "Desi Trending Hook", artist: "Bollywood Beats", usages: 3500000 });
-        setTrends(mockTrends);
-      } catch (e) {
-        console.error("Failed to fetch trends", e);
-      }
-    };
-    fetchTrends();
   }, []);
 
   const stats = [
@@ -68,7 +43,6 @@ export default function Home() {
     const description = formData.get('description') as string;
 
     formData.append('contentMode', contentMode);
-    if (selectedAudioId) formData.append('musicId', selectedAudioId);
 
     if (!file || file.size === 0) {
       alert('Please select a video file.');
@@ -102,7 +76,7 @@ export default function Home() {
         const igResult = await igResponse.json();
         if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
         results.instagram = igResult.data;
-        setUploadStatus('Gram success! 🚀');
+        setUploadStatus('All uploads finished successfully!');
       }
 
       setUploadStatus('All uploads completed successfully!');
@@ -160,6 +134,15 @@ export default function Home() {
         <section id="create-post-section" className="glass-card" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload & Automate</h2>
           
+          {uploadStatus && (
+            <div className="glass-card" style={{ padding: '1rem', marginBottom: '1.5rem', borderColor: 'hsl(var(--primary))' }}>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
+                {uploadStatus}
+              </p>
+            </div>
+          )}
+
           {session ? (
             <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -241,28 +224,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Trending Music (Local Scout)</label>
-                <select 
-                  value={selectedAudioId}
-                  onChange={(e) => setSelectedAudioId(e.target.value)}
-                  style={{ 
-                    background: 'hsla(var(--muted) / 0.3)', 
-                    padding: '0.75rem 1rem', 
-                    borderRadius: '0.75rem', 
-                    border: '1px solid hsla(var(--border) / 0.5)',
-                    color: 'white',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="" style={{ color: 'black' }}>Select a trending track...</option>
-                  {trends.map(track => (
-                    <option key={track.id} value={track.id} style={{ color: 'black' }}>
-                      🎵 {track.title} - {track.artist} ({(track.usages/1000000).toFixed(1)}M uses)
-                    </option>
-                  ))}
-                </select>
-              </div>
+
 
               <button 
                 type="submit" 

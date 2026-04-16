@@ -88,8 +88,9 @@ export const publishInstagramReel = async ({
   let status = "IN_PROGRESS";
   const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
 
-  // Poll every 5 seconds, max 10 times (60s total)
-  for (let i = 0; i < 12; i++) {
+  // Poll every 5 seconds, max 60 times (5 minutes total)
+  // Licensed music or high-quality video can take longer to process on Meta's side.
+  for (let i = 0; i < 60; i++) {
     await new Promise((resolve) => setTimeout(resolve, 5000));
     
     const statusRes = await fetch(statusUrl);
