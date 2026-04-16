@@ -53,7 +53,20 @@ export default function Home() {
     const results: any = {};
 
     try {
-      // 1. YouTube Upload (Conditional)
+      // 1. TikTok Upload (Conditional)
+      if (enabledPlatforms.includes('tiktok')) {
+        setUploadStatus('Uploading to TikTok...');
+        const ttResponse = await fetch('/api/upload/tiktok', {
+          method: 'POST',
+          body: formData,
+        });
+        const ttResult = await ttResponse.json();
+        if (!ttResult.success) throw new Error(`TikTok: ${ttResult.error}`);
+        results.tiktok = ttResult.data;
+        setUploadStatus('TikTok Success! ➡️ Next...');
+      }
+
+      // 2. YouTube Upload (Conditional)
       if (enabledPlatforms.includes('youtube')) {
         setUploadStatus('Uploading to YouTube...');
         const ytResponse = await fetch('/api/upload/youtube', {
@@ -66,7 +79,7 @@ export default function Home() {
         setUploadStatus('YouTube Success! ➡️ Next...');
       }
 
-      // 2. Instagram Upload (Conditional)
+      // 3. Instagram Upload (Conditional)
       if (enabledPlatforms.includes('instagram')) {
         setUploadStatus('Uploading to Instagram Reels...');
         const igResponse = await fetch('/api/upload/instagram', {
@@ -76,7 +89,7 @@ export default function Home() {
         const igResult = await igResponse.json();
         if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
         results.instagram = igResult.data;
-        setUploadStatus('All uploads finished successfully!');
+        setUploadStatus('Instagram Success! ➡️ Next...');
       }
 
       setUploadStatus('All uploads completed successfully!');

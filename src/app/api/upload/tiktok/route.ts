@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { publishInstagramReel } from "@/lib/instagram";
+import { publishTikTokVideo } from "@/lib/tiktok";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 
-/**
- * INSTAGRAM UPLOAD HANDLER
- * This route manages the temporary storage and Meta Graph API orchestration
- * for publishing Instagram Reels.
- */
 export async function POST(req: NextRequest) {
   const session = await auth();
 
@@ -21,16 +16,15 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const rawCaption = formData.get("title") as string; // Title used as caption for now
+    const rawCaption = formData.get("title") as string;
     const rawDescription = formData.get("description") as string;
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
-    const musicId = (formData.get("musicId") as string) || undefined;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // 1. Save file to temporary storage for Meta to fetch
+    // 1. Save file to temporary storage
     const tempDir = path.join(process.cwd(), "src/tmp");
     await fs.mkdir(tempDir, { recursive: true });
 
@@ -41,29 +35,33 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(tempFilePath, buffer);
 
-    // 2. Generate the Public URL for Meta Crawler
+    // 2. Generate the Public URL for TikTok's PULL_FROM_URL
     const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
     const videoUrl = `${baseUrl}/api/media/${fileId}`;
 
-    console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
+    console.log(`Instructing TikTok to fetch from: ${videoUrl}`);
 
     // 3. Enrich through Intelligence Layer
     const enrichedContent = await generatePostContent(
       contentMode,
       rawCaption || file.name,
       rawDescription,
-      "instagram"
+      "tiktok"
     );
 
     const finalCaption = `${enrichedContent.title}\n\n${enrichedContent.description}\n\n${enrichedContent.hashtags.join(" ")}`;
+    
+    // TikTok V2 API strictly requires post_info.title to be <= 150 characters.
+    // If it exceeds this, they throw "The request post info is empty or incorrect"
+    const truncatedCaption = finalCaption.length > 145 
+        ? finalCaption.substring(0, 145) + "..." 
+        : finalCaption;
 
     // If MOCK_UPLOAD is enabled, skip the actual API call
     if (process.env.MOCK_UPLOAD === "true") {
-      console.log("🚀 [MOCK MODE] Skipping actual Instagram API publish.");
-      // Simulate API response
+      console.log("🚀 [MOCK MODE] Skipping actual TikTok API publish.");
       const mockResult = {
-        id: `mock-ig-${Date.now()}`,
-        status: "PUBLISHED (MOCK)"
+        publish_id: `mock-tt-${Date.now()}`,
       };
       
       // Cleanup temp files immediately
@@ -72,15 +70,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, data: mockResult });
     }
 
-    // 4. Orchestrate the Instagram Publishing Flow
-    const result = await publishInstagramReel({
+    // 4. Orchestrate the TikTok Publishing Flow
+    const result = await publishTikTokVideo({
       userId: session.user.id,
-      videoUrl: videoUrl,
-      caption: finalCaption,
-      musicId,
+      videoPath: tempFilePath, // Pass the local file path for binary chunk upload
+      title: truncatedCaption, // Pass the safely truncated caption
     });
 
-    // 5. Cleanup temp files after a delay to ensure Meta has fetched them
+    // 5. Cleanup temp files after a delay to ensure TikTok has fetched them
     setTimeout(async () => {
       try {
         if (fsSync.existsSync(tempFilePath)) {
@@ -94,9 +91,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
-    console.error("Instagram Upload Error:", error);
+    console.error("TikTok Upload Error:", error);
     return NextResponse.json({ 
-      error: error.message || "Instagram upload failed" 
+      error: error.message || "TikTok upload failed" 
     }, { status: 500 });
   }
 }

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadToYouTube } from "@/lib/youtube";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
-import { getTrackById } from "@/lib/trends";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
