@@ -41,6 +41,14 @@ const SettingsPage = () => {
   }, []);
 
   const handleToggle = (id: string) => {
+    if (id === 'tiktok') {
+      const platform = platforms.find(p => p.id === id);
+      if (!platform?.enabled) {
+        alert("TikTok distribution is functionally complete, but is temporarily disabled pending TikTok Developer App Audit. \n\nIn Sandbox mode, TikTok strictly requires test accounts to physically be set to 'Private Account' in the mobile app before allowing API uploads. \n\nPlease submit the app for audit to unlock public posting!");
+        return; // Do not allow enabling
+      }
+    }
+
     setPlatforms(prev => prev.map(p => 
       p.id === id ? { ...p, enabled: !p.enabled } : p
     ));
@@ -136,6 +144,40 @@ const SettingsPage = () => {
           >
             Connect Instagram
           </button>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>
+          <span>🎵</span> TikTok Connection
+        </h2>
+        <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
+              TikTok Platform
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
+              Connect your TikTok account to publish videos automatically.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button 
+              onClick={async () => {
+                const res = await fetch('/api/settings/disconnect', { method: 'POST', body: JSON.stringify({ provider: 'tiktok' }) });
+                if (res.ok) alert('TikTok Connection severed from the database! Please refresh, then sign in again.');
+                else alert('Failed to disconnect. Please ensure you are logged in.');
+              }}
+              style={{ background: 'transparent', color: '#EF4444', border: '1px solid #EF4444', padding: '0.75rem 1.0rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Disconnect
+            </button>
+            <button 
+              onClick={() => alert("TikTok integration is functionally complete, but is temporarily disabled pending TikTok Developer App Audit. \n\nIn Sandbox mode, TikTok strictly requires test accounts to physically be set to 'Private Account' in the mobile app before allowing API uploads. \n\nPlease submit the app for audit to unlock public posting!")}
+              style={{ background: 'var(--muted)', color: 'var(--muted-foreground)', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'not-allowed', fontWeight: 600 }}
+            >
+              Connect TikTok (Requires Audit)
+            </button>
+          </div>
         </div>
       </section>
 
