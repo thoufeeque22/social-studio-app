@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { publishInstagramReel } from "@/lib/instagram";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
-import { getTrackById } from "@/lib/trends";
-import { muxAudio } from "@/lib/video";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
@@ -27,7 +25,6 @@ export async function POST(req: NextRequest) {
     const rawDescription = formData.get("description") as string;
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
     const musicId = (formData.get("musicId") as string) || undefined;
-    const muxAudioFlag = formData.get("muxAudio") === "true";
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -44,26 +41,9 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(tempFilePath, buffer);
 
-    // 2. Muxing Fallback if requested
-    let finalFileId = fileId;
-    let finalFilePath = tempFilePath;
-
-    if (muxAudioFlag && musicId) {
-      console.log(`[Instagram] Muxing requested for musicId: ${musicId}`);
-      const track = await getTrackById(musicId);
-      if (track?.audioUrl) {
-        const muxedFileId = `muxed-${fileId}`;
-        const muxedFilePath = path.join(tempDir, muxedFileId);
-        await muxAudio(tempFilePath, track.audioUrl, muxedFilePath);
-        finalFileId = muxedFileId;
-        finalFilePath = muxedFilePath;
-        console.log(`[Instagram] Muxing complete. Serving: ${finalFileId}`);
-      }
-    }
-
-    // 3. Generate the Public URL for Meta Crawler
+    // 2. Generate the Public URL for Meta Crawler
     const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-    const videoUrl = `${baseUrl}/api/media/${finalFileId}`;
+    const videoUrl = `${baseUrl}/api/media/${fileId}`;
 
     console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
 
@@ -86,24 +66,10 @@ export async function POST(req: NextRequest) {
         status: "PUBLISHED (MOCK)"
       };
       
-      // In mock mode, we still cleanup after 60s so user can preview/download
-      setTimeout(async () => {
-        try {
-          if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
-          if (finalFilePath !== tempFilePath && fsSync.existsSync(finalFilePath)) {
-             await fs.unlink(finalFilePath);
-          }
-        } catch (e) {}
-      }, 60000);
+      // Cleanup temp files immediately
+      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
 
-      const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-      return NextResponse.json({ 
-        success: true, 
-        data: { 
-          ...mockResult, 
-          previewUrl: `${baseUrl}/api/media/${finalFileId}` 
-        } 
-      });
+      return NextResponse.json({ success: true, data: mockResult });
     }
 
     // 4. Orchestrate the Instagram Publishing Flow
@@ -114,13 +80,6 @@ export async function POST(req: NextRequest) {
       musicId,
     });
 
-    // 4. Cleanup: We keep the file slightly longer to ensure Meta finished fetching,
-    // though in a real-world app, we would use a webhook or a background job.
-    // For now, we'll delete it after the API call returns successfully.
-    setTimeout(async () => {
-      try {
-        if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
-        if (finalFilePath !== tempFilePath && fsSync.existsSync(finalFilePath)) {
            await fs.unlink(finalFilePath);
         }
         console.log(`Cleaned up temporary files for: ${fileId}`);

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { TrendingTrack } from '@/lib/trends';
 
 type StyleMode = 'Hook' | 'SEO' | 'Gen-Z' | 'Manual';
 
@@ -11,14 +10,9 @@ export default function Home() {
   const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
   
-  // AI & Trend States
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
-  const [trends, setTrends] = useState<TrendingTrack[]>([]);
-  const [selectedAudioId, setSelectedAudioId] = useState<string>('');
-  const [muxAudio, setMuxAudio] = useState<boolean>(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('studio_platforms');
@@ -29,27 +23,6 @@ export default function Home() {
         console.error('Failed to load platforms', e);
       }
     }
-
-    // Fetch dynamic trends based on browser locale
-    const fetchTrends = async () => {
-      try {
-        const locale = navigator.language || 'en-US';
-        const regionCode = locale.split('-')[1] || 'US';
-        // Mocking the trend fetch purely on client side for the UI prototype, 
-        // in prod we would call an API route hitting /api/automate/trends
-        const mockTrends = [
-          { id: "12345001", title: "Midnight City (Sped Up)", artist: "M83", usages: 1540000 },
-          { id: "12345002", title: "Aesthetic Vibes", artist: "LoFi Chill", usages: 850000 },
-          { id: "12345003", title: "Funny Goofy Beat", artist: "CreatorTools", usages: 420000 },
-        ];
-        if (regionCode === 'JP') mockTrends.unshift({ id: "8888001", title: "Tokyo Drift (Fast)", artist: "Teriyaki Boyz", usages: 2100000 });
-        if (regionCode === 'IN') mockTrends.unshift({ id: "9999001", title: "Desi Trending Hook", artist: "Bollywood Beats", usages: 3500000 });
-        setTrends(mockTrends);
-      } catch (e) {
-        console.error("Failed to fetch trends", e);
-      }
-    };
-    fetchTrends();
   }, []);
 
   const stats = [
@@ -70,8 +43,6 @@ export default function Home() {
     const description = formData.get('description') as string;
 
     formData.append('contentMode', contentMode);
-    if (selectedAudioId) formData.append('musicId', selectedAudioId);
-    formData.append('muxAudio', muxAudio.toString());
 
     if (!file || file.size === 0) {
       alert('Please select a video file.');
@@ -92,7 +63,6 @@ export default function Home() {
         const ytResult = await ytResponse.json();
         if (!ytResult.success) throw new Error(`YouTube: ${ytResult.error}`);
         results.youtube = ytResult.data;
-        if (ytResult.data.previewUrl) setPreviewUrl(ytResult.data.previewUrl);
         setUploadStatus('YouTube Success! ➡️ Next...');
       }
 
@@ -106,7 +76,6 @@ export default function Home() {
         const igResult = await igResponse.json();
         if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
         results.instagram = igResult.data;
-        if (igResult.data.previewUrl) setPreviewUrl(igResult.data.previewUrl);
         setUploadStatus('All uploads finished successfully!');
       }
 
@@ -171,19 +140,6 @@ export default function Home() {
                 <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
                 {uploadStatus}
               </p>
-              {previewUrl && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <a 
-                    href={previewUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="glass-button"
-                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', color: 'hsl(var(--primary))' }}
-                  >
-                    📥 Download/Preview Muxed Video
-                  </a>
-                </div>
-              )}
             </div>
           )}
 
@@ -268,47 +224,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Trending Music (Local Scout)</label>
-                <select 
-                  value={selectedAudioId}
-                  onChange={(e) => setSelectedAudioId(e.target.value)}
-                  style={{ 
-                    background: 'hsla(var(--muted) / 0.3)', 
-                    padding: '0.75rem 1rem', 
-                    borderRadius: '0.75rem', 
-                    border: '1px solid hsla(var(--border) / 0.5)',
-                    color: 'white',
-                    outline: 'none'
-                  }}
-                >
-                  <option value="" style={{ color: 'black' }}>Select a trending track...</option>
-                  {trends.map(track => (
-                    <option key={track.id} value={track.id} style={{ color: 'black' }}>
-                      🎵 {track.title} - {track.artist} ({(track.usages/1000000).toFixed(1)}M uses)
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Muxing Fallback Toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <input 
-                  type="checkbox" 
-                  id="mux-audio-toggle"
-                  checked={muxAudio}
-                  onChange={(e) => setMuxAudio(e.target.checked)}
-                  style={{ 
-                    width: '1.2rem', 
-                    height: '1.2rem', 
-                    cursor: 'pointer',
-                    accentColor: 'hsl(var(--primary))'
-                  }}
-                />
-                <label htmlFor="mux-audio-toggle" style={{ fontSize: '0.85rem', cursor: 'pointer', color: 'hsl(var(--muted-foreground))' }}>
-                  Burn Audio into Video (Required for YT Shorts Fallback)
-                </label>
-              </div>
 
               <button 
                 type="submit" 

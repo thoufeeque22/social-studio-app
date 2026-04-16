@@ -3,12 +3,9 @@ import { auth } from "@/auth";
 import { uploadToYouTube } from "@/lib/youtube";
 import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import { getTrackById } from "@/lib/trends";
-import { muxAudio } from "@/lib/video";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
-import { createWriteStream } from "fs";
-import { pipeline } from "stream/promises";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,8 +21,6 @@ export async function POST(req: NextRequest) {
     const rawDescription = formData.get("description") as string;
     const privacy = (formData.get("privacy") as "private" | "public" | "unlisted") || "private";
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
-    const musicId = (formData.get("musicId") as string) || undefined;
-    const muxAudioFlag = formData.get("muxAudio") === "true";
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -49,68 +44,39 @@ export async function POST(req: NextRequest) {
       "youtube"
     );
 
-    let finalVideoPath = tempFilePath;
-    const muxedFilePath = path.join(tempDir, `muxed-${Date.now()}-${file.name}`);
-
-    // If Muxing is requested and we have a musicId, perform it!
-    if (muxAudioFlag && musicId) {
-      console.log(`Muxing requested for musicId: ${musicId}`);
-      const track = await getTrackById(musicId);
-      if (track?.audioUrl) {
-        await muxAudio(tempFilePath, track.audioUrl, muxedFilePath);
-        finalVideoPath = muxedFilePath;
-      }
-    }
+    const finalTitle = enrichedContent.title;
+    const finalDescription = enrichedContent.description;
 
     // If MOCK_UPLOAD is enabled, skip the actual API call
     if (process.env.MOCK_UPLOAD === "true") {
       console.log("🚀 [MOCK MODE] Skipping actual YouTube API upload.");
-      // Simulate API response
       const mockResult = {
         id: `mock-yt-${Date.now()}`,
-        snippet: { title: enrichedContent.title },
-        status: { uploadStatus: "uploaded", privacyStatus: privacy }
+        snippet: { title: finalTitle },
+        status: { uploadStatus: "uploaded", privacyStatus: "private" }
       };
       
-      // Cleanup temp files after a delay to allow for preview/download
-      setTimeout(async () => {
-        try {
-          if (fsSync.existsSync(tempFilePath)) await fsSync.promises.unlink(tempFilePath);
-          if (finalVideoPath === muxedFilePath && fsSync.existsSync(muxedFilePath)) {
-            await fsSync.promises.unlink(muxedFilePath);
-          }
-        } catch (e) {}
-      }, 60000);
+      // Cleanup temp files immediately
+      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
 
-      const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-      return NextResponse.json({ 
-        success: true, 
-        data: { 
-          ...mockResult, 
-          previewUrl: `${baseUrl}/api/media/${path.basename(finalVideoPath)}` 
-        } 
-      });
+      return NextResponse.json({ success: true, data: mockResult });
     }
 
     // Call YouTube service
-    const result = await uploadToYouTube({
+    const videoData = await uploadToYouTube({
       userId: session.user.id,
-      filePath: finalVideoPath,
-      title: enrichedContent.title,
-      description: enrichedContent.description,
-      privacy,
-      musicId,
+      videoPath: tempFilePath,
+      title: finalTitle,
+      description: finalDescription,
+      privacy: 'private'
     });
 
-    // Clean up temp files
-    await fs.unlink(tempFilePath);
-    if (finalVideoPath === muxedFilePath) {
-      await fs.unlink(muxedFilePath);
-    }
+    // Cleanup temp file
+    if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: videoData });
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
