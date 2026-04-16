@@ -80,7 +80,11 @@ export async function POST(req: NextRequest) {
       musicId,
     });
 
-           await fs.unlink(finalFilePath);
+    // 5. Cleanup temp files after a delay to ensure Meta has fetched them
+    setTimeout(async () => {
+      try {
+        if (fsSync.existsSync(tempFilePath)) {
+          await fs.unlink(tempFilePath);
         }
         console.log(`Cleaned up temporary files for: ${fileId}`);
       } catch (e) {
