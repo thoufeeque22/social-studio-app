@@ -4,6 +4,7 @@ This document tracks future features and improvements for the Social Studio App.
 
 ## High Priority 🚀
 - [x] **Initial Project Structure**: Next.js + Tailwind (v4) setup.
+- [x] **Project Modularization**: Refactored monolithic pages into reusable components and shared hooks for better maintainability.
 - [x] **YouTube Direct Upload**: OAuth2 integration for Shorts/Videos.
 - [x] **Instagram Reels Native Integration**: Direct API connection for cross-posting Reels & Graph API Orchestration.
 - [x] **Remove FFmpeg Muxing engine**: Completely stripped the Muxing/Audio-Burn feature to return to a stable, native-audio-only upload system.
