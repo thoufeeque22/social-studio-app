@@ -9,7 +9,7 @@ This document tracks future features and improvements for the Social Studio App.
 4. [x] **Remove FFmpeg Muxing engine**: Completely stripped the Muxing/Audio-Burn feature to return to a stable, native-audio-only upload system.
 5. [x] **Main App Authentication & Authorization (A&A)**: Secure the application with robust user accounts and roles.
 6. [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
-7. [ ] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
+7. [x] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
 8. [ ] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
 9. [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
 10. [ ] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
