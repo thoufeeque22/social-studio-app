@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import styles from './Header.module.css';
 
 const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const handleCreateClick = () => {
     if (pathname === '/') {
@@ -37,6 +39,27 @@ const Header = () => {
           <span className={styles.btnPlus}>+</span>
           Create Post
         </button>
+
+        {session?.user && (
+          <div className={styles.userProfile}>
+            {session.user.image ? (
+              <img src={session.user.image} alt="User" className={styles.userAvatar} />
+            ) : (
+              <div className={styles.userAvatar}>
+                {session.user.name?.charAt(0) || 'U'}
+              </div>
+            )}
+            <div className={styles.userDetails}>
+              <span className={styles.userName}>{session.user.name}</span>
+              <button 
+                className={styles.logoutBtn}
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

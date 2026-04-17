@@ -169,7 +169,6 @@ export default function Home() {
             </div>
           )}
 
-          {session ? (
             <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
@@ -277,18 +276,6 @@ export default function Home() {
                 </p>
               )}
             </form>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <p style={{ marginBottom: '1.5rem', color: 'hsl(var(--muted-foreground))' }}>
-                Please connect your account in Settings to start uploading.
-              </p>
-              <Link href="/settings">
-                <button style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-                  Go to Settings
-                </button>
-              </Link>
-            </div>
-          )}
         </section>
 
         {/* Info Box */}

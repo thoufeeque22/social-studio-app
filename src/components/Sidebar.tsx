@@ -1,8 +1,12 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
+  const { data: session } = useSession();
   const menuItems = [
     { name: 'Dashboard', icon: '📊', path: '/' },
     { name: 'Media Gallery', icon: '🖼️', path: '/media' },
@@ -27,13 +31,19 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      <div className={styles.userProfile}>
-        <div className={styles.avatar}>T</div>
-        <div className={styles.userInfo}>
-          <span className={styles.userName}>Thoufeeque</span>
-          <span className={styles.userRole}>Admin</span>
+      {session?.user && (
+        <div className={styles.userProfile}>
+          {session.user.image ? (
+            <img src={session.user.image} alt="User" className={styles.avatar} style={{ objectFit: 'cover' }} />
+          ) : (
+            <div className={styles.avatar}>{session.user.name?.charAt(0) || 'U'}</div>
+          )}
+          <div className={styles.userInfo}>
+            <span className={styles.userName}>{session.user.name}</span>
+            <span className={styles.userRole}>Creator Account</span>
+          </div>
         </div>
-      </div>
+      )}
     </aside>
   );
 };
