@@ -33,12 +33,8 @@ This document tracks future features and improvements for the Social Studio App.
 24. [ ] **Video Preview**: Integrated video player to review content before posting.
 25. [ ] **Support Email**: Set up and display support contact information.
 26. [ ] **Dark/Light Mode Toggle**: Professional theme switching.
-
-## Legal & Compliance ⚖️
 27. [ ] **Terms and Conditions**: Draft and implement T&Cs for users.
 28. [ ] **Policies**: Draft and implement Privacy Policy and other required documentation.
 29. [ ] **Documentation**: Create user enablement and developer documentation.
 30. [ ] **Legal Review**: General review to ensure the app abides by relevant laws and regulations.
-
-## Internal Admin Tasks 🔒
 31. [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
