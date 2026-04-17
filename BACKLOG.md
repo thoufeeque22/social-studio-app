@@ -19,6 +19,7 @@ This document tracks future features and improvements for the Social Studio App.
 14. [ ] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
 15. [ ] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
 16. [ ] **Long Format Video Support**: Support for uploading and managing long-form content.
+17. [ ] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
 
 ## Medium Priority 📈
 17. [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram.
@@ -27,6 +28,8 @@ This document tracks future features and improvements for the Social Studio App.
 20. [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions.
 21. [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 22. [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
+23. [ ] **Stop/Abort Posting**: Add a button to stop or abort the remaining platform uploads in a sequential flow.
+24. [ ] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially.
 
 ## Low Priority 🛠️
 23. [x] **Header Navigation**: "Create Post" active scrolling.
