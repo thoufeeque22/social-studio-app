@@ -140,9 +140,31 @@ const SettingsPage = () => {
           </div>
           <button 
             onClick={() => signIn('facebook')}
-            style={{ background: '#1877F2', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(214, 89%, 52%, 0.2)' }}
+            style={{ background: '#E1306C', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(340, 75%, 54%, 0.2)' }}
           >
             Connect Instagram
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>
+          <span>👥</span> Facebook Connection
+        </h2>
+        <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
+              Facebook Page
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))' }}>
+              Connect your Facebook account to post directly to your Facebook Pages.
+            </p>
+          </div>
+          <button 
+            onClick={() => signIn('facebook')}
+            style={{ background: '#1877F2', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px hsla(214, 89%, 52%, 0.2)' }}
+          >
+            Connect Facebook
           </button>
         </div>
       </section>

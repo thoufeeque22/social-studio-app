@@ -92,6 +92,19 @@ export default function Home() {
         setUploadStatus('Instagram Success! ➡️ Next...');
       }
 
+      // 4. Facebook Native Upload (Conditional)
+      if (enabledPlatforms.includes('facebook')) {
+        setUploadStatus('Uploading to Facebook Page...');
+        const fbResponse = await fetch('/api/upload/facebook', {
+          method: 'POST',
+          body: formData,
+        });
+        const fbResult = await fbResponse.json();
+        if (!fbResult.success) throw new Error(`Facebook: ${fbResult.error}`);
+        results.facebook = fbResult.data;
+        setUploadStatus('Facebook Success! ➡️ Next...');
+      }
+
       setUploadStatus('All uploads completed successfully!');
       form.reset();
       alert('Post completed across active platforms!');
