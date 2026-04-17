@@ -18,15 +18,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           prompt: "consent",
         },
       },
+      allowDangerousEmailAccountLinking: true,
     }),
     Facebook({
       clientId: process.env.AUTH_FACEBOOK_ID,
       clientSecret: process.env.AUTH_FACEBOOK_SECRET,
       authorization: {
         params: {
-          scope: "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement",
+          scope: "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts",
         },
       },
+      allowDangerousEmailAccountLinking: true,
     }),
     TikTok({
       clientId: process.env.AUTH_TIKTOK_ID,
@@ -47,9 +49,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       // Disable PKCE for TikTok because they do not support `code_verifier` parameter
       checks: ["state"],
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      return true;
+    },
     async session({ session, user }) {
       return session;
     },
