@@ -12,12 +12,12 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
 - [x] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
 - [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
-- [ ] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
+- [x] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
 - [ ] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections.
-- [ ] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform.
+- [x] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform.
 - [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow.
 - [ ] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
-- [ ] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
+- [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
 - [ ] **Long Format Video Support**: Support for uploading and managing long-form content.
 - [ ] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
 
