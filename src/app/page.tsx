@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { getUserPlatforms } from './actions/user';
 
 type StyleMode = 'Hook' | 'SEO' | 'Gen-Z' | 'Manual';
 
@@ -15,14 +16,25 @@ export default function Home() {
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
 
   useEffect(() => {
-    const saved = localStorage.getItem('studio_platforms');
-    if (saved) {
-      try {
-        setEnabledPlatforms(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load platforms', e);
+    async function fetchPlatforms() {
+      const dbPlatforms = await getUserPlatforms();
+      setEnabledPlatforms(dbPlatforms);
+      
+      // Secondary check: if DB is empty, check if we still have local data just in case
+      // though the source of truth is now the DB.
+      if (dbPlatforms.length === 0) {
+        const saved = localStorage.getItem('studio_platforms');
+        if (saved) {
+          try {
+            setEnabledPlatforms(JSON.parse(saved));
+          } catch (e) {
+            console.error('Failed to load platforms', e);
+          }
+        }
       }
     }
+    
+    fetchPlatforms();
   }, []);
 
   const stats = [

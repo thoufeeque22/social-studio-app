@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { getUserPlatforms, updateUserPlatforms } from '@/app/actions/user';
 import styles from './Settings.module.css';
 
 interface Platform {
@@ -26,18 +27,43 @@ const SettingsPage = () => {
 
   // Load from database/API on mount
   useEffect(() => {
-    const savedPlatforms = localStorage.getItem('studio_platforms');
-    if (savedPlatforms) {
-      try {
-        const parsed = JSON.parse(savedPlatforms);
+    async function loadSettings() {
+      // 1. Fetch from DB
+      const dbPlatforms = await getUserPlatforms();
+      
+      // 2. Check for legacy localStorage data
+      const savedLocal = localStorage.getItem('studio_platforms');
+      
+      if (dbPlatforms.length > 0) {
+        // DB is the source of truth
         setPlatforms(prev => prev.map(p => ({
           ...p,
-          enabled: parsed.includes(p.id)
+          enabled: dbPlatforms.includes(p.id)
         })));
-      } catch (e) {
-        console.error('Failed to load settings', e);
+        
+        // Cleanup local storage if it was still there
+        if (savedLocal) localStorage.removeItem('studio_platforms');
+      } 
+      else if (savedLocal) {
+        // Migration logic: No DB data yet, but we have local data
+        try {
+          const parsed = JSON.parse(savedLocal);
+          setPlatforms(prev => prev.map(p => ({
+            ...p,
+            enabled: parsed.includes(p.id)
+          })));
+          
+          // Persist migration to DB immediately
+          await updateUserPlatforms(parsed);
+          localStorage.removeItem('studio_platforms');
+          console.log('Successfully migrated settings from localStorage to Database.');
+        } catch (e) {
+          console.error('Failed to migrate local settings', e);
+        }
       }
     }
+
+    loadSettings();
   }, []);
 
   const handleToggle = (id: string) => {
@@ -58,13 +84,18 @@ const SettingsPage = () => {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Save platforms to localStorage
-    const enabledIds = platforms.filter(p => p.enabled).map(p => p.id);
-    localStorage.setItem('studio_platforms', JSON.stringify(enabledIds));
-    
-    setHasUnsavedChanges(false);
-    setIsSaving(false);
-    alert('Settings saved successfully!');
+    try {
+      const enabledIds = platforms.filter(p => p.enabled).map(p => p.id);
+      await updateUserPlatforms(enabledIds);
+      
+      setHasUnsavedChanges(false);
+      alert('Settings saved successfully to your cloud profile!');
+    } catch (e) {
+      console.error('Failed to save settings', e);
+      alert('Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
