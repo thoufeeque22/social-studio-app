@@ -45,7 +45,9 @@ describe('Dashboard Account Selection', () => {
     const ytBtn = screen.getByRole('button', { name: 'youtube: @thoufiq.ar' });
     const otherBtn = screen.getByRole('button', { name: 'youtube: @other.channel' });
 
-    expect(ytBtn).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => {
+      expect(ytBtn).toHaveAttribute('aria-pressed', 'true');
+    });
     expect(otherBtn).toHaveAttribute('aria-pressed', 'false');
 
     // Toggle YT 1 off
@@ -60,7 +62,9 @@ describe('Dashboard Account Selection', () => {
   it('submits successfully to multiple platforms', async () => {
     render(<Home />);
     
-    await waitFor(() => screen.getByText('@thoufiq.ar'));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'youtube: @thoufiq.ar' })).toHaveAttribute('aria-pressed', 'true');
+    });
 
     // 1. Fill fields
     fireEvent.change(screen.getByPlaceholderText(/catchy title/i), { target: { value: 'Test Title' } });
