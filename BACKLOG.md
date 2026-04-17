@@ -15,7 +15,7 @@ This document tracks future features and improvements for the Social Studio App.
 10. [ ] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
 11. [ ] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections.
 12. [ ] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform.
-13. [x] **Testing Infrastructure**: Configured Vitest and migrated legacy unit tests.
+13. [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow.
 14. [ ] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
 15. [ ] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
 16. [ ] **Long Format Video Support**: Support for uploading and managing long-form content.
