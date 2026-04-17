@@ -21,6 +21,8 @@ This document tracks future features and improvements for the Social Studio App.
 14. [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions.
 15. [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 16. [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
+17. [ ] **Autonomous Multi-Agent Crew**: Integrate CrewAI/MetaGPT to handle complex, multi-step workflows (e.g., Ideator -> Scriptwriter -> Reviewer -> Publisher) autonomously.
+
 
 ## Low Priority 🛠️
 17. [ ] **Video Preview**: Integrated video player to review content before posting.
