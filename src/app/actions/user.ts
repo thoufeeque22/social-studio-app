@@ -5,46 +5,43 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 /**
- * Fetches the enabled platforms for the current authenticated user.
+ * Fetches all connected accounts for the current authenticated user.
  */
-export async function getUserPlatforms() {
+export async function getUserAccounts() {
   const session = await auth();
   
   if (!session?.user?.id) {
     return [];
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { enabledPlatforms: true }
+  return await prisma.account.findMany({
+    where: { userId: session.user.id },
+    select: {
+      id: true,
+      provider: true,
+      accountName: true,
+      isDistributionEnabled: true,
+    }
   });
-
-  if (!user?.enabledPlatforms) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(user.enabledPlatforms) as string[];
-  } catch (e) {
-    console.error("Failed to parse user platforms:", e);
-    return [];
-  }
 }
 
 /**
- * Updates the enabled platforms for the current authenticated user.
+ * Toggles the distribution status for a specific connected account.
  */
-export async function updateUserPlatforms(platforms: string[]) {
+export async function toggleAccountDistribution(accountId: string, isEnabled: boolean) {
   const session = await auth();
   
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id },
+  await prisma.account.update({
+    where: { 
+      id: accountId,
+      userId: session.user.id // Security check
+    },
     data: {
-      enabledPlatforms: JSON.stringify(platforms)
+      isDistributionEnabled: isEnabled
     }
   });
 

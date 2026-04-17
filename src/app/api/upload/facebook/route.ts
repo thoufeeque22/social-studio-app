@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File;
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const accountId = formData.get("accountId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
       videoUrl: videoUrl,
       title: title || file.name,
       description: description || "",
+      accountId,
     });
 
     // 4. Cleanup temp file

@@ -1,15 +1,12 @@
 import { prisma } from "./prisma";
 
-export const getFacebookPageAccount = async (userId: string) => {
-  const account = await prisma.account.findFirst({
-    where: {
-      userId,
-      provider: "facebook",
-    },
-  });
+export const getFacebookPageAccount = async (userId: string, accountId?: string) => {
+  const account = accountId
+    ? await prisma.account.findUnique({ where: { id: accountId, userId } })
+    : await prisma.account.findFirst({ where: { userId, provider: "facebook" } });
 
   if (!account || !account.access_token) {
-    throw new Error("No Facebook account connected for this user.");
+    throw new Error("Specified Facebook account not found.");
   }
 
   // Fetch the list of pages the user manages
@@ -45,8 +42,9 @@ export const publishFacebookVideo = async ({
   videoUrl,
   title,
   description,
-}: PublishFacebookVideoParams) => {
-  const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId);
+  accountId,
+}: PublishFacebookVideoParams & { accountId?: string }) => {
+  const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
 
   console.log(`Starting Facebook Native auto-post for Page: ${pageName} (${pageId})`);
 

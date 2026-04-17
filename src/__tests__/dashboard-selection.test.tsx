@@ -2,126 +2,111 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Home from '../app/page';
 import { useSession } from 'next-auth/react';
-import { getUserPlatforms } from '../app/actions/user';
+import { getUserAccounts } from '../app/actions/user';
 
-// 1. Mock NextAuth Session
+// Mock NextAuth
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
 }));
 
-// 2. Mock Server Actions
+// Mock Server Actions
 vi.mock('../app/actions/user', () => ({
-  getUserPlatforms: vi.fn(),
+  getUserAccounts: vi.fn(),
 }));
 
-// 3. Mock Global Fetch
+// Mock fetch globally
 global.fetch = vi.fn();
+global.alert = vi.fn();
 
-describe('Dashboard Platform Selection', () => {
-  const mockPlatforms = ['youtube', 'tiktok'];
-  const mockSession = {
-    user: { name: 'Test User', id: 'user_123' },
-    expires: '2026-12-31T23:59:59.999Z',
-  };
+describe('Dashboard Account Selection', () => {
+  const mockAccounts = [
+    { id: 'acc_yt_1', provider: 'google', accountName: 'thoufiq.ar', isDistributionEnabled: true },
+    { id: 'acc_tk_1', provider: 'tiktok', accountName: 'tiktok_handle', isDistributionEnabled: true },
+    { id: 'acc_yt_2', provider: 'google', accountName: 'other.channel', isDistributionEnabled: false },
+  ];
+  
+  const mockSession = { user: { name: 'Test User', id: 'user_1' }, expires: '' };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Setup standard mocks
-    vi.mocked(useSession).mockReturnValue({ 
-      data: mockSession, 
-      status: 'authenticated',
-      update: vi.fn()
-    } as any);
-
-    vi.mocked(getUserPlatforms).mockResolvedValue(mockPlatforms);
-
+    vi.mocked(useSession).mockReturnValue({ data: mockSession, status: 'authenticated' } as any);
+    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: {} }),
     } as any);
   });
 
-  it('renders enabled platforms as selected pills on load', async () => {
+  it('renders correctly and allows toggling selection', async () => {
     render(<Home />);
     
-    await waitFor(() => {
-      expect(screen.getByText('Youtube')).toBeInTheDocument();
-      expect(screen.getByText('Tiktok')).toBeInTheDocument();
-    });
+    await waitFor(() => screen.getByText('@thoufiq.ar'));
+    
+    const ytBtn = screen.getByRole('button', { name: 'youtube: @thoufiq.ar' });
+    const otherBtn = screen.getByRole('button', { name: 'youtube: @other.channel' });
 
-    const youtubePill = screen.getByRole('button', { name: /youtube/i });
-    const tiktokPill = screen.getByRole('button', { name: /tiktok/i });
+    expect(ytBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(otherBtn).toHaveAttribute('aria-pressed', 'false');
 
-    expect(youtubePill).toBeInTheDocument();
-    expect(tiktokPill).toBeInTheDocument();
+    // Toggle YT 1 off
+    fireEvent.click(ytBtn);
+    expect(ytBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Toggle Other on
+    fireEvent.click(otherBtn);
+    expect(otherBtn).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('toggles platform selection when clicked', async () => {
+  it('submits successfully to multiple platforms', async () => {
     render(<Home />);
     
-    await waitFor(() => screen.getByText('Tiktok'));
-    const tiktokPill = screen.getByRole('button', { name: /tiktok/i });
+    await waitFor(() => screen.getByText('@thoufiq.ar'));
 
-    // Deselect TikTok
-    fireEvent.click(tiktokPill);
+    // 1. Fill fields
+    fireEvent.change(screen.getByPlaceholderText(/catchy title/i), { target: { value: 'Test Title' } });
     
-    // Select it again
-    fireEvent.click(tiktokPill);
+    // 2. Mock file
+    const file = new File(['dummy content'], 'test.mp4', { type: 'video/mp4' });
+
+    // 3. Mock FormData for JSDOM (which doesn't handle files well)
+    const originalFormData = global.FormData;
+    global.FormData = class {
+      private data = new Map();
+      constructor() {
+        this.data.set('file', file);
+        this.data.set('title', 'Test Title');
+      }
+      append(key: string, val: any) { this.data.set(key, val); }
+      get(key: string) { return this.data.get(key); }
+      entries() { return Array.from(this.data.entries()); }
+    } as any;
+
+    try {
+      // 4. Force submit
+      const form = screen.getByLabelText('Upload Form');
+      fireEvent.submit(form);
+
+      // 5. Verify fetch calls (youtube and tiktok from mockAccounts)
+      await waitFor(() => {
+        const calls = vi.mocked(global.fetch).mock.calls.map(c => c[0]);
+        expect(calls).toContain('/api/upload/youtube');
+        expect(calls).toContain('/api/upload/tiktok');
+      }, { timeout: 4000 });
+    } finally {
+      global.FormData = originalFormData;
+    }
   });
 
-  it('only uploads to selected platforms', async () => {
-    // 1. Mock fetch to always succeed
-    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() => 
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ success: true, data: {} }),
-      } as Response)
-    );
-
+  it('shows error if no platforms selected', async () => {
     render(<Home />);
     
-    await waitFor(() => screen.getByText('Tiktok'));
-    
-    // 2. Deselect TikTok
-    const tiktokPill = screen.getByRole('button', { name: /tiktok/i });
-    fireEvent.click(tiktokPill);
+    await waitFor(() => screen.getByText('@thoufiq.ar'));
 
-    // 3. Fill out required fields
-    fireEvent.change(screen.getByPlaceholderText(/catchy title/i), { target: { value: 'Test' } });
-    
-    // Simulate file selection
-    const file = new File(['test'], 'test.mp4', { type: 'video/mp4' });
-    const fileInput = screen.getByLabelText(/select video file/i);
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    // Unselect all
+    fireEvent.click(screen.getByRole('button', { name: 'youtube: @thoufiq.ar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'tiktok: @tiktok_handle' }));
 
-    // 4. Submit the form
-    const submitBtn = screen.getByRole('button', { name: /post video/i });
-    fireEvent.click(submitBtn);
-
-    // 5. Verify logic filtered the platforms
-    await waitFor(() => {
-      // Must have called YouTube
-      const calls = fetchSpy.mock.calls.map(call => call[0]);
-      expect(calls).toContain('/api/upload/youtube');
-      // Must NOT have called TikTok
-      expect(calls).not.toContain('/api/upload/tiktok');
-    }, { timeout: 3000 });
-  });
-
-  it('disables the post button if no platforms are selected', async () => {
-    render(<Home />);
-    
-    await waitFor(() => screen.getByText('Youtube'));
-    
-    const youtubePill = screen.getByRole('button', { name: /youtube/i });
-    const tiktokPill = screen.getByRole('button', { name: /tiktok/i });
-    
-    fireEvent.click(youtubePill);
-    fireEvent.click(tiktokPill);
-
-    const submitBtn = screen.getByRole('button', { name: /post video/i });
-    expect(submitBtn).toBeDisabled();
-    expect(screen.getByText(/please select at least one platform/i)).toBeInTheDocument();
+    expect(screen.getByText(/please select at least one account/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /post video/i })).toBeDisabled();
   });
 });

@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     const rawCaption = formData.get("title") as string;
     const rawDescription = formData.get("description") as string;
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
+    const accountId = formData.get("accountId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       videoPath: tempFilePath, // Pass the local file path for binary chunk upload
       title: truncatedCaption, // Pass the safely truncated caption
+      accountId,
     });
 
     // 5. Cleanup temp files after a delay to ensure TikTok has fetched them

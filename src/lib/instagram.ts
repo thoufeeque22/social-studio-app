@@ -1,15 +1,12 @@
 import { prisma } from "./prisma";
 
-export const getInstagramAccount = async (userId: string) => {
-  const account = await prisma.account.findFirst({
-    where: {
-      userId,
-      provider: "facebook",
-    },
-  });
+export const getInstagramAccount = async (userId: string, accountId?: string) => {
+  const account = accountId
+    ? await prisma.account.findUnique({ where: { id: accountId, userId } })
+    : await prisma.account.findFirst({ where: { userId, provider: "facebook" } });
 
   if (!account || !account.access_token) {
-    throw new Error("No Facebook account connected for this user.");
+    throw new Error("Specified Facebook account for Instagram not found.");
   }
 
   // 1. Get the Facebook Page linked to an Instagram Business Account
@@ -48,8 +45,9 @@ export const publishInstagramReel = async ({
   videoUrl,
   caption,
   musicId,
-}: PublishReelParams) => {
-  const { igUserId, userAccessToken } = await getInstagramAccount(userId);
+  accountId,
+}: PublishReelParams & { accountId?: string }) => {
+  const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
 
   console.log(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
 

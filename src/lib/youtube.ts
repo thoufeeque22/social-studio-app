@@ -2,16 +2,14 @@ import { google } from "googleapis";
 import { prisma } from "./prisma";
 import fs from "fs";
 
-export const getYouTubeClient = async (userId: string) => {
-  const account = await prisma.account.findFirst({
-    where: {
-      userId,
-      provider: "google",
-    },
-  });
+export const getYouTubeClient = async (userId: string, accountId?: string) => {
+  // If accountId is provided, fetch specific account. Otherwise, fallback to findFirst (legacy).
+  const account = accountId 
+    ? await prisma.account.findUnique({ where: { id: accountId, userId } })
+    : await prisma.account.findFirst({ where: { userId, provider: "google" } });
 
   if (!account) {
-    throw new Error("No Google account connected for this user.");
+    throw new Error("Specified YouTube account not found for this user.");
   }
 
   const auth = new google.auth.OAuth2(
@@ -66,8 +64,9 @@ export const uploadToYouTube = async ({
   description,
   privacy = "private",
   musicId,
-}: UploadParams) => {
-  const youtube = await getYouTubeClient(userId);
+  accountId,
+}: UploadParams & { accountId?: string }) => {
+  const youtube = await getYouTubeClient(userId, accountId);
 
   const res = await youtube.videos.insert(
     {

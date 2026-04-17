@@ -9,16 +9,13 @@ interface PublishTikTokParams {
   privacy?: "PUBLIC_TO_EVERYONE" | "MUTUAL_FOLLOW_FRIENDS" | "FOLLOWER_OF_CREATOR" | "SELF_ONLY";
 }
 
-export const getTikTokAccount = async (userId: string) => {
-  const account = await prisma.account.findFirst({
-    where: {
-      userId,
-      provider: "tiktok",
-    },
-  });
+export const getTikTokAccount = async (userId: string, accountId?: string) => {
+  const account = accountId
+    ? await prisma.account.findUnique({ where: { id: accountId, userId } })
+    : await prisma.account.findFirst({ where: { userId, provider: "tiktok" } });
 
   if (!account || !account.access_token) {
-    throw new Error("No TikTok account connected for this user.");
+    throw new Error("Specified TikTok account not found for this user.");
   }
 
   return account;
@@ -29,8 +26,9 @@ export const publishTikTokVideo = async ({
   videoPath,
   title,
   privacy = "SELF_ONLY",
-}: PublishTikTokParams) => {
-  const account = await getTikTokAccount(userId);
+  accountId,
+}: PublishTikTokParams & { accountId?: string }) => {
+  const account = await getTikTokAccount(userId, accountId);
 
   console.log(`Starting TikTok video upload for User ID: ${userId}`);
 

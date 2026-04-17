@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { getUserPlatforms } from './actions/user';
+import { getUserAccounts } from './actions/user';
+import { Account } from '@/lib/types';
+import { formatHandle } from '@/lib/utils';
 
 type StyleMode = 'Hook' | 'SEO' | 'Gen-Z' | 'Manual';
 
@@ -11,34 +13,20 @@ export default function Home() {
   const { data: session } = useSession();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
 
   useEffect(() => {
-    async function fetchPlatforms() {
-      const dbPlatforms = await getUserPlatforms();
-      setEnabledPlatforms(dbPlatforms);
-      setSelectedPlatforms(dbPlatforms); // Initially select all enabled
-      
-      // Secondary check: if DB is empty, check if we still have local data just in case
-      // though the source of truth is now the DB.
-      if (dbPlatforms.length === 0) {
-        const saved = localStorage.getItem('studio_platforms');
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            setEnabledPlatforms(parsed);
-            setSelectedPlatforms(parsed);
-          } catch (e) {
-            console.error('Failed to load platforms', e);
-          }
-        }
-      }
+    async function fetchAccounts() {
+      const dbAccounts = await getUserAccounts();
+      setAccounts(dbAccounts);
+      // Select all accounts that are enabled for distribution by default
+      setSelectedAccountIds(dbAccounts.filter(a => a.isDistributionEnabled).map(a => a.id));
     }
     
-    fetchPlatforms();
+    fetchAccounts();
   }, []);
 
   const stats = [
@@ -55,11 +43,7 @@ export default function Home() {
     const form = e.currentTarget;
     const formData = new FormData(form);
     const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-
-    formData.append('contentMode', contentMode);
-
+    
     if (!file || file.size === 0) {
       alert('Please select a video file.');
       return;
@@ -69,62 +53,40 @@ export default function Home() {
     const results: any = {};
 
     try {
-      // 1. TikTok Upload (Conditional)
-      if (selectedPlatforms.includes('tiktok')) {
-        setUploadStatus('Uploading to TikTok...');
-        const ttResponse = await fetch('/api/upload/tiktok', {
-          method: 'POST',
-          body: formData,
-        });
-        const ttResult = await ttResponse.json();
-        if (!ttResult.success) throw new Error(`TikTok: ${ttResult.error}`);
-        results.tiktok = ttResult.data;
-        setUploadStatus('TikTok Success! ➡️ Next...');
-      }
+      // Filter segments of accounts we need to upload to
+      const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
 
-      // 2. YouTube Upload (Conditional)
-      if (selectedPlatforms.includes('youtube')) {
-        setUploadStatus('Uploading to YouTube...');
-        const ytResponse = await fetch('/api/upload/youtube', {
-          method: 'POST',
-          body: formData,
-        });
-        const ytResult = await ytResponse.json();
-        if (!ytResult.success) throw new Error(`YouTube: ${ytResult.error}`);
-        results.youtube = ytResult.data;
-        setUploadStatus('YouTube Success! ➡️ Next...');
-      }
+      for (const account of selectedAccounts) {
+        const platform = account.provider === 'google' ? 'youtube' : account.provider;
+        const displayName = formatHandle(account.accountName, platform);
+        
+        setUploadStatus(`Uploading to ${platform} (${displayName})...`);
+        
+        // Prepare account-specific formData
+        const accountFormData = new FormData();
+        // Clone original form data
+        for (const [key, value] of Array.from(formData.entries())) {
+          accountFormData.append(key, value);
+        }
+        accountFormData.append('contentMode', contentMode);
+        accountFormData.append('accountId', account.id);
 
-      // 3. Instagram Upload (Conditional)
-      if (selectedPlatforms.includes('instagram')) {
-        setUploadStatus('Uploading to Instagram Reels...');
-        const igResponse = await fetch('/api/upload/instagram', {
+        const response = await fetch(`/api/upload/${platform}`, {
           method: 'POST',
-          body: formData,
+          body: accountFormData,
         });
-        const igResult = await igResponse.json();
-        if (!igResult.success) throw new Error(`Instagram: ${igResult.error}`);
-        results.instagram = igResult.data;
-        setUploadStatus('Instagram Success! ➡️ Next...');
-      }
 
-      // 4. Facebook Native Upload (Conditional)
-      if (selectedPlatforms.includes('facebook')) {
-        setUploadStatus('Uploading to Facebook Page...');
-        const fbResponse = await fetch('/api/upload/facebook', {
-          method: 'POST',
-          body: formData,
-        });
-        const fbResult = await fbResponse.json();
-        if (!fbResult.success) throw new Error(`Facebook: ${fbResult.error}`);
-        results.facebook = fbResult.data;
-        setUploadStatus('Facebook Success! ➡️ Next...');
+        const result = await response.json();
+        if (!result.success) throw new Error(`${platform} (${displayName}): ${result.error}`);
+        
+        results[account.id] = result.data;
+        setUploadStatus(`${displayName} Success! ➡️ Next...`);
       }
 
       setUploadStatus('All uploads completed successfully!');
       form.reset();
-      setSelectedPlatforms(enabledPlatforms); // Reset selections
-      alert('Post completed across selected platforms!');
+      setSelectedAccountIds(accounts.filter(a => a.isDistributionEnabled).map(a => a.id));
+      alert('Post completed across selected accounts!');
     } catch (error: any) {
       console.error('Process error:', error);
       setUploadStatus(`Error: ${error.message}`);
@@ -277,7 +239,7 @@ export default function Home() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Distribution Channels</label>
-                  {enabledPlatforms.length === 0 && (
+                  {accounts.length === 0 && (
                     <Link href="/settings" style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', textDecoration: 'none' }}>
                       Connect an account →
                     </Link>
@@ -285,57 +247,65 @@ export default function Home() {
                 </div>
                 
                 <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-                  {enabledPlatforms.length > 0 ? (
-                    enabledPlatforms.map(platformId => (
-                      <button
-                        key={platformId}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPlatforms(prev => 
-                            prev.includes(platformId) 
-                              ? prev.filter(id => id !== platformId) 
-                              : [...prev, platformId]
-                          );
-                        }}
-                        style={{
-                          padding: '0.6rem 1rem',
-                          borderRadius: '0.75rem',
-                          border: `1px solid ${selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
-                          background: selectedPlatforms.includes(platformId) ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
-                          color: selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.4rem'
-                        }}
-                      >
-                        <span style={{ 
-                          width: '8px', 
-                          height: '8px', 
-                          borderRadius: '50%', 
-                          background: selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'transparent',
-                          border: selectedPlatforms.includes(platformId) ? 'none' : '1px solid hsla(var(--muted-foreground) / 0.5)'
-                        }}></span>
-                        {platformId.charAt(0).toUpperCase() + platformId.slice(1)}
-                      </button>
-                    ))
+                  {accounts.length > 0 ? (
+                    accounts.map(account => {
+                      const platform = account.provider === 'google' ? 'youtube' : account.provider;
+                      const displayName = formatHandle(account.accountName, platform);
+                      const isSelected = selectedAccountIds.includes(account.id);
+                      
+                      return (
+                        <button
+                          key={account.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          aria-label={`${platform}: ${displayName}`}
+                          onClick={() => {
+                            setSelectedAccountIds(prev => 
+                              prev.includes(account.id) 
+                                ? prev.filter(id => id !== account.id) 
+                                : [...prev, account.id]
+                            );
+                          }}
+                          style={{
+                            padding: '0.6rem 1rem',
+                            borderRadius: '0.75rem',
+                            border: `1px solid ${isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
+                            background: isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
+                            color: isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <span style={{ 
+                            width: '8px', 
+                            height: '8px', 
+                            borderRadius: '50%', 
+                            background: isSelected ? 'hsl(var(--primary))' : 'transparent',
+                            border: isSelected ? 'none' : '1px solid hsla(var(--muted-foreground) / 0.5)'
+                          }}></span>
+                          <span style={{ opacity: 0.7, textTransform: 'capitalize' }}>{platform}:</span> {displayName}
+                        </button>
+                      );
+                    })
                   ) : (
                     <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>
                       No active platforms found. Please enable them in Settings.
                     </p>
                   )}
                 </div>
-                {enabledPlatforms.length > 0 && selectedPlatforms.length === 0 && (
-                  <p style={{ fontSize: '0.75rem', color: '#EF4444' }}>Please select at least one platform.</p>
+                {accounts.length > 0 && selectedAccountIds.length === 0 && (
+                  <p style={{ fontSize: '0.75rem', color: '#EF4444' }}>Please select at least one account.</p>
                 )}
               </div>
 
               <button 
                 type="submit" 
-                disabled={isUploading || (enabledPlatforms.length > 0 && selectedPlatforms.length === 0)}
+                disabled={isUploading || (accounts.length > 0 && selectedAccountIds.length === 0)}
                 style={{ 
                   background: 'hsl(var(--primary))', 
                   color: 'white', 
@@ -365,18 +335,24 @@ export default function Home() {
           <div className="glass-card" style={{ padding: '2rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Active Platforms</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-              {['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter'].map((p) => (
-                <div key={p} style={{ 
-                  textAlign: 'center', 
-                  padding: '0.75rem', 
-                  background: enabledPlatforms.includes(p.toLowerCase().replace(' shorts', '').replace(' reels', '')) ? 'hsla(var(--primary) / 0.1)' : 'hsla(var(--muted) / 0.2)',
-                  borderRadius: '0.75rem',
-                  fontSize: '0.8rem',
-                  opacity: enabledPlatforms.includes(p.toLowerCase().replace(' shorts', '').replace(' reels', '')) ? 1 : 0.5
-                }}>
-                  {p}
-                </div>
-              ))}
+              {['Instagram', 'TikTok', 'YouTube', 'Facebook', 'LinkedIn', 'Twitter'].map((p) => {
+                const providerMap: Record<string, string> = { 'instagram': 'facebook', 'tiktok': 'tiktok', 'youtube': 'google', 'facebook': 'facebook', 'linkedin': 'linkedin', 'twitter': 'twitter' };
+                const provider = providerMap[p.toLowerCase()];
+                const isEnabled = accounts.some(a => a.provider === provider && a.isDistributionEnabled);
+
+                return (
+                  <div key={p} style={{ 
+                    textAlign: 'center', 
+                    padding: '0.75rem', 
+                    background: isEnabled ? 'hsla(var(--primary) / 0.1)' : 'hsla(var(--muted) / 0.2)',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.8rem',
+                    opacity: isEnabled ? 1 : 0.5
+                  }}>
+                    {p}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

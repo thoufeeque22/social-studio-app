@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const rawDescription = formData.get("description") as string;
     const privacy = (formData.get("privacy") as "private" | "public" | "unlisted") || "private";
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
+    const accountId = formData.get("accountId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -64,10 +65,11 @@ export async function POST(req: NextRequest) {
     // Call YouTube service
     const videoData = await uploadToYouTube({
       userId: session.user.id,
-      videoPath: tempFilePath,
+      filePath: tempFilePath,
       title: finalTitle,
       description: finalDescription,
-      privacy: 'private'
+      privacy: 'private',
+      accountId
     });
 
     // Cleanup temp file

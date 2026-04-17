@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     const rawDescription = formData.get("description") as string;
     const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
     const musicId = (formData.get("musicId") as string) || undefined;
+    const accountId = formData.get("accountId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -78,6 +79,7 @@ export async function POST(req: NextRequest) {
       videoUrl: videoUrl,
       caption: finalCaption,
       musicId,
+      accountId,
     });
 
     // 5. Cleanup temp files after a delay to ensure Meta has fetched them
