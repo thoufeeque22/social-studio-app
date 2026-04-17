@@ -4,9 +4,9 @@ This document tracks future features and improvements for the Social Studio App.
 
 ## High Priority 🚀
 1. [ ] **Main App Authentication & Authorization (A&A)**: Secure the application with robust user accounts and roles.
-2. [ ] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
-3. [ ] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
-4. [ ] **Instagram Reels Native Integration**: Direct API connection for cross-posting Reels.
+2. [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
+3. [ ] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
+4. [ ] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
 5. [ ] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
 6. [ ] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
 7. [ ] **Settings Clean-Up**: Display only enabled accounts for connection in settings.
@@ -33,8 +33,11 @@ This document tracks future features and improvements for the Social Studio App.
 22. [ ] **Documentation**: Create user enablement and developer documentation.
 23. [ ] **Legal Review**: General review to ensure the app abides by relevant laws and regulations.
 
+## Internal Admin Tasks 🔒
+24. [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
+
 ## Completed ✅
-24. [x] **TikTok Native Integration**: OAuth integration & Content Posting API pipeline.
 25. [x] **YouTube Direct Upload**: OAuth2 integration for Shorts/Videos.
-26. [x] **Header Navigation**: "Create Post" active scrolling.
-27. [x] **Initial Project Structure**: Next.js + Tailwind (v4) setup.
+26. [x] **Instagram Reels Native Integration**: Direct API connection for cross-posting Reels & Graph API Orchestration.
+27. [x] **Header Navigation**: "Create Post" active scrolling.
+28. [x] **Initial Project Structure**: Next.js + Tailwind (v4) setup.
