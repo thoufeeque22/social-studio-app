@@ -12,6 +12,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [enabledPlatforms, setEnabledPlatforms] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
 
@@ -19,6 +20,7 @@ export default function Home() {
     async function fetchPlatforms() {
       const dbPlatforms = await getUserPlatforms();
       setEnabledPlatforms(dbPlatforms);
+      setSelectedPlatforms(dbPlatforms); // Initially select all enabled
       
       // Secondary check: if DB is empty, check if we still have local data just in case
       // though the source of truth is now the DB.
@@ -26,7 +28,9 @@ export default function Home() {
         const saved = localStorage.getItem('studio_platforms');
         if (saved) {
           try {
-            setEnabledPlatforms(JSON.parse(saved));
+            const parsed = JSON.parse(saved);
+            setEnabledPlatforms(parsed);
+            setSelectedPlatforms(parsed);
           } catch (e) {
             console.error('Failed to load platforms', e);
           }
@@ -66,7 +70,7 @@ export default function Home() {
 
     try {
       // 1. TikTok Upload (Conditional)
-      if (enabledPlatforms.includes('tiktok')) {
+      if (selectedPlatforms.includes('tiktok')) {
         setUploadStatus('Uploading to TikTok...');
         const ttResponse = await fetch('/api/upload/tiktok', {
           method: 'POST',
@@ -79,7 +83,7 @@ export default function Home() {
       }
 
       // 2. YouTube Upload (Conditional)
-      if (enabledPlatforms.includes('youtube')) {
+      if (selectedPlatforms.includes('youtube')) {
         setUploadStatus('Uploading to YouTube...');
         const ytResponse = await fetch('/api/upload/youtube', {
           method: 'POST',
@@ -92,7 +96,7 @@ export default function Home() {
       }
 
       // 3. Instagram Upload (Conditional)
-      if (enabledPlatforms.includes('instagram')) {
+      if (selectedPlatforms.includes('instagram')) {
         setUploadStatus('Uploading to Instagram Reels...');
         const igResponse = await fetch('/api/upload/instagram', {
           method: 'POST',
@@ -105,7 +109,7 @@ export default function Home() {
       }
 
       // 4. Facebook Native Upload (Conditional)
-      if (enabledPlatforms.includes('facebook')) {
+      if (selectedPlatforms.includes('facebook')) {
         setUploadStatus('Uploading to Facebook Page...');
         const fbResponse = await fetch('/api/upload/facebook', {
           method: 'POST',
@@ -119,7 +123,8 @@ export default function Home() {
 
       setUploadStatus('All uploads completed successfully!');
       form.reset();
-      alert('Post completed across active platforms!');
+      setSelectedPlatforms(enabledPlatforms); // Reset selections
+      alert('Post completed across selected platforms!');
     } catch (error: any) {
       console.error('Process error:', error);
       setUploadStatus(`Error: ${error.message}`);
@@ -181,10 +186,15 @@ export default function Home() {
             </div>
           )}
 
-            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form 
+              aria-label="Upload Form"
+              onSubmit={handleUpload} 
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
+                <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
                 <input 
+                  id="file-upload"
                   type="file" 
                   name="file" 
                   accept="video/*" 
@@ -200,8 +210,9 @@ export default function Home() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
+                <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
                 <input 
+                  id="video-title"
                   type="text" 
                   name="title" 
                   placeholder="Enter a catchy title..."
@@ -218,8 +229,9 @@ export default function Home() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
+                <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
                 <textarea 
+                  id="video-description"
                   name="description" 
                   placeholder="Tell your viewers about the video..."
                   rows={3}
@@ -261,11 +273,69 @@ export default function Home() {
                 </div>
               </div>
 
-
+              {/* Distribution Checklist */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Distribution Channels</label>
+                  {enabledPlatforms.length === 0 && (
+                    <Link href="/settings" style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', textDecoration: 'none' }}>
+                      Connect an account →
+                    </Link>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  {enabledPlatforms.length > 0 ? (
+                    enabledPlatforms.map(platformId => (
+                      <button
+                        key={platformId}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlatforms(prev => 
+                            prev.includes(platformId) 
+                              ? prev.filter(id => id !== platformId) 
+                              : [...prev, platformId]
+                          );
+                        }}
+                        style={{
+                          padding: '0.6rem 1rem',
+                          borderRadius: '0.75rem',
+                          border: `1px solid ${selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
+                          background: selectedPlatforms.includes(platformId) ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
+                          color: selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem'
+                        }}
+                      >
+                        <span style={{ 
+                          width: '8px', 
+                          height: '8px', 
+                          borderRadius: '50%', 
+                          background: selectedPlatforms.includes(platformId) ? 'hsl(var(--primary))' : 'transparent',
+                          border: selectedPlatforms.includes(platformId) ? 'none' : '1px solid hsla(var(--muted-foreground) / 0.5)'
+                        }}></span>
+                        {platformId.charAt(0).toUpperCase() + platformId.slice(1)}
+                      </button>
+                    ))
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>
+                      No active platforms found. Please enable them in Settings.
+                    </p>
+                  )}
+                </div>
+                {enabledPlatforms.length > 0 && selectedPlatforms.length === 0 && (
+                  <p style={{ fontSize: '0.75rem', color: '#EF4444' }}>Please select at least one platform.</p>
+                )}
+              </div>
 
               <button 
                 type="submit" 
-                disabled={isUploading}
+                disabled={isUploading || (enabledPlatforms.length > 0 && selectedPlatforms.length === 0)}
                 style={{ 
                   background: 'hsl(var(--primary))', 
                   color: 'white', 
