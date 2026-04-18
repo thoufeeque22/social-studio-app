@@ -12,22 +12,45 @@ vi.mock('@/auth', () => ({
 }));
 
 // Setup base mocks
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs');
+vi.mock('fs', () => {
+  const promises = {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue(Buffer.from('data')),
+    readdir: vi.fn().mockResolvedValue([]),
+    unlink: vi.fn().mockResolvedValue(undefined),
+    rmdir: vi.fn().mockResolvedValue(undefined),
+    stat: vi.fn().mockResolvedValue({ size: 1000 }),
+  };
+
   return {
-    ...actual,
+    promises,
     createWriteStream: vi.fn(() => ({
       write: vi.fn(),
       end: vi.fn(),
       on: vi.fn((event, cb) => {
         if (event === 'finish') cb();
-        return this;
+        return { on: vi.fn() };
       }),
     })),
-    existsSync: vi.fn(() => true),
+    existsSync: vi.fn().mockReturnValue(true),
+    // For aliases
+    default: {
+      promises,
+      existsSync: vi.fn().mockReturnValue(true),
+      createWriteStream: vi.fn(() => ({
+        write: vi.fn(),
+        end: vi.fn(),
+        on: vi.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return { on: vi.fn() };
+        }),
+      })),
+    }
   };
 });
 
+// Alias for fs/promises to ensure consistent mocking
 vi.mock('fs/promises', () => ({
   mkdir: vi.fn().mockResolvedValue(undefined),
   writeFile: vi.fn().mockResolvedValue(undefined),
@@ -35,6 +58,7 @@ vi.mock('fs/promises', () => ({
   readdir: vi.fn().mockResolvedValue([]),
   unlink: vi.fn().mockResolvedValue(undefined),
   rmdir: vi.fn().mockResolvedValue(undefined),
+  stat: vi.fn().mockResolvedValue({ size: 1000 }),
 }));
 
 describe('Chunked Upload System Integration', () => {

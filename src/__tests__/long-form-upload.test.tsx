@@ -14,11 +14,18 @@ vi.mock('@/lib/facebook', () => ({
   publishFacebookReel: vi.fn(),
 }));
 
-vi.mock('fs/promises', () => ({
+vi.mock('fs', () => ({
   default: {
+    existsSync: vi.fn().mockReturnValue(true),
+  },
+}));
+
+vi.mock('fs/promises', () => ({
+  promises: {
     mkdir: vi.fn(),
     writeFile: vi.fn(),
     unlink: vi.fn(),
+    stat: vi.fn().mockResolvedValue({ size: 1000 }),
   },
 }));
 
@@ -30,42 +37,42 @@ describe('Facebook Long-form vs Reel Branching', () => {
     vi.mocked(publishFacebookReel).mockResolvedValue({ success: true } as any);
   });
 
-  const createMockRequest = (formData: FormData) => {
+  const createMockRequest = (body: any) => {
     return {
-      formData: async () => formData,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => body,
     } as unknown as NextRequest;
   };
 
   it('calls publishFacebookReel when videoFormat is "short"', async () => {
-    const formData = new FormData();
-    formData.append('file', new File(['video content'], 'short.mp4', { type: 'video/mp4' }));
-    formData.append('videoFormat', 'short');
-    formData.append('accountId', 'acc1');
-
-    await POST(createMockRequest(formData));
+    await POST(createMockRequest({
+      stagedFileId: 'test.mp4',
+      videoFormat: 'short',
+      accountId: 'acc1',
+      description: 'Test Reel'
+    }));
 
     expect(publishFacebookReel).toHaveBeenCalled();
     expect(publishFacebookVideo).not.toHaveBeenCalled();
   });
 
   it('calls publishFacebookVideo when videoFormat is "long"', async () => {
-    const formData = new FormData();
-    formData.append('file', new File(['video content'], 'long.mp4', { type: 'video/mp4' }));
-    formData.append('videoFormat', 'long');
-    formData.append('accountId', 'acc1');
-
-    await POST(createMockRequest(formData));
+    await POST(createMockRequest({
+      stagedFileId: 'test.mp4',
+      videoFormat: 'long',
+      accountId: 'acc1',
+      title: 'Test Long Video'
+    }));
 
     expect(publishFacebookVideo).toHaveBeenCalled();
     expect(publishFacebookReel).not.toHaveBeenCalled();
   });
 
   it('defaults to publishFacebookReel when videoFormat is missing', async () => {
-    const formData = new FormData();
-    formData.append('file', new File(['video content'], 'default.mp4', { type: 'video/mp4' }));
-    formData.append('accountId', 'acc1');
-
-    await POST(createMockRequest(formData));
+    await POST(createMockRequest({
+      stagedFileId: 'test.mp4',
+      accountId: 'acc1'
+    }));
 
     expect(publishFacebookReel).toHaveBeenCalled();
   });

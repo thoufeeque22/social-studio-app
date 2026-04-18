@@ -21,8 +21,13 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
 - [x] **Long Format Video Support**: Support for uploading and managing long-form content.
 - [x] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
+- [x] **Fault-Tolerant Dispatching**: Update the sequential upload loop so that a failure on one platform (e.g., Facebook) does not stop the distribution to others.
+- [x] **Sticky Platform Selection**: Persist the user's platform selection preferences so they don't have to re-select their favorite channels for every new post.
 
 ## Medium Priority 📈
+- [ ] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
+- [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
+- [x] **Form State Persistence**: Automatically save the title, description, and attached video file in the upload form, ensuring they don't lose progress if they switch tabs or accidentally refresh. Video files persisted via IndexedDB.
 - [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram.
 - [ ] **Scheduling & Calendar Queue**: Plan out posts across platforms and replace the "Upcoming Posts" wireframe on the main view with actual data.
 - [ ] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting.

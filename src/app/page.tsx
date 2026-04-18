@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -9,6 +9,7 @@ import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { performMultiPlatformUpload } from '@/lib/upload-utils';
 import { StyleMode } from '@/lib/constants';
+import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/file-store';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -21,8 +22,39 @@ export default function Home() {
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
+  const [draftFileName, setDraftFileName] = useState<string | null>(null);
+  const draftFileRef = useRef<File | null>(null);
 
-  // Sync initial selection with distribution-enabled accounts (handling virtual IDs)
+  // Load persisted file from IndexedDB on mount
+  useEffect(() => {
+    getDraftFile().then(file => {
+      if (file) {
+        draftFileRef.current = file;
+        setDraftFileName(file.name);
+      }
+    });
+  }, []);
+
+  // 1. Persistence: Platform Selection Stickiness
+  useEffect(() => {
+    const saved = localStorage.getItem('SS_SELECTED_PLATFORMS');
+    if (saved) {
+      try {
+        setSelectedAccountIds(JSON.parse(saved));
+        setIsInitialSync(true);
+      } catch (e) {
+        console.error("Failed to load platform labels");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isInitialSync) {
+      localStorage.setItem('SS_SELECTED_PLATFORMS', JSON.stringify(selectedAccountIds));
+    }
+  }, [selectedAccountIds, isInitialSync]);
+
+  // 2. Initial Sync (Backup if no saved sticky selection)
   useEffect(() => {
     if (accounts.length > 0 && !isInitialSync) {
       const initialSelection: string[] = [];
@@ -47,13 +79,19 @@ export default function Home() {
     );
   };
 
+  const handleFileChange = async (file: File) => {
+    draftFileRef.current = file;
+    setDraftFileName(file.name);
+    await storeDraftFile(file);
+  };
+
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!session) return;
 
     const form = e.currentTarget;
     const fileInput = form.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = fileInput.files?.[0];
+    const file = fileInput.files?.[0] || draftFileRef.current;
     
     if (!file || file.size === 0) {
       alert('Please select a video file.');
@@ -63,9 +101,8 @@ export default function Home() {
     // Client-side Aspect Ratio & Duration Validation
     const validateVideoMetadata = async (file: File): Promise<boolean> => {
       // 0. Safety Threshold for Massive Files
-      // Browsers often crash (Error 5) trying to parse headers of 2GB+ files.
       if (file.size > 1.5 * 1024 * 1024 * 1024) {
-        console.warn('⚠️ Massive file detected (>1.5GB). Skipping client-side analysis to prevent browser crash.');
+        console.warn('⚠️ Massive file detected (>1.5GB). Skipping client-side analysis.');
         setUploadStatus('🚀 Large file detected. Proceeding directly to streaming upload...');
         return true; 
       }
@@ -73,8 +110,6 @@ export default function Home() {
       setUploadStatus('🔍 Analyzing Video Metadata...');
       return new Promise((resolve) => {
         const video = document.createElement('video');
-        
-        // Critical for large files: only load metadata headers
         video.preload = 'metadata';
         video.muted = true;
         video.playsInline = true;
@@ -94,46 +129,30 @@ export default function Home() {
           const duration = video.duration;
           cleanup();
 
-          // 1. Aspect Ratio Checks
           if (videoFormat === 'short' && !isVertical) {
-            alert('❌ Short-form content must be Vertical (9:16). Please change format to "Long-form" or upload a vertical video.');
+            alert('❌ Short-form content must be Vertical (9:16).');
             resolve(false);
           } else if (videoFormat === 'long' && isVertical) {
-            alert('❌ Long-form content should be Landscape (16:9). Please change format to "Short-form" or upload a horizontal video.');
+            alert('❌ Long-form content should be Landscape (16:9).');
             resolve(false);
-          } 
-          // 2. Platform-specific Duration Checks (Strict Ultra-long Gating)
-          else {
+          } else {
             const selectedPlatforms = accounts
               .filter(a => selectedAccountIds.includes(a.id))
               .map(a => a.provider === 'google' ? 'youtube' : a.provider);
 
             if (selectedPlatforms.includes('youtube') && videoFormat === 'short' && duration >= 60) {
-              alert('❌ YouTube Shorts must be under 60 seconds. Your video is ' + Math.round(duration) + 's. Select "Long-form" to upload as a standard video.');
+              alert('❌ YouTube Shorts must be under 60 seconds.');
               resolve(false);
             } else if (selectedPlatforms.includes('facebook') && videoFormat === 'short' && duration > 90) {
-              alert('❌ Instagram/Facebook Reels (via API) are limited to 90 seconds. Your video is ' + Math.round(duration) + 's. Select "Long-form" to upload as a standard video.');
-              resolve(false);
-            } else if (selectedPlatforms.includes('tiktok') && duration > 600) {
-              alert('❌ TikTok uploads via API are strictly limited to 10 minutes (600s). For your ' + Math.round(duration/60) + 'm video, please unselect TikTok to proceed with YouTube/Facebook.');
-              resolve(false);
-            } else if (selectedPlatforms.includes('facebook') && videoFormat === 'long' && duration > 14400) {
-              alert('❌ Facebook videos are limited to 4 hours. Your video exceeds this limit.');
+              alert('❌ Reels via API are limited to 90 seconds.');
               resolve(false);
             } else {
-              // YouTube and Facebook (Long-form) can now handle 10GB+ and 2h+
               resolve(true);
             }
           }
         };
 
-        video.onerror = () => {
-          console.error('Video validation failed');
-          cleanup();
-          alert('Failed to load video metadata for validation.');
-          resolve(false);
-        };
-
+        video.onerror = () => { resolve(false); cleanup(); };
         video.src = URL.createObjectURL(file);
       });
     };
@@ -147,11 +166,15 @@ export default function Home() {
     setSuccessfulAccountIds([]);
     setIsUploading(true);
     try {
-      // Re-create the formData context for metadata fields
-      const formData = new FormData(form);
+      const data = new FormData(form);
+      
+      // Ensure the file is in FormData (it may come from IndexedDB, not the input)
+      if (!data.get('file') || (data.get('file') as File).size === 0) {
+        data.set('file', file);
+      }
       
       await performMultiPlatformUpload({
-        formData,
+        formData: data,
         accounts,
         selectedAccountIds,
         contentMode,
@@ -162,8 +185,12 @@ export default function Home() {
 
       setUploadStatus('All uploads completed successfully!');
       form.reset();
-      // Reset selection to defaults
-      setSelectedAccountIds(accounts.filter(a => a.isDistributionEnabled).map(a => a.id));
+      // Clear all persistence after success
+      localStorage.removeItem('SS_DRAFT_TITLE');
+      localStorage.removeItem('SS_DRAFT_DESC');
+      draftFileRef.current = null;
+      setDraftFileName(null);
+      await clearDraftFile();
       alert('Post completed across selected accounts!');
     } catch (error: any) {
       console.error('Process error:', error);
@@ -189,9 +216,11 @@ export default function Home() {
           successfulAccountIds={successfulAccountIds}
           contentMode={contentMode}
           videoFormat={videoFormat}
+          draftFileName={draftFileName}
           onModeChange={setContentMode}
           onFormatChange={setVideoFormat}
           onToggleAccount={handleToggleAccount}
+          onFileChange={handleFileChange}
           onSubmit={handleUpload}
         />
 

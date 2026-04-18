@@ -14,9 +14,11 @@ interface UploadFormProps {
   successfulAccountIds: string[];
   contentMode: StyleMode;
   videoFormat: VideoFormat;
+  draftFileName: string | null;
   onModeChange: (mode: StyleMode) => void;
   onFormatChange: (format: VideoFormat) => void;
   onToggleAccount: (id: string) => void;
+  onFileChange: (file: File) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
 }
 
@@ -28,9 +30,11 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   successfulAccountIds,
   contentMode,
   videoFormat,
+  draftFileName,
   onModeChange,
   onFormatChange,
   onToggleAccount,
+  onFileChange,
   onSubmit,
 }) => {
   return (
@@ -53,12 +57,28 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
+          {draftFileName && (
+            <div style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.5rem 0.75rem', borderRadius: '0.5rem',
+              background: 'hsla(142, 71%, 45%, 0.1)', border: '1px solid hsla(142, 71%, 45%, 0.3)'
+            }}>
+              <span style={{ fontSize: '0.85rem' }}>✅</span>
+              <span style={{ fontSize: '0.8rem', color: 'hsl(142, 71%, 45%)' }}>
+                <strong>{draftFileName}</strong> attached
+              </span>
+            </div>
+          )}
           <input 
             id="file-upload"
             type="file" 
             name="file" 
             accept="video/*" 
-            required
+            required={!draftFileName}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onFileChange(file);
+            }}
             style={{ 
               background: 'hsla(var(--muted) / 0.3)', 
               padding: '1rem', 
@@ -76,6 +96,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             type="text" 
             name="title" 
             placeholder="Enter a catchy title..."
+            defaultValue={typeof window !== 'undefined' ? localStorage.getItem('SS_DRAFT_TITLE') || '' : ''}
+            onChange={(e) => localStorage.setItem('SS_DRAFT_TITLE', e.target.value)}
             required
             style={{ 
               background: 'hsla(var(--muted) / 0.3)', 
@@ -94,6 +116,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             id="video-description"
             name="description" 
             placeholder="Tell your viewers about the video..."
+            defaultValue={typeof window !== 'undefined' ? localStorage.getItem('SS_DRAFT_DESC') || '' : ''}
+            onChange={(e) => localStorage.setItem('SS_DRAFT_DESC', e.target.value)}
             rows={3}
             style={{ 
               background: 'hsla(var(--muted) / 0.3)', 

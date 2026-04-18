@@ -101,33 +101,43 @@ export async function performMultiPlatformUpload({
     const displayName = formatHandle(account.accountName, platform);
     onStatusUpdate(`Posting to ${platform} (${displayName})...`);
     
-    // Prepare platform-specific metadata
-    const payload = {
-      stagedFileId,
-      fileName,
-      title: formData.get('title'),
-      description: formData.get('description'),
-      contentMode,
-      videoFormat,
-      accountId: realAccountId
-    };
+    try {
+      // Prepare platform-specific metadata
+      const payload = {
+        stagedFileId,
+        fileName,
+        title: formData.get('title'),
+        description: formData.get('description'),
+        contentMode,
+        videoFormat,
+        accountId: realAccountId
+      };
 
-    const response = await fetch(`/api/upload/${platform}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+      const response = await fetch(`/api/upload/${platform}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(`${platform} (${displayName}): ${result.error}`);
+      const result = await response.json();
+      if (!result.success) {
+        // Log the error but don't stop the whole process
+        console.error(`❌ [${platform}] Failed: ${result.error}`);
+        onStatusUpdate(`${displayName} Failed: ${result.error}`);
+        results[selectionId] = { error: result.error };
+        continue;
+      }
+      
+      results[selectionId] = result.data;
+      onAccountSuccess?.(selectionId);
+      onStatusUpdate(`${displayName} Success!`);
+    } catch (err: any) {
+      console.error(`❌ [${platform}] Fatal Error: ${err.message}`);
+      onStatusUpdate(`${displayName} Error: ${err.message}`);
+      results[selectionId] = { error: err.message };
     }
-    
-    results[selectionId] = result.data;
-    onAccountSuccess?.(selectionId);
-    onStatusUpdate(`${displayName} Success!`);
   }
 
   // 3. PHASE THREE: Orchestrated Cleanup
