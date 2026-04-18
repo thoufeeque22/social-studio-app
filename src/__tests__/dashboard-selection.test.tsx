@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Home from '../app/page';
 import { useSession } from 'next-auth/react';
-import { getUserAccounts } from '../app/actions/user';
+import { getUserAccounts, getPlatformPreferences } from '../app/actions/user';
 
 // Mock NextAuth
 vi.mock('next-auth/react', () => ({
@@ -12,6 +12,7 @@ vi.mock('next-auth/react', () => ({
 // Mock Server Actions
 vi.mock('../app/actions/user', () => ({
   getUserAccounts: vi.fn(),
+  getPlatformPreferences: vi.fn(),
 }));
 
 // Mock fetch globally
@@ -25,12 +26,18 @@ describe('Dashboard Account Selection', () => {
     { id: 'acc_yt_2', provider: 'google', accountName: 'other.channel', isDistributionEnabled: false },
   ];
   
+  const mockPreferences = [
+    { id: 'p1', userId: 'user_1', platformId: 'youtube', isEnabled: true },
+    { id: 'p2', userId: 'user_1', platformId: 'tiktok', isEnabled: true },
+  ];
+
   const mockSession = { user: { name: 'Test User', id: 'user_1' }, expires: '' };
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useSession).mockReturnValue({ data: mockSession, status: 'authenticated' } as any);
     vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
+    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as any);
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: {} }),
