@@ -17,6 +17,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
+  const [videoFormat, setVideoFormat] = useState<'short' | 'long'>('short');
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
 
@@ -49,6 +50,63 @@ export default function Home() {
       return;
     }
 
+    // Client-side Aspect Ratio Validation
+    const validateAspectRatio = async (): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          const isVertical = video.videoHeight > video.videoWidth;
+          const duration = video.duration;
+
+          // 1. Aspect Ratio Checks
+          if (videoFormat === 'short' && !isVertical) {
+            alert('❌ Short-form content must be Vertical (9:16). Please change format to "Long-form" or upload a vertical video.');
+            resolve(false);
+            return;
+          } else if (videoFormat === 'long' && isVertical) {
+            alert('❌ Long-form content should be Landscape (16:9). Please change format to "Short-form" or upload a horizontal video.');
+            resolve(false);
+            return;
+          }
+
+          // 2. Platform-specific Duration Checks
+          const selectedPlatforms = accounts
+            .filter(a => selectedAccountIds.includes(a.id))
+            .map(a => a.provider === 'google' ? 'youtube' : a.provider);
+
+          if (selectedPlatforms.includes('youtube') && videoFormat === 'short' && duration >= 60) {
+            alert('❌ YouTube Shorts must be under 60 seconds. Your video is ' + Math.round(duration) + 's.');
+            resolve(false);
+            return;
+          }
+
+          if (selectedPlatforms.includes('facebook') && videoFormat === 'short' && duration > 90) {
+            alert('❌ Instagram/Facebook Reels (via API) are limited to 90 seconds. Your video is ' + Math.round(duration) + 's.');
+            resolve(false);
+            return;
+          }
+
+          if (selectedPlatforms.includes('tiktok') && duration > 600) {
+            alert('❌ TikTok uploads via API are limited to 10 minutes (600s). Your video is ' + Math.round(duration) + 's.');
+            resolve(false);
+            return;
+          }
+
+          resolve(true);
+        };
+        video.onerror = () => {
+          alert('Failed to load video metadata for validation.');
+          resolve(false);
+        };
+        video.src = URL.createObjectURL(file);
+      });
+    };
+
+    const isValid = await validateAspectRatio();
+    if (!isValid) return;
+
     setIsUploading(true);
     try {
       await performMultiPlatformUpload({
@@ -56,6 +114,7 @@ export default function Home() {
         accounts,
         selectedAccountIds,
         contentMode,
+        videoFormat,
         onStatusUpdate: setUploadStatus
       });
 
@@ -86,7 +145,9 @@ export default function Home() {
           accounts={accounts}
           selectedAccountIds={selectedAccountIds}
           contentMode={contentMode}
+          videoFormat={videoFormat}
           onModeChange={setContentMode}
+          onFormatChange={setVideoFormat}
           onToggleAccount={handleToggleAccount}
           onSubmit={handleUpload}
         />

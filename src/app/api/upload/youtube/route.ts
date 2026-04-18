@@ -6,6 +6,8 @@ import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 
+export const maxDuration = 1800; // 30 minutes
+
 export async function POST(req: NextRequest) {
   const session = await auth();
 

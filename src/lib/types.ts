@@ -10,3 +10,5 @@ export interface PlatformPreference {
   platformId: string;
   isEnabled: boolean;
 }
+
+export type VideoFormat = 'short' | 'long';

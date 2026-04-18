@@ -7,6 +7,7 @@ interface UploadParams {
   accounts: Account[];
   selectedAccountIds: string[];
   contentMode: StyleMode;
+  videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
 }
 
@@ -18,6 +19,7 @@ export async function performMultiPlatformUpload({
   accounts,
   selectedAccountIds,
   contentMode,
+  videoFormat,
   onStatusUpdate
 }: UploadParams) {
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
@@ -35,6 +37,7 @@ export async function performMultiPlatformUpload({
       accountFormData.append(key, value);
     }
     accountFormData.append('contentMode', contentMode);
+    accountFormData.append('videoFormat', videoFormat);
     accountFormData.append('accountId', account.id);
 
     const response = await fetch(`/api/upload/${platform}`, {

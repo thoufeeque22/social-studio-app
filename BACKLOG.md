@@ -19,7 +19,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow.
 - [x] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
 - [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
-- [ ] **Long Format Video Support**: Support for uploading and managing long-form content.
+- [x] **Long Format Video Support**: Support for uploading and managing long-form content.
 - [ ] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
 
 ## Medium Priority 📈
