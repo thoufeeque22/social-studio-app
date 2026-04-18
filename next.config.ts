@@ -5,9 +5,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["khalilah-spritelike-flossily.ngrok-free.dev"],
   experimental: {
     serverActions: {
-      bodySizeLimit: "2gb",
+      bodySizeLimit: "50gb",
     },
-    middlewareClientMaxBodySize: "2gb",
+    proxyClientMaxBodySize: "50gb",
   },
 };
 
