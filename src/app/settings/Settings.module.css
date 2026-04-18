@@ -32,9 +32,9 @@
 }
 
 /* Platform Grid */
-.grid {
+.grid, .connectionsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
 }
 
@@ -77,9 +77,85 @@
   font-size: 1rem;
 }
 
-.platformStatus {
-  font-size: 0.75rem;
+.platformStatus, .cardSubtitle {
+  font-size: 0.8rem;
   color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+}
+
+.connectionCard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.cardTitleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.connectBtn {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.connectedList {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsla(var(--border) / 0.5);
+}
+
+.connectedTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.handlePill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem 0.4rem 0.8rem;
+  border-radius: 2rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.removeBtn:hover {
+  opacity: 1;
+  background: hsla(255, 100%, 100%, 0.1);
 }
 
 /* Custom Toggle Switch */

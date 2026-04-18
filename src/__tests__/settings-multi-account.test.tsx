@@ -58,7 +58,7 @@ describe('Settings Multi-Account Management', () => {
       expect(screen.getByText('@tiktok_handle')).toBeInTheDocument();
       
       // Instagram is NOT enabled in prefs (p3 above is false), so it should be hidden
-      expect(screen.queryByText('Add Instagram Account')).not.toBeInTheDocument();
+      expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
     });
   });
 
@@ -86,7 +86,7 @@ describe('Settings Multi-Account Management', () => {
     await waitFor(() => screen.getByText('Instagram Reels'));
     
     // Initially hidden
-    expect(screen.queryByText('Add Instagram Account')).not.toBeInTheDocument();
+    expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
     
     const instaSwitch = screen.getByLabelText('Toggle Instagram Reels visibility');
     fireEvent.click(instaSwitch);
@@ -106,10 +106,10 @@ describe('Settings Multi-Account Management', () => {
     render(<SettingsPage />);
 
     await waitFor(() => {
-      // LinkedIn should be visible
-      expect(screen.getByText('Add LinkedIn Account')).toBeInTheDocument();
+      // LinkedIn heading should be visible in the connection grid
+      expect(screen.getByRole('heading', { name: /LinkedIn/i })).toBeInTheDocument();
       // Twitter should be hidden
-      expect(screen.queryByText('Add Twitter/X Account')).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /Twitter\/X/i })).not.toBeInTheDocument();
     });
   });
 });
