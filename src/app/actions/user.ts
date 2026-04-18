@@ -72,3 +72,47 @@ export async function disconnectAccount(accountId: string) {
   
   return { success: true };
 }
+/**
+ * Fetches platform preferences for the current user.
+ */
+export async function getPlatformPreferences() {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    return [];
+  }
+
+  return await prisma.platformPreference.findMany({
+    where: { userId: session.user.id }
+  });
+}
+
+/**
+ * Toggles the visibility/enablement of a platform in the settings dashboard.
+ */
+export async function togglePlatformPreference(platformId: string, isEnabled: boolean) {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.platformPreference.upsert({
+    where: { 
+      userId_platformId: {
+        userId: session.user.id,
+        platformId: platformId
+      }
+    },
+    update: { isEnabled },
+    create: {
+      userId: session.user.id,
+      platformId: platformId,
+      isEnabled
+    }
+  });
+
+  revalidatePath("/settings");
+  
+  return { success: true };
+}

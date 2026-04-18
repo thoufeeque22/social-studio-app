@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SettingsPage from '../app/settings/page';
 import { useSession } from 'next-auth/react';
-import { getUserAccounts, disconnectAccount } from '../app/actions/user';
+import { getUserAccounts, disconnectAccount, getPlatformPreferences } from '../app/actions/user';
 
 // Mock NextAuth
 vi.mock('next-auth/react', () => ({
@@ -13,7 +13,8 @@ vi.mock('next-auth/react', () => ({
 // Mock Server Actions
 vi.mock('../app/actions/user', () => ({
   getUserAccounts: vi.fn(),
-  toggleAccountDistribution: vi.fn(),
+  togglePlatformPreference: vi.fn(),
+  getPlatformPreferences: vi.fn(),
   disconnectAccount: vi.fn(),
 }));
 
@@ -23,10 +24,16 @@ describe('Settings Disconnect Functionality', () => {
     { id: 'acc_tk_1', provider: 'tiktok', accountName: 'tiktok_handle', isDistributionEnabled: false },
   ];
 
+  const mockPreferences = [
+    { id: 'p1', userId: 'u1', platformId: 'youtube', isEnabled: true },
+    { id: 'p2', userId: 'u1', platformId: 'tiktok', isEnabled: true },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useSession).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' } as any);
     vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
+    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as any);
     vi.mocked(disconnectAccount).mockResolvedValue({ success: true });
     
     // Mock window.confirm
@@ -35,7 +42,7 @@ describe('Settings Disconnect Functionality', () => {
     vi.stubGlobal('alert', vi.fn());
   });
 
-  it('renders disconnect buttons (X) for connected accounts', async () => {
+  it('renders disconnect buttons (X) for connected accounts when platforms are active', async () => {
     render(<SettingsPage />);
     
     await waitFor(() => {

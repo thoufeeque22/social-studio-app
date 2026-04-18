@@ -1,17 +1,18 @@
 import React from 'react';
 import styles from '@/app/settings/Settings.module.css';
-import { Account } from '@/lib/types';
+import { Account, PlatformPreference } from '@/lib/types';
 import { PLATFORMS } from '@/lib/constants';
 
 interface DistributionGridProps {
   accounts: Account[];
+  preferences: PlatformPreference[];
   isLoading: boolean;
   onToggle: (platformId: string, provider: string, currentStatus: boolean) => Promise<void>;
 }
 
-export const DistributionGrid: React.FC<DistributionGridProps> = ({ accounts, isLoading, onToggle }) => {
+export const DistributionGrid: React.FC<DistributionGridProps> = ({ accounts, preferences, isLoading, onToggle }) => {
   if (isLoading) {
-    return <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.9rem' }}>Loading accounts...</p>;
+    return <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.9rem' }}>Loading settings...</p>;
   }
 
   return (
@@ -21,8 +22,9 @@ export const DistributionGrid: React.FC<DistributionGridProps> = ({ accounts, is
       </h2>
       <div className={styles.grid}>
         {PLATFORMS.map((platform) => {
-          const platformAccounts = accounts.filter(a => a.provider === platform.provider);
-          const isEnabled = platformAccounts.length > 0 && platformAccounts.some(a => a.isDistributionEnabled);
+          // Check if this platform is enabled in the user preferences
+          const pref = preferences.find(p => p.platformId === platform.id);
+          const isEnabled = pref ? pref.isEnabled : false;
           
           return (
             <div key={platform.id} className={styles.platformCard}>
@@ -31,7 +33,7 @@ export const DistributionGrid: React.FC<DistributionGridProps> = ({ accounts, is
                 <div>
                   <div className={styles.platformName}>{platform.name}</div>
                   <div className={styles.platformStatus}>
-                    {isEnabled ? 'Enabled' : 'Disabled'}
+                    {isEnabled ? 'Active' : 'Hidden'}
                   </div>
                 </div>
               </div>
@@ -39,7 +41,7 @@ export const DistributionGrid: React.FC<DistributionGridProps> = ({ accounts, is
                 <input 
                   id={`switch-${platform.id}`}
                   type="checkbox" 
-                  aria-label={`Toggle ${platform.name} distribution`}
+                  aria-label={`Toggle ${platform.name} visibility`}
                   checked={isEnabled}
                   onChange={() => onToggle(platform.id, platform.provider, isEnabled)}
                 />

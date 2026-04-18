@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Account } from '@/lib/types';
-import { getUserAccounts, toggleAccountDistribution, disconnectAccount } from '@/app/actions/user';
+import { getUserAccounts, toggleAccountDistribution, disconnectAccount as disconnectAccountAction, getPlatformPreferences, togglePlatformPreference as togglePlatformPreferenceAction } from '@/app/actions/user';
+import { Account, PlatformPreference } from '@/lib/types';
 
 /**
  * Custom hook to fetch a list of user accounts and manage the state
@@ -8,22 +8,27 @@ import { getUserAccounts, toggleAccountDistribution, disconnectAccount } from '@
  */
 export const useAccounts = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [preferences, setPreferences] = useState<PlatformPreference[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Fetch accounts on mount
   useEffect(() => {
-    async function loadAccounts() {
+    async function loadData() {
       try {
         setIsLoading(true);
-        const data = await getUserAccounts();
-        setAccounts(data);
+        const [accountsData, prefsData] = await Promise.all([
+          getUserAccounts(),
+          getPlatformPreferences()
+        ]);
+        setAccounts(accountsData);
+        setPreferences(prefsData);
       } catch (error) {
-        console.error("Failed to fetch user accounts:", error);
+        console.error("Failed to fetch user accounts or preferences:", error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadAccounts();
+    loadData();
   }, []);
 
   /**
@@ -60,26 +65,54 @@ export const useAccounts = () => {
     }
   }, [accounts]);
 
+  const disconnectAccount = useCallback(async (accountId: string): Promise<void> => {
+    const originalAccounts = [...accounts];
+
+    // 1. Optimistic Update
+    setAccounts(prev => prev.filter(a => a.id !== accountId));
+
+    try {
+      // 2. Execute server action
+      await disconnectAccountAction(accountId);
+    } catch (error) {
+      // 3. Rollback on error
+      console.error("Error disconnecting account. Rolling back state.", error);
+      setAccounts(originalAccounts);
+      throw error;
+    }
+  }, [accounts]);
+
+  const togglePlatform = useCallback(async (platformId: string, currentStatus: boolean): Promise<void> => {
+    const newStatus = !currentStatus;
+
+    // 1. Optimistic Update
+    setPreferences(prev => {
+      const existing = prev.find(p => p.platformId === platformId);
+      if (existing) {
+        return prev.map(p => p.platformId === platformId ? { ...p, isEnabled: newStatus } : p);
+      } else {
+        return [...prev, { id: 'temp', userId: 'temp', platformId, isEnabled: newStatus }];
+      }
+    });
+
+    try {
+      // 2. Execute server action
+      await togglePlatformPreferenceAction(platformId, newStatus);
+    } catch (error) {
+      // 3. Rollback
+      console.error("Error toggling platform preference. Rolling back state.", error);
+      setPreferences(prev => prev.map(p => p.platformId === platformId ? { ...p, isEnabled: currentStatus } : p));
+      throw error;
+    }
+  }, []);
+
   return {
     accounts,
     setAccounts,
     isLoading,
     toggleDistribution,
-    disconnectAccount: useCallback(async (accountId: string): Promise<void> => {
-      const originalAccounts = [...accounts];
-
-      // 1. Optimistic Update
-      setAccounts(prev => prev.filter(a => a.id !== accountId));
-
-      try {
-        // 2. Execute server action
-        await disconnectAccount(accountId);
-      } catch (error) {
-        // 3. Rollback on error
-        console.error("Error disconnecting account. Rolling back state.", error);
-        setAccounts(originalAccounts);
-        throw error;
-      }
-    }, [accounts]),
+    preferences,
+    togglePlatform,
+    disconnectAccount,
   };
 };
