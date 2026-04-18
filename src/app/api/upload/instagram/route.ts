@@ -5,8 +5,9 @@ import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
+import { streamMultipartFormData } from "@/lib/streaming-parser";
 
-export const maxDuration = 1800; // 30 minutes
+export const maxDuration = 7200; // 2 hours
 
 /**
  * INSTAGRAM UPLOAD HANDLER
@@ -21,31 +22,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const rawCaption = formData.get("title") as string; // Title used as caption for now
-    const rawDescription = formData.get("description") as string;
-    const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
-    const musicId = (formData.get("musicId") as string) || undefined;
-    const accountId = formData.get("accountId") as string;
+    let filePath: string | undefined;
+    let fileName: string | undefined;
+    let fields: Record<string, string> = {};
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    // Check if the file is already staged
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (body.stagedFileId) {
+        filePath = path.join(process.cwd(), "src/tmp", body.stagedFileId);
+        fields = body;
+        fileName = body.fileName;
+      }
     }
 
-    // 1. Save file to temporary storage for Meta to fetch
-    const tempDir = path.join(process.cwd(), "src/tmp");
-    await fs.mkdir(tempDir, { recursive: true });
+    if (!filePath) {
+      const parsed = await streamMultipartFormData(req);
+      filePath = parsed.filePath;
+      fileName = parsed.fileName;
+      fields = parsed.fields;
+    }
 
-    const fileId = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const tempFilePath = path.join(tempDir, fileId);
+    if (!filePath || !fsSync.existsSync(filePath)) {
+      return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
+    }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    await fs.writeFile(tempFilePath, buffer);
+    const rawCaption = fields.title;
+    const rawDescription = fields.description;
+    const contentMode = (fields.contentMode as StyleMode) || "Manual";
+    const musicId = (fields.musicId as string) || undefined;
+    const accountId = fields.accountId;
 
     // 2. Generate the Public URL for Meta Crawler
     const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    const fileId = path.basename(filePath);
     const videoUrl = `${baseUrl}/api/media/${fileId}`;
 
     console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
@@ -53,7 +64,7 @@ export async function POST(req: NextRequest) {
     // 3. Enrich through Intelligence Layer
     const enrichedContent = await generatePostContent(
       contentMode,
-      rawCaption || file.name,
+      rawCaption || fileName || "Untitled Video",
       rawDescription,
       "instagram"
     );
@@ -70,7 +81,7 @@ export async function POST(req: NextRequest) {
       };
       
       // Cleanup temp files immediately
-      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
+      if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
 
       return NextResponse.json({ success: true, data: mockResult });
     }
@@ -87,8 +98,8 @@ export async function POST(req: NextRequest) {
     // 5. Cleanup temp files after a delay to ensure Meta has fetched them
     setTimeout(async () => {
       try {
-        if (fsSync.existsSync(tempFilePath)) {
-          await fs.unlink(tempFilePath);
+        if (fsSync.existsSync(filePath)) {
+          await fs.unlink(filePath);
         }
         console.log(`Cleaned up temporary files for: ${fileId}`);
       } catch (e) {

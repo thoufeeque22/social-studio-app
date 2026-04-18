@@ -5,8 +5,9 @@ import { generatePostContent, StyleMode } from "@/lib/ai-writer";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
+import { streamMultipartFormData } from "@/lib/streaming-parser";
 
-export const maxDuration = 1800; // 30 minutes
+export const maxDuration = 7200; // 2 hours
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,32 +17,42 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const rawTitle = formData.get("title") as string;
-    const rawDescription = formData.get("description") as string;
-    const privacy = (formData.get("privacy") as "private" | "public" | "unlisted") || "private";
-    const contentMode = (formData.get("contentMode") as StyleMode) || "Manual";
-    const accountId = formData.get("accountId") as string;
+    let filePath: string | undefined;
+    let fileName: string | undefined;
+    let fields: Record<string, string> = {};
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    // Check if the file is already staged on the server
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (body.stagedFileId) {
+        filePath = path.join(process.cwd(), "src/tmp", body.stagedFileId);
+        fields = body;
+        fileName = body.fileName;
+      }
     }
 
-    const tempDir = path.join(process.cwd(), "src/tmp");
-    const tempFilePath = path.join(tempDir, `${Date.now()}-${file.name}`);
+    // Fallback to legacy multipart streaming if not staged
+    if (!filePath) {
+      const parsed = await streamMultipartFormData(req);
+      filePath = parsed.filePath;
+      fields = parsed.fields;
+      fileName = parsed.fileName;
+    }
+    
+    if (!filePath || !fsSync.existsSync(filePath)) {
+      return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
+    }
 
-    // Create temp directory if it doesn't exist
-    await fs.mkdir(tempDir, { recursive: true });
-
-    // Write file to disk
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    await fs.writeFile(tempFilePath, buffer);
+    const rawTitle = fields.title;
+    const rawDescription = fields.description;
+    const privacy = (fields.privacy as "private" | "public" | "unlisted") || "private";
+    const contentMode = (fields.contentMode as StyleMode) || "Manual";
+    const accountId = fields.accountId;
 
     const enrichedContent = await generatePostContent(
       contentMode,
-      rawTitle || file.name,
+      rawTitle || fileName || "Untitled Video",
       rawDescription,
       "youtube"
     );
@@ -59,7 +70,7 @@ export async function POST(req: NextRequest) {
       };
       
       // Cleanup temp files immediately
-      if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
+      if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
 
       return NextResponse.json({ success: true, data: mockResult });
     }
@@ -67,7 +78,7 @@ export async function POST(req: NextRequest) {
     // Call YouTube service
     const videoData = await uploadToYouTube({
       userId: session.user.id,
-      filePath: tempFilePath,
+      filePath: filePath,
       title: finalTitle,
       description: finalDescription,
       privacy: 'private',
@@ -75,7 +86,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Cleanup temp file
-    if (fsSync.existsSync(tempFilePath)) await fs.unlink(tempFilePath);
+    if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
 
     return NextResponse.json({ success: true, data: videoData });
   } catch (error: any) {

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { publishFacebookVideo, publishFacebookReel } from "@/lib/facebook";
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
+import { streamMultipartFormData } from "@/lib/streaming-parser";
 
-export const maxDuration = 1800; // 30 minutes
+export const maxDuration = 7200; // 2 hours
 
 /**
  * FACEBOOK NATIVE UPLOAD HANDLER
@@ -18,30 +20,38 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const accountId = formData.get("accountId") as string;
-    const videoFormat = (formData.get("videoFormat") as string) || "short";
+    let filePath: string | undefined;
+    let fields: Record<string, string> = {};
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    // Check if the file is already staged on the server
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (body.stagedFileId) {
+        filePath = path.join(process.cwd(), "src/tmp", body.stagedFileId);
+        fields = body;
+      }
     }
 
-    // 1. Save file to temporary storage
-    const tempDir = path.join(process.cwd(), "src/tmp");
-    await fs.mkdir(tempDir, { recursive: true });
+    // Fallback if not staged
+    if (!filePath) {
+      const parsed = await streamMultipartFormData(req);
+      filePath = parsed.filePath;
+      fields = parsed.fields;
+    }
 
-    const fileId = `${Date.now()}-fb-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-    const tempFilePath = path.join(tempDir, fileId);
+    if (!filePath || !fsSync.existsSync(filePath)) {
+      return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
+    }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    await fs.writeFile(tempFilePath, buffer);
+    const title = fields.title;
+    const description = fields.description;
+    const accountId = fields.accountId;
+    const videoFormat = fields.videoFormat || "short";
 
     // 2. Generate the Public URL for Facebook Crawler
     const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    const fileId = path.basename(filePath);
     const videoUrl = `${baseUrl}/api/media/${fileId}`;
 
     console.log(`Instructing Facebook Page API to fetch from: ${videoUrl}`);
@@ -57,20 +67,22 @@ export async function POST(req: NextRequest) {
       : await publishFacebookVideo({
           userId: session.user.id,
           videoUrl: videoUrl,
-          title: title || file.name,
+          title: title || fileId,
           description: description || "",
           accountId,
         });
 
-    // 4. Cleanup temp file
+    // 4. Cleanup temp file with extended delay for large files
     setTimeout(async () => {
       try {
-        await fs.unlink(tempFilePath);
-        console.log(`Cleaned up temp Facebook file: ${fileId}`);
+        if (fsSync.existsSync(filePath)) {
+          await fs.unlink(filePath);
+          console.log(`Cleaned up temp Facebook file: ${fileId}`);
+        }
       } catch (e) {
         console.error("Failed to cleanup temp file", e);
       }
-    }, 60000); // 60 seconds buffer
+    }, 600000); // 10 minutes buffer for large files
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
