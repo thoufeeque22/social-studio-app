@@ -14,6 +14,7 @@ model User {
   emailVerified DateTime?
   image         String?
   accounts      Account[]
+  platformPreferences PlatformPreference[]
 
   sessions      Session[]
 }
@@ -36,6 +37,16 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+model PlatformPreference {
+  id         String  @id @default(cuid())
+  userId     String
+  platformId String
+  isEnabled  Boolean @default(false)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platformId])
 }
 
 model Session {
