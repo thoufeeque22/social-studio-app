@@ -69,9 +69,6 @@ export async function POST(req: NextRequest) {
         status: { uploadStatus: "uploaded", privacyStatus: "private" }
       };
       
-      // Cleanup temp files immediately
-      if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
-
       return NextResponse.json({ success: true, data: mockResult });
     }
 
@@ -84,9 +81,6 @@ export async function POST(req: NextRequest) {
       privacy: 'private',
       accountId
     });
-
-    // Cleanup temp file
-    if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
 
     return NextResponse.json({ success: true, data: videoData });
   } catch (error: any) {

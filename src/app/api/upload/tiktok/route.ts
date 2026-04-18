@@ -92,18 +92,6 @@ export async function POST(req: NextRequest) {
       accountId,
     });
 
-    // 5. Cleanup temp files after a delay to ensure TikTok has fetched them
-    setTimeout(async () => {
-      try {
-        if (fsSync.existsSync(filePath)) {
-          await fs.unlink(filePath);
-        }
-        console.log(`Cleaned up temporary files for: ${fileId}`);
-      } catch (e) {
-        console.error("Failed to cleanup temp files", e);
-      }
-    }, 60000); // Wait 60 seconds to be safe
-
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("TikTok Upload Error:", error);

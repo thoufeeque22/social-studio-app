@@ -9,6 +9,7 @@ interface UploadParams {
   contentMode: StyleMode;
   videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
+  onAccountSuccess?: (accountId: string) => void;
 }
 
 /**
@@ -20,7 +21,8 @@ export async function performMultiPlatformUpload({
   selectedAccountIds,
   contentMode,
   videoFormat,
-  onStatusUpdate
+  onStatusUpdate,
+  onAccountSuccess
 }: UploadParams) {
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
   const results: Record<string, any> = {};
@@ -79,13 +81,27 @@ export async function performMultiPlatformUpload({
   // 2. PHASE TWO: Internal Distribution
   onStatusUpdate("🚀 Physical upload complete. Distributing to platforms...");
 
-  for (const account of selectedAccounts) {
-    const platform = account.provider === 'google' ? 'youtube' : account.provider;
+  for (const selectionId of selectedAccountIds) {
+    // Parse virtual ID (platform:realId) or real ID
+    let platform: string;
+    let realAccountId: string;
+
+    if (selectionId.includes(':')) {
+      [platform, realAccountId] = selectionId.split(':');
+    } else {
+      const account = accounts.find(a => a.id === selectionId);
+      if (!account) continue;
+      platform = account.provider === 'google' ? 'youtube' : account.provider;
+      realAccountId = selectionId;
+    }
+
+    const account = accounts.find(a => a.id === realAccountId);
+    if (!account) continue;
+
     const displayName = formatHandle(account.accountName, platform);
-    
     onStatusUpdate(`Posting to ${platform} (${displayName})...`);
     
-    // Prepare platform-specific metadata (No physical file sent here!)
+    // Prepare platform-specific metadata
     const payload = {
       stagedFileId,
       fileName,
@@ -93,7 +109,7 @@ export async function performMultiPlatformUpload({
       description: formData.get('description'),
       contentMode,
       videoFormat,
-      accountId: account.id
+      accountId: realAccountId
     };
 
     const response = await fetch(`/api/upload/${platform}`, {
@@ -109,9 +125,21 @@ export async function performMultiPlatformUpload({
       throw new Error(`${platform} (${displayName}): ${result.error}`);
     }
     
-    results[account.id] = result.data;
+    results[selectionId] = result.data;
+    onAccountSuccess?.(selectionId);
     onStatusUpdate(`${displayName} Success!`);
   }
+
+  // 3. PHASE THREE: Orchestrated Cleanup
+  // We trigger a cleanup after a delay to ensure platform crawlers (Meta/Google)
+  // have finished fetching the large file from our tunnel.
+  setTimeout(() => {
+    fetch('/api/upload/cleanup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stagedFileId })
+    }).catch(err => console.error("Secondary cleanup failed:", err));
+  }, 300000); // 5 minutes delay
 
   return results;
 }

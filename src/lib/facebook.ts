@@ -1,4 +1,6 @@
 import { prisma } from "./prisma";
+import { promises as fs } from "fs";
+import fsSync from "fs";
 
 export const getFacebookPageAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -20,7 +22,6 @@ export const getFacebookPageAccount = async (userId: string, accountId?: string)
   }
 
   // By default, we will just take the first page they manage
-  // In the future, this can be expanded to allow UI selection
   const targetPage = pagesData.data[0];
 
   return {
@@ -30,87 +31,124 @@ export const getFacebookPageAccount = async (userId: string, accountId?: string)
   };
 };
 
-interface PublishFacebookVideoParams {
-  userId: string;
-  videoUrl: string;
-  title: string;
-  description: string;
-}
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+/**
+ * GET DETAILED VIDEO STATUS (THE DOCTOR)
+ */
+export const getFacebookVideoStatus = async (videoId: string, accessToken: string) => {
+  try {
+    const res = await fetch(`https://graph.facebook.com/v20.0/${videoId}?fields=status&access_token=${accessToken}`);
+    const data = await res.json();
+    if (data.error) return `Unknown (Status Check Failed: ${data.error.message})`;
+    
+    const status = data.status || {};
+    const videoStatus = status.video_status || 'unknown';
+    const processingStatus = status.processing_phase?.status || 'n/a';
+    
+    return `State: ${videoStatus}, Processing: ${processingStatus}`;
+  } catch (e) {
+    return 'Unreachable';
+  }
+};
+
+/**
+ * PULL-BASED UPLOAD FOR FACEBOOK VIDEOS (FEED)
+ */
 export const publishFacebookVideo = async ({
   userId,
   videoUrl,
   title,
   description,
   accountId,
-}: PublishFacebookVideoParams & { accountId?: string }) => {
+}: {
+  userId: string;
+  videoUrl: string;
+  title: string;
+  description: string;
+  accountId?: string;
+}) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
 
-  console.log(`Starting Facebook Native auto-post for Page: ${pageName} (${pageId})`);
+  console.log(`🚀 [FB-PULL] Initializing Feed Pull for: ${pageName}`);
 
-  // Facebook allows directly pulling from a URL without the container-polling flow used by Instagram
-  const targetUrl = `https://graph.facebook.com/v20.0/${pageId}/videos`;
-
-  const publishRes = await fetch(targetUrl, {
+  // 1. START Phase
+  const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/videos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       file_url: videoUrl,
-      title: title,
-      description: description,
+      title,
+      description,
       access_token: pageAccessToken,
     }),
   });
 
-  const publishData = await publishRes.json();
-
-  if (publishData.error) {
-    console.error("Facebook Upload Error:", publishData.error);
-    throw new Error(`Facebook Native Upload Failed: ${publishData.error.message}`);
-  }
-
-  console.log(`Successfully posted video to Facebook Page (${pageName})`);
-  return {
-    success: true,
-    videoId: publishData.id,
-    pageName,
-  };
+  const initData = await initRes.json();
+  if (initData.error) throw new Error(`FB Video Pull Failed: ${initData.error.message}`);
+  
+  console.log(`Successfully initiated Facebook Video pull for ${pageName}`);
+  return { success: true, videoId: initData.id, pageName };
 };
 
 /**
- * Publishes a video as a Facebook Reel.
+ * PULL-BASED UPLOAD FOR FACEBOOK REELS (WITH POLLING)
  */
 export const publishFacebookReel = async ({
   userId,
   videoUrl,
   description,
   accountId,
-}: { userId: string, videoUrl: string, description: string, accountId?: string }) => {
+}: {
+  userId: string;
+  videoUrl: string;
+  description: string;
+  accountId?: string;
+}) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
 
-  console.log(`Starting Facebook Reel auto-post for Page: ${pageName} (${pageId})`);
+  console.log(`🚀 [FB-REEL-PULL] Initializing Reel Pull for: ${pageName}`);
 
-  // 1. Initialize the Reel upload
-  const initUrl = `https://graph.facebook.com/v20.0/${pageId}/video_reels`;
-  const initRes = await fetch(initUrl, {
+  // 1. START Step
+  const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       upload_phase: "start",
+      file_url: videoUrl, // Start the pull automatically
       access_token: pageAccessToken,
     }),
   });
 
   const initData = await initRes.json();
-  if (initData.error) {
-    throw new Error(`Facebook Reel Init Failed: ${initData.error.message}`);
-  }
-
+  if (initData.error) throw new Error(`Reel Init Failed: ${initData.error.message}`);
   const { video_id: videoId } = initData;
 
-  // 2. Upload the Reel from URL
-  const uploadUrl = `https://graph.facebook.com/v20.0/${pageId}/video_reels`;
-  const uploadRes = await fetch(uploadUrl, {
+  console.log(`🚀 [FB-REEL-PULL] Container created: ${videoId}. Waiting for Meta to ingest...`);
+
+  // 2. POLLING Step (5 Minutes Max)
+  let videoReady = false;
+  for (let i = 0; i < 60; i++) {
+    await sleep(10000); // Check every 10s
+    const statusReport = await getFacebookVideoStatus(videoId, pageAccessToken);
+    console.log(`[FB-POLL] ${statusReport}`);
+    
+    if (statusReport.includes('ready')) {
+      videoReady = true;
+      break;
+    }
+    if (statusReport.includes('error')) {
+      throw new Error(`Meta Ingestion Failed: ${statusReport}`);
+    }
+  }
+
+  if (!videoReady) {
+    throw new Error("Facebook processing timed out (5m). The video might still be processing; check your Page later.");
+  }
+
+  // 3. FINISH Step
+  console.log(`🚀 [FB-REEL-PULL] Video ready! Finalizing publication...`);
+  const finishRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -118,20 +156,12 @@ export const publishFacebookReel = async ({
       video_id: videoId,
       video_state: "PUBLISHED",
       description: description,
-      file_url: videoUrl,
       access_token: pageAccessToken,
     }),
   });
 
-  const uploadData = await uploadRes.json();
-  if (uploadData.error) {
-    throw new Error(`Facebook Reel Upload Failed: ${uploadData.error.message}`);
-  }
+  const finishData = await finishRes.json();
+  if (finishData.error) throw new Error(`Reel Finish Failed: ${finishData.error.message}`);
 
-  console.log(`Successfully posted Reel to Facebook Page (${pageName})`);
-  return {
-    success: true,
-    videoId: videoId,
-    pageName,
-  };
+  return { success: true, videoId, pageName };
 };

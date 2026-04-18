@@ -20,13 +20,23 @@ export default function Home() {
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>('short');
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
+  const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
 
-  // Sync initial selection with distribution-enabled accounts
+  // Sync initial selection with distribution-enabled accounts (handling virtual IDs)
   useEffect(() => {
     if (accounts.length > 0 && !isInitialSync) {
-      setSelectedAccountIds(
-        accounts.filter(a => a.isDistributionEnabled).map(a => a.id)
-      );
+      const initialSelection: string[] = [];
+      accounts.forEach(a => {
+        if (a.isDistributionEnabled) {
+          if (a.provider === 'facebook') {
+            initialSelection.push(`facebook:${a.id}`);
+            initialSelection.push(`instagram:${a.id}`);
+          } else {
+            initialSelection.push(a.id);
+          }
+        }
+      });
+      setSelectedAccountIds(initialSelection);
       setIsInitialSync(true);
     }
   }, [accounts, isInitialSync]);
@@ -134,6 +144,7 @@ export default function Home() {
       return;
     }
 
+    setSuccessfulAccountIds([]);
     setIsUploading(true);
     try {
       // Re-create the formData context for metadata fields
@@ -145,7 +156,8 @@ export default function Home() {
         selectedAccountIds,
         contentMode,
         videoFormat,
-        onStatusUpdate: setUploadStatus
+        onStatusUpdate: setUploadStatus,
+        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id])
       });
 
       setUploadStatus('All uploads completed successfully!');
@@ -174,6 +186,7 @@ export default function Home() {
           uploadStatus={uploadStatus}
           accounts={accounts}
           selectedAccountIds={selectedAccountIds}
+          successfulAccountIds={successfulAccountIds}
           contentMode={contentMode}
           videoFormat={videoFormat}
           onModeChange={setContentMode}

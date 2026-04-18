@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { publishFacebookVideo, publishFacebookReel } from "@/lib/facebook";
-import fs from "fs/promises";
+import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 import { streamMultipartFormData } from "@/lib/streaming-parser";
@@ -10,7 +10,7 @@ export const maxDuration = 7200; // 2 hours
 
 /**
  * FACEBOOK NATIVE UPLOAD HANDLER
- * Saves the video temporarily and hands the Tunnel URL to the Facebook Pages API.
+ * Saves the video temporarily and pushes the binary data to Facebook's secure upload servers.
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -44,45 +44,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
     }
 
-    const title = fields.title;
-    const description = fields.description;
     const accountId = fields.accountId;
     const videoFormat = fields.videoFormat || "short";
+    const fileName = path.basename(filePath);
 
-    // 2. Generate the Public URL for Facebook Crawler
-    const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    // 2. Generate the Public URL for Meta Crawler
+    let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
     const fileId = path.basename(filePath);
-    const videoUrl = `${baseUrl}/api/media/${fileId}`;
+    const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(fileId)}`;
 
-    console.log(`Instructing Facebook Page API to fetch from: ${videoUrl}`);
+    console.log(`Instructing Facebook to fetch from: ${videoUrl}`);
 
-    // 3. Post to Facebook Page API (Reel or standard Video)
-    const result = videoFormat === "short" 
-      ? await publishFacebookReel({
-          userId: session.user.id,
-          videoUrl: videoUrl,
-          description: description || "",
-          accountId,
-        })
-      : await publishFacebookVideo({
-          userId: session.user.id,
-          videoUrl: videoUrl,
-          title: title || fileId,
-          description: description || "",
-          accountId,
-        });
+    // If MOCK_UPLOAD is enabled, skip the actual API call
+    if (process.env.MOCK_UPLOAD === "true") {
+      console.log("🚀 [MOCK MODE] Skipping actual Facebook API publish.");
+      if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
+      return NextResponse.json({ success: true, data: { id: `mock-fb-${Date.now()}` } });
+    }
 
-    // 4. Cleanup temp file with extended delay for large files
-    setTimeout(async () => {
-      try {
-        if (fsSync.existsSync(filePath)) {
-          await fs.unlink(filePath);
-          console.log(`Cleaned up temp Facebook file: ${fileId}`);
-        }
-      } catch (e) {
-        console.error("Failed to cleanup temp file", e);
-      }
-    }, 600000); // 10 minutes buffer for large files
+    // 3. Orchestrate the Facebook Publishing (Pull-based)
+    let result;
+    if (videoFormat === 'short') {
+      result = await publishFacebookReel({
+        userId: session.user.id,
+        videoUrl: videoUrl,
+        description: fields.description || "",
+        accountId,
+      });
+    } else {
+      result = await publishFacebookVideo({
+        userId: session.user.id,
+        videoUrl: videoUrl,
+        title: fields.title || fileName || "Untitled Video",
+        description: fields.description || "",
+        accountId,
+      });
+    }
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {

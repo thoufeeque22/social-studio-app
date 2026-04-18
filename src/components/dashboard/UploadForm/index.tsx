@@ -11,6 +11,7 @@ interface UploadFormProps {
   uploadStatus: string | null;
   accounts: Account[];
   selectedAccountIds: string[];
+  successfulAccountIds: string[];
   contentMode: StyleMode;
   videoFormat: VideoFormat;
   onModeChange: (mode: StyleMode) => void;
@@ -24,6 +25,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   uploadStatus,
   accounts,
   selectedAccountIds,
+  successfulAccountIds,
   contentMode,
   videoFormat,
   onModeChange,
@@ -109,7 +111,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         
         <VideoFormatSelector videoFormat={videoFormat} onFormatChange={onFormatChange} />
 
-        {videoFormat === 'long' && accounts.some(a => selectedAccountIds.includes(a.id) && a.provider === 'facebook') && (
+        {videoFormat === 'long' && selectedAccountIds.some(id => id.startsWith('instagram:')) && (
            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'hsla(var(--primary)/0.1)', border: '1px solid hsla(var(--primary)/0.3)', marginBottom: '0.5rem' }}>
              <p style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))' }}>
                ⚠️ <strong>Note:</strong> Instagram Business API strictly requires vertical Reels. For Long-form content, we will post to your connected Facebook Pages and other platforms, but Instagram uploads may be restricted or formatted as Reels.
@@ -120,6 +122,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         <PlatformSelection 
           accounts={accounts} 
           selectedAccountIds={selectedAccountIds} 
+          successfulAccountIds={successfulAccountIds}
           onToggleAccount={onToggleAccount} 
         />
 

@@ -55,9 +55,11 @@ export async function POST(req: NextRequest) {
     const accountId = fields.accountId;
 
     // 2. Generate the Public URL for Meta Crawler
-    const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
     const fileId = path.basename(filePath);
-    const videoUrl = `${baseUrl}/api/media/${fileId}`;
+    const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(fileId)}`;
 
     console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
 
@@ -94,18 +96,6 @@ export async function POST(req: NextRequest) {
       musicId,
       accountId,
     });
-
-    // 5. Cleanup temp files after a delay to ensure Meta has fetched them
-    setTimeout(async () => {
-      try {
-        if (fsSync.existsSync(filePath)) {
-          await fs.unlink(filePath);
-        }
-        console.log(`Cleaned up temporary files for: ${fileId}`);
-      } catch (e) {
-        console.error("Failed to cleanup temp files", e);
-      }
-    }, 60000); // Wait 60 seconds to be safe
 
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {

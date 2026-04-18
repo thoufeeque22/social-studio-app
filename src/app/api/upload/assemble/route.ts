@@ -17,6 +17,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // --- AUTO-SCRUB SAFETY TASK ---
+  // Periodically clean up src/tmp for files older than 2 hours
+  try {
+    const tempDir = path.join(process.cwd(), "src/tmp");
+    if (fsSync.existsSync(tempDir)) {
+      const files = await fs.readdir(tempDir);
+      const now = Date.now();
+      for (const file of files) {
+        const filePath = path.join(tempDir, file);
+        const stats = await fs.stat(filePath);
+        if (stats.isFile() && (now - stats.mtimeMs > 2 * 60 * 60 * 1000)) {
+          await fs.unlink(filePath);
+          console.log(`🧹 [AUTO-SCRUB] Purged old temp file: ${file}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auto-scrub failed:", err);
+  }
+  // ------------------------------
+
   try {
     const { uploadId, fileName, totalChunks } = await req.json();
     
