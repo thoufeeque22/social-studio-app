@@ -14,7 +14,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
 - [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
 - [x] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
-- [ ] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections.
+- [x] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections.
 - [x] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform.
 - [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow.
 - [ ] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
