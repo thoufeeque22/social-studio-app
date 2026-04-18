@@ -76,3 +76,62 @@ export const publishFacebookVideo = async ({
     pageName,
   };
 };
+
+/**
+ * Publishes a video as a Facebook Reel.
+ */
+export const publishFacebookReel = async ({
+  userId,
+  videoUrl,
+  description,
+  accountId,
+}: { userId: string, videoUrl: string, description: string, accountId?: string }) => {
+  const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
+
+  console.log(`Starting Facebook Reel auto-post for Page: ${pageName} (${pageId})`);
+
+  // 1. Initialize the Reel upload
+  const initUrl = `https://graph.facebook.com/v20.0/${pageId}/video_reels`;
+  const initRes = await fetch(initUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      upload_phase: "start",
+      access_token: pageAccessToken,
+    }),
+  });
+
+  const initData = await initRes.json();
+  if (initData.error) {
+    throw new Error(`Facebook Reel Init Failed: ${initData.error.message}`);
+  }
+
+  const { video_id: videoId } = initData;
+
+  // 2. Upload the Reel from URL
+  const uploadUrl = `https://graph.facebook.com/v20.0/${pageId}/video_reels`;
+  const uploadRes = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      upload_phase: "finish",
+      video_id: videoId,
+      video_state: "PUBLISHED",
+      description: description,
+      file_url: videoUrl,
+      access_token: pageAccessToken,
+    }),
+  });
+
+  const uploadData = await uploadRes.json();
+  if (uploadData.error) {
+    throw new Error(`Facebook Reel Upload Failed: ${uploadData.error.message}`);
+  }
+
+  console.log(`Successfully posted Reel to Facebook Page (${pageName})`);
+  return {
+    success: true,
+    videoId: videoId,
+    pageName,
+  };
+};

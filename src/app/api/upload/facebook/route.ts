@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { publishFacebookVideo } from "@/lib/facebook";
+import { publishFacebookVideo, publishFacebookReel } from "@/lib/facebook";
 import fs from "fs/promises";
 import path from "path";
+
+export const maxDuration = 1800; // 30 minutes
 
 /**
  * FACEBOOK NATIVE UPLOAD HANDLER
@@ -21,6 +23,7 @@ export async function POST(req: NextRequest) {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const accountId = formData.get("accountId") as string;
+    const videoFormat = (formData.get("videoFormat") as string) || "short";
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -43,14 +46,21 @@ export async function POST(req: NextRequest) {
 
     console.log(`Instructing Facebook Page API to fetch from: ${videoUrl}`);
 
-    // 3. Post to Facebook Page Native API
-    const result = await publishFacebookVideo({
-      userId: session.user.id,
-      videoUrl: videoUrl,
-      title: title || file.name,
-      description: description || "",
-      accountId,
-    });
+    // 3. Post to Facebook Page API (Reel or standard Video)
+    const result = videoFormat === "short" 
+      ? await publishFacebookReel({
+          userId: session.user.id,
+          videoUrl: videoUrl,
+          description: description || "",
+          accountId,
+        })
+      : await publishFacebookVideo({
+          userId: session.user.id,
+          videoUrl: videoUrl,
+          title: title || file.name,
+          description: description || "",
+          accountId,
+        });
 
     // 4. Cleanup temp file
     setTimeout(async () => {

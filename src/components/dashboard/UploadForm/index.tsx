@@ -2,8 +2,9 @@ import React from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
-import { Account } from '@/lib/types';
+import { Account, VideoFormat } from '@/lib/types';
 import { StyleMode } from '@/lib/constants';
+import { VideoFormatSelector } from './VideoFormatSelector';
 
 interface UploadFormProps {
   isUploading: boolean;
@@ -11,7 +12,9 @@ interface UploadFormProps {
   accounts: Account[];
   selectedAccountIds: string[];
   contentMode: StyleMode;
+  videoFormat: VideoFormat;
   onModeChange: (mode: StyleMode) => void;
+  onFormatChange: (format: VideoFormat) => void;
   onToggleAccount: (id: string) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
 }
@@ -22,7 +25,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   accounts,
   selectedAccountIds,
   contentMode,
+  videoFormat,
   onModeChange,
+  onFormatChange,
   onToggleAccount,
   onSubmit,
 }) => {
@@ -101,6 +106,16 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         </div>
 
         <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />
+        
+        <VideoFormatSelector videoFormat={videoFormat} onFormatChange={onFormatChange} />
+
+        {videoFormat === 'long' && accounts.some(a => selectedAccountIds.includes(a.id) && a.provider === 'facebook') && (
+           <div style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'hsla(var(--primary)/0.1)', border: '1px solid hsla(var(--primary)/0.3)', marginBottom: '0.5rem' }}>
+             <p style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))' }}>
+               ⚠️ <strong>Note:</strong> Instagram Business API strictly requires vertical Reels. For Long-form content, we will post to your connected Facebook Pages and other platforms, but Instagram uploads may be restricted or formatted as Reels.
+             </p>
+           </div>
+        )}
 
         <PlatformSelection 
           accounts={accounts} 
