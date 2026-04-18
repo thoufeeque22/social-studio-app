@@ -20,7 +20,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
 - [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
 - [x] **Long Format Video Support**: Support for uploading and managing long-form content.
-- [ ] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
+- [x] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
 
 ## Medium Priority 📈
 - [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram.

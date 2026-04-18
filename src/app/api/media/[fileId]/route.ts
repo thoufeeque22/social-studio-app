@@ -74,6 +74,7 @@ export async function GET(
           "Content-Range": `bytes ${start}-${end}/${stats.size}`,
           "Accept-Ranges": "bytes",
           "Content-Length": chunkSize.toString(),
+          "ngrok-skip-browser-warning": "true",
         },
       });
     } else {
@@ -95,6 +96,7 @@ export async function GET(
           "Content-Type": mimeType,
           "Content-Length": stats.size.toString(),
           "Accept-Ranges": "bytes",
+          "ngrok-skip-browser-warning": "true",
         },
       });
     }
