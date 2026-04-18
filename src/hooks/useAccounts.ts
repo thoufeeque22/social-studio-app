@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Account } from '@/lib/types';
-import { getUserAccounts, toggleAccountDistribution } from '@/app/actions/user';
+import { getUserAccounts, toggleAccountDistribution, disconnectAccount } from '@/app/actions/user';
 
 /**
  * Custom hook to fetch a list of user accounts and manage the state
@@ -65,5 +65,21 @@ export const useAccounts = () => {
     setAccounts,
     isLoading,
     toggleDistribution,
+    disconnectAccount: useCallback(async (accountId: string): Promise<void> => {
+      const originalAccounts = [...accounts];
+
+      // 1. Optimistic Update
+      setAccounts(prev => prev.filter(a => a.id !== accountId));
+
+      try {
+        // 2. Execute server action
+        await disconnectAccount(accountId);
+      } catch (error) {
+        // 3. Rollback on error
+        console.error("Error disconnecting account. Rolling back state.", error);
+        setAccounts(originalAccounts);
+        throw error;
+      }
+    }, [accounts]),
   };
 };

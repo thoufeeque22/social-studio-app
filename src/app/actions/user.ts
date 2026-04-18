@@ -50,3 +50,25 @@ export async function toggleAccountDistribution(accountId: string, isEnabled: bo
   
   return { success: true };
 }
+/**
+ * Removes a connected account from the database.
+ */
+export async function disconnectAccount(accountId: string) {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.account.delete({
+    where: { 
+      id: accountId,
+      userId: session.user.id // Security check
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/settings");
+  
+  return { success: true };
+}

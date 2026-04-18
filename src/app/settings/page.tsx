@@ -10,7 +10,17 @@ import { PLATFORMS } from '@/lib/constants';
 import styles from './Settings.module.css';
 
 const SettingsPage = () => {
-  const { accounts, isLoading, toggleDistribution } = useAccounts();
+  const { accounts, isLoading, toggleDistribution, disconnectAccount } = useAccounts();
+
+  const handleDisconnect = async (accountId: string) => {
+    if (!confirm('Are you sure you want to disconnect this account?')) return;
+    
+    try {
+      await disconnectAccount(accountId);
+    } catch (e) {
+      alert('Failed to disconnect account. Please try again.');
+    }
+  };
 
   const handlePlatformToggle = async (platformId: string, provider: string, currentStatus: boolean) => {
     // Platform-specific validation logic (could be moved to a validator util later)
@@ -52,6 +62,7 @@ const SettingsPage = () => {
           provider="google"
           color="hsl(var(--primary))"
           onConnect={() => signIn('google')}
+          onDisconnect={handleDisconnect}
           accounts={accounts}
           platformLabel="YouTube Channel"
         />
@@ -63,6 +74,7 @@ const SettingsPage = () => {
           provider="facebook"
           color="#E1306C"
           onConnect={() => signIn('facebook')}
+          onDisconnect={handleDisconnect}
           accounts={accounts}
           platformLabel="Instagram Account"
         />
@@ -74,6 +86,7 @@ const SettingsPage = () => {
           provider="facebook"
           color="#1877F2"
           onConnect={() => signIn('facebook')}
+          onDisconnect={handleDisconnect}
           accounts={accounts}
           platformLabel="Facebook Account"
         />
@@ -85,6 +98,7 @@ const SettingsPage = () => {
           provider="tiktok"
           color="black"
           onConnect={() => signIn('tiktok')}
+          onDisconnect={handleDisconnect}
           accounts={accounts}
           platformLabel="TikTok Profile"
         />
