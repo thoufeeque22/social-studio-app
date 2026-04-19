@@ -242,13 +242,22 @@ export default function SchedulePage() {
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Scheduled Date & Time</label>
-                <input 
-                  type="datetime-local" 
-                  name="scheduledAt" 
-                  defaultValue={formatToLocalDatetime(editingPost.scheduledAt)} 
-                  className={styles.formInput} 
-                  required 
-                />
+                <div 
+                  className={styles.datePickerWrapper}
+                  onClick={(e) => {
+                    const input = e.currentTarget.querySelector('input');
+                    if (input && 'showPicker' in input) (input as any).showPicker();
+                  }}
+                >
+                  <span className={styles.dateIcon}>📅</span>
+                  <input 
+                    type="datetime-local" 
+                    name="scheduledAt" 
+                    defaultValue={formatToLocalDatetime(editingPost.scheduledAt)} 
+                    className={styles.formInputWithIcon} 
+                    required 
+                  />
+                </div>
               </div>
               
               <div className={styles.formActions}>

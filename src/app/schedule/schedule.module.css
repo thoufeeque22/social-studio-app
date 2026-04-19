@@ -255,6 +255,44 @@
   box-shadow: 0 0 0 2px hsla(var(--primary) / 0.2);
 }
 
+.datePickerWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.dateIcon {
+  position: absolute;
+  left: 0.75rem;
+  pointer-events: none;
+  font-size: 1rem;
+}
+
+.formInputWithIcon {
+  width: 100%;
+  background: hsla(var(--background) / 0.5);
+  border: 1px solid hsla(var(--border) / 1);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  color: hsl(var(--foreground));
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.formInputWithIcon::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.formInputWithIcon:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsla(var(--primary) / 0.2);
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
