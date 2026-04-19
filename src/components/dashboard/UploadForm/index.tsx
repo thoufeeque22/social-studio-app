@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
@@ -37,17 +38,69 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onFileChange,
   onSubmit,
 }) => {
+  const isComplete = uploadStatus?.includes('successfully');
+
   return (
     <GlassCard id="create-post-section" style={{ padding: '2rem' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload & Automate</h2>
       
       {uploadStatus && (
-        <GlassCard style={{ padding: '1rem', marginBottom: '1.5rem', borderColor: 'hsl(var(--primary))' }}>
-          <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
-            {uploadStatus}
-          </p>
-        </GlassCard>
+        <div style={{ marginBottom: '1.5rem' }}>
+          {isComplete ? (
+            <Link 
+              href="/history" 
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ 
+                display: 'block',
+                textDecoration: 'none', 
+                padding: '1rem',
+                borderRadius: '0.75rem',
+                background: 'hsla(var(--primary) / 0.1)',
+                border: '1px solid hsla(var(--primary) / 0.3)',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.background = 'hsla(var(--primary) / 0.15)';
+                e.currentTarget.style.borderColor = 'hsla(var(--primary) / 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = 'hsla(var(--primary) / 0.1)';
+                e.currentTarget.style.borderColor = 'hsla(var(--primary) / 0.3)';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
+                  <span style={{ fontSize: '1.1rem' }}>✨</span>
+                  <span>{uploadStatus}</span>
+                </p>
+                <div style={{ 
+                  background: 'hsl(var(--primary))', 
+                  color: 'white', 
+                  padding: '2px 8px', 
+                  borderRadius: '99px', 
+                  fontSize: '0.7rem', 
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  View History <span>→</span>
+                </div>
+              </div>
+            </Link>
+          ) : (
+            <GlassCard style={{ padding: '1rem', borderColor: 'hsl(var(--primary))' }}>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', margin: 0 }}>
+                <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
+                {uploadStatus}
+              </p>
+            </GlassCard>
+          )}
+        </div>
       )}
 
       <form 
@@ -170,9 +223,28 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         </button>
         
         {uploadStatus && (
-          <p style={{ fontSize: '0.85rem', textAlign: 'center', color: 'hsl(var(--primary))', fontWeight: 500 }}>
-            {uploadStatus}
-          </p>
+          <div style={{ textAlign: 'center' }}>
+            {isComplete ? (
+              <Link 
+                href="/history" 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  fontSize: '0.85rem', 
+                  color: 'hsl(var(--primary))', 
+                  fontWeight: 600, 
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '4px'
+                }}
+              >
+                {uploadStatus} ↗
+              </Link>
+            ) : (
+              <p style={{ fontSize: '0.85rem', color: 'hsl(var(--primary))', fontWeight: 500 }}>
+                {uploadStatus}
+              </p>
+            )}
+          </div>
         )}
       </form>
     </GlassCard>

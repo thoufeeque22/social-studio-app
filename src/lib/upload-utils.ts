@@ -2,6 +2,15 @@ import { Account } from '@/lib/types';
 import { formatHandle } from '@/lib/utils';
 import { StyleMode } from '@/lib/constants';
 
+export interface PlatformUploadResult {
+  platform: string;
+  accountName: string | null;
+  platformPostId: string | null;
+  permalink: string | null;
+  status: 'success' | 'failed';
+  errorMessage?: string;
+}
+
 interface UploadParams {
   formData: FormData;
   accounts: Account[];
@@ -13,7 +22,50 @@ interface UploadParams {
 }
 
 /**
+ * Generates a direct permalink to the published content on each platform.
+ */
+function generatePermalink(platform: string, data: any): string | null {
+  if (!data) return null;
+
+  switch (platform) {
+    case 'youtube': {
+      const videoId = data.id || data.videoId;
+      return videoId ? `https://youtube.com/watch?v=${videoId}` : null;
+    }
+    case 'facebook': {
+      const videoId = data.videoId || data.id;
+      return videoId ? `https://facebook.com/${videoId}` : null;
+    }
+    case 'instagram': {
+      const mediaId = data.id;
+      return mediaId ? `https://instagram.com/reel/${mediaId}` : null;
+    }
+    case 'tiktok': {
+      // TikTok's publish API does not return a public URL
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Extracts a platform-native post ID from the API response.
+ */
+function extractPlatformPostId(platform: string, data: any): string | null {
+  if (!data) return null;
+  switch (platform) {
+    case 'youtube': return data.id || null;
+    case 'facebook': return data.videoId || data.id || null;
+    case 'instagram': return data.id || null;
+    case 'tiktok': return data.publish_id || null;
+    default: return null;
+  }
+}
+
+/**
  * Coordinates the multi-platform upload process.
+ * Returns both the raw results map and a structured platformResults array for history persistence.
  */
 export async function performMultiPlatformUpload({
   formData,
@@ -23,9 +75,10 @@ export async function performMultiPlatformUpload({
   videoFormat,
   onStatusUpdate,
   onAccountSuccess
-}: UploadParams) {
+}: UploadParams): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
   const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
   const results: Record<string, any> = {};
+  const platformResults: PlatformUploadResult[] = [];
 
   // 1. PHASE ONE: Staging via Chunking (Zero-Memory Crash)
   const file = formData.get('file') as File;
@@ -127,16 +180,39 @@ export async function performMultiPlatformUpload({
         console.error(`❌ [${platform}] Failed: ${result.error}`);
         onStatusUpdate(`${displayName} Failed: ${result.error}`);
         results[selectionId] = { error: result.error };
+        platformResults.push({
+          platform,
+          accountName: account.accountName,
+          platformPostId: null,
+          permalink: null,
+          status: 'failed',
+          errorMessage: result.error,
+        });
         continue;
       }
       
       results[selectionId] = result.data;
+      platformResults.push({
+        platform,
+        accountName: account.accountName,
+        platformPostId: extractPlatformPostId(platform, result.data),
+        permalink: generatePermalink(platform, result.data),
+        status: 'success',
+      });
       onAccountSuccess?.(selectionId);
       onStatusUpdate(`${displayName} Success!`);
     } catch (err: any) {
       console.error(`❌ [${platform}] Fatal Error: ${err.message}`);
       onStatusUpdate(`${displayName} Error: ${err.message}`);
       results[selectionId] = { error: err.message };
+      platformResults.push({
+        platform,
+        accountName: account?.accountName || null,
+        platformPostId: null,
+        permalink: null,
+        status: 'failed',
+        errorMessage: err.message,
+      });
     }
   }
 
@@ -151,5 +227,5 @@ export async function performMultiPlatformUpload({
     }).catch(err => console.error("Secondary cleanup failed:", err));
   }, 300000); // 5 minutes delay
 
-  return results;
+  return { raw: results, platformResults };
 }

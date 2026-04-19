@@ -51,7 +51,7 @@ export async function streamMultipartFormData(req: NextRequest): Promise<ParsedM
       resolve({ fields, filePath, fileName });
     });
 
-    bb.on("error", (err) => {
+    bb.on("error", (err: any) => {
       reject(new Error(`Busboy error: ${err.message}`));
     });
 
