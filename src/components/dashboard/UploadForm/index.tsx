@@ -272,7 +272,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
           }}
         >
-          {isUploading ? '📤 Processing...' : '🚀 Post Video'}
+          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : '🚀 Post Video'}
         </button>
         
         {uploadStatus && (
