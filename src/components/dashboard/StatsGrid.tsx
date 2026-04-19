@@ -1,13 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { getDashboardStats } from '@/app/actions/stats';
 
 export const StatsGrid: React.FC = () => {
-  const stats = [
-    { label: 'Total Posts', value: '128', change: '+12%', icon: '📝' },
-    { label: 'Avg. Reach', value: '45.2K', change: '+8.4%', icon: '🚀' },
-    { label: 'Engagement', value: '5.2%', change: '+2.1%', icon: '❤️' },
-    { label: 'Scheduled', value: '12', change: 'Next 7 days', icon: '📅' },
-  ];
+  const [stats, setStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getDashboardStats()
+      .then(data => {
+        setStats(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load stats", err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+        gap: '1.5rem', 
+        marginBottom: '3rem' 
+      }}>
+        {[1, 2, 3, 4].map((i) => (
+          <GlassCard key={i}>
+            <div className="animate-pulse">
+              <div style={{ height: '2rem', width: '2rem', background: 'hsla(var(--muted)/0.5)', borderRadius: '50%', marginBottom: '1rem' }} />
+              <div style={{ height: '2rem', width: '60%', background: 'hsla(var(--muted)/0.5)', borderRadius: '0.5rem', marginBottom: '0.5rem' }} />
+              <div style={{ height: '1rem', width: '40%', background: 'hsla(var(--muted)/0.2)', borderRadius: '0.5rem' }} />
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div style={{ 

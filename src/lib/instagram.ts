@@ -164,3 +164,39 @@ export const publishInstagramReel = async ({
     throw { message: error.message, creationId, status: "failed" };
   }
 };
+
+/**
+ * Fetches account statistics for the given user's Instagram account.
+ */
+export const getInstagramStats = async (userId: string, accountId?: string) => {
+  const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
+  
+  const url = `https://graph.facebook.com/v20.0/${igUserId}?fields=followers_count,media_count,name&access_token=${userAccessToken}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (data.error) {
+    console.error("Instagram Stats Error:", data.error);
+    return null;
+  }
+
+  // Also try to get reach (insights) for the last 30 days
+  const insightsUrl = `https://graph.facebook.com/v20.0/${igUserId}/insights?metric=reach,impressions&period=days_28&access_token=${userAccessToken}`;
+  const insightsRes = await fetch(insightsUrl);
+  const insightsData = await insightsRes.json();
+
+  let reach = 0;
+  if (insightsData.data) {
+    const reachData = insightsData.data.find((m: any) => m.name === 'reach');
+    if (reachData && reachData.values) {
+      reach = reachData.values[0].value;
+    }
+  }
+
+  return {
+    followers: data.followers_count,
+    media: data.media_count,
+    name: data.name,
+    reach: reach
+  };
+};

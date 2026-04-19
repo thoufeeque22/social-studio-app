@@ -171,3 +171,24 @@ export const uploadToYouTube = async ({
   const finalData = await uploadRes.json();
   return { data: finalData, resumableUrl: uploadUrl };
 };
+
+/**
+ * Fetches channel statistics for the given user's YouTube account.
+ */
+export const getYouTubeStats = async (userId: string, accountId?: string) => {
+  const youtube = await getYouTubeClient(userId, accountId);
+  
+  const response = await youtube.channels.list({
+    part: ["statistics"],
+    mine: true
+  });
+
+  const stats = response.data.items?.[0]?.statistics;
+  if (!stats) return null;
+
+  return {
+    views: parseInt(stats.viewCount || "0"),
+    subscribers: parseInt(stats.subscriberCount || "0"),
+    videos: parseInt(stats.videoCount || "0")
+  };
+};

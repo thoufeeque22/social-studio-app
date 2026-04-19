@@ -299,7 +299,7 @@ export default function Home() {
     <div className="fade-in">
       <DashboardHeader session={session} />
       
-      <StatsGrid />
+      {/* Stats parked for next phase */}
 
       <div className="responsive-grid">
         <UploadForm 
