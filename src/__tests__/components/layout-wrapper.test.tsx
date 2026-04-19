@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LayoutWrapper from '../components/LayoutWrapper';
+import LayoutWrapper from '../../components/LayoutWrapper';
 import { usePathname } from 'next/navigation';
 
 // Mock next/navigation specifically for control

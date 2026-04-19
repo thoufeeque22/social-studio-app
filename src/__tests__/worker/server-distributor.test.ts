@@ -1,31 +1,31 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { distributeToPlatformsServer } from '../lib/server-distributor';
-import { upsertPlatformResultInternal } from '../app/actions/history';
+import { distributeToPlatformsServer } from '../../lib/server-distributor';
+import { upsertPlatformResultInternal } from '../../app/actions/history';
 
 // Mock Dependencies
-vi.mock('../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {},
 }));
 
-vi.mock('../app/actions/history', () => ({
+vi.mock('../../app/actions/history', () => ({
   upsertPlatformResultInternal: vi.fn().mockResolvedValue({ id: 'res-1' }),
 }));
 
 // Mock Platform SDKs
 const mockUploadToYouTube = vi.fn().mockResolvedValue({ id: 'yt-123' });
-vi.mock('../lib/youtube', () => ({
+vi.mock('../../lib/youtube', () => ({
   uploadToYouTube: (params: any) => mockUploadToYouTube(params),
 }));
 
 const mockPublishFacebookVideo = vi.fn().mockResolvedValue({ id: 'fb-123' });
 const mockPublishFacebookReel = vi.fn().mockResolvedValue({ id: 'fbr-123' });
-vi.mock('../lib/facebook', () => ({
+vi.mock('../../lib/facebook', () => ({
   publishFacebookVideo: (params: any) => mockPublishFacebookVideo(params),
   publishFacebookReel: (params: any) => mockPublishFacebookReel(params),
 }));
 
 const mockPublishInstagramReel = vi.fn().mockResolvedValue({ id: 'ig-123' });
-vi.mock('../lib/instagram', () => ({
+vi.mock('../../lib/instagram', () => ({
   publishInstagramReel: (params: any) => mockPublishInstagramReel(params),
 }));
 

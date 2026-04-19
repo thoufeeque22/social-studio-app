@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import SettingsPage from '../app/settings/page';
+import SettingsPage from '../../app/settings/page';
 import { useSession } from 'next-auth/react';
-import { getUserAccounts, togglePlatformPreference, getPlatformPreferences } from '../app/actions/user';
+import { getUserAccounts, togglePlatformPreference, getPlatformPreferences } from '../../app/actions/user';
 
 // Mock NextAuth
 vi.mock('next-auth/react', () => ({
@@ -11,7 +11,7 @@ vi.mock('next-auth/react', () => ({
 }));
 
 // Mock Server Actions
-vi.mock('../app/actions/user', () => ({
+vi.mock('../../app/actions/user', () => ({
   getUserAccounts: vi.fn(),
   toggleAccountDistribution: vi.fn(),
   getPlatformPreferences: vi.fn(),

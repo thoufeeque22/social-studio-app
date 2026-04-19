@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { POST } from '../app/api/upload/facebook/route';
+import { POST } from '../../app/api/upload/facebook/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { publishFacebookVideo, publishFacebookReel } from '@/lib/facebook';

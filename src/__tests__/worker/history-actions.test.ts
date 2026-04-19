@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { upsertPlatformResultInternal } from '../app/actions/history';
-import { prisma } from '../lib/prisma';
+import { upsertPlatformResultInternal } from '../../app/actions/history';
+import { prisma } from '../../lib/prisma';
 
 // Mock Auth
 vi.mock('@/auth', () => ({
@@ -8,7 +8,7 @@ vi.mock('@/auth', () => ({
 }));
 
 // Mock Prisma
-vi.mock('../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     postHistory: {
       findUnique: vi.fn(),

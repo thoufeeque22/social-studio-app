@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { generatePostContent } from '../lib/ai-writer';
+import { generatePostContent } from '../../lib/ai-writer';
 
 describe('AI Vibe-Writer (generatePostContent)', () => {
   beforeEach(() => {

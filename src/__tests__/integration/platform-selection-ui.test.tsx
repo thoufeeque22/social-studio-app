@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { PlatformSelection } from '../components/dashboard/UploadForm/PlatformSelection';
+import { PlatformSelection } from '../../components/dashboard/UploadForm/PlatformSelection';
 import React from 'react';
 
 describe('PlatformSelection UI', () => {

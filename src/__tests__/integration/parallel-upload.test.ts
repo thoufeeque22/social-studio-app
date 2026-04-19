@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { distributeToPlatforms } from '../lib/upload-utils';
+import { distributeToPlatforms } from '../../lib/upload-utils';
 
 describe('Parallel Distribution Logic', () => {
   beforeEach(() => {

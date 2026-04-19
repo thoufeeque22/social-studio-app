@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, vi, expect, afterEach } from 'vitest';
 
 // 1. Mock Prisma BEFORE any other imports that might use it
-vi.mock('../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     account: {
       findFirst: vi.fn().mockResolvedValue({
@@ -16,8 +16,8 @@ vi.mock('../lib/prisma', () => ({
 // 2. Clear fetch before each test
 global.fetch = vi.fn();
 
-import { uploadToYouTube } from '../lib/youtube';
-import { publishInstagramReel } from '../lib/instagram';
+import { uploadToYouTube } from '../../lib/youtube';
+import { publishInstagramReel } from '../../lib/instagram';
 
 describe('Upload Integrations', () => {
   beforeEach(() => {

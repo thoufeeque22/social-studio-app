@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LoginPage from '../app/login/page';
+import LoginPage from '../../app/login/page';
 import { signIn } from 'next-auth/react';
 
 // Use the mocks from setup.ts, but specifically import signIn to check calls

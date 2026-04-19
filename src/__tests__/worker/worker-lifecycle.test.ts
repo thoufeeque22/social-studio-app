@@ -1,10 +1,10 @@
 import { describe, it, beforeEach, afterEach, vi, expect } from 'vitest';
-import { startPublishingWorker } from '../lib/worker';
-import { prisma } from '../lib/prisma';
-import { distributeToPlatformsServer } from '../lib/server-distributor';
+import { startPublishingWorker } from '../../lib/worker';
+import { prisma } from '../../lib/prisma';
+import { distributeToPlatformsServer } from '../../lib/server-distributor';
 
 // Mock Dependencies
-vi.mock('../lib/prisma', () => ({
+vi.mock('../../lib/prisma', () => ({
   prisma: {
     postHistory: {
       findMany: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('../lib/prisma', () => ({
   },
 }));
 
-vi.mock('../lib/server-distributor', () => ({
+vi.mock('../../lib/server-distributor', () => ({
   distributeToPlatformsServer: vi.fn().mockResolvedValue([]),
 }));
 

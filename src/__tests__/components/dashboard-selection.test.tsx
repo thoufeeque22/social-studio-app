@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Home from '../app/page';
+import Home from '../../app/page';
 import { useSession } from 'next-auth/react';
-import { getUserAccounts, getPlatformPreferences } from '../app/actions/user';
+import { getUserAccounts, getPlatformPreferences } from '../../app/actions/user';
 
 // Mock NextAuth
 vi.mock('next-auth/react', () => ({
@@ -10,13 +10,13 @@ vi.mock('next-auth/react', () => ({
 }));
 
 // Mock Server Actions
-vi.mock('../app/actions/user', () => ({
+vi.mock('../../app/actions/user', () => ({
   getUserAccounts: vi.fn(),
   getPlatformPreferences: vi.fn(),
 }));
 
 // Mock Upload Utils
-vi.mock('../lib/upload-utils', () => ({
+vi.mock('../../lib/upload-utils', () => ({
   performMultiPlatformUpload: vi.fn().mockResolvedValue({ success: true }),
 }));
 

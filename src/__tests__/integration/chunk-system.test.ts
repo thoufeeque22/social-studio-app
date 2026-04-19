@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { POST as chunkPOST } from '../app/api/upload/chunk/route';
-import { POST as assemblePOST } from '../app/api/upload/assemble/route';
+import { POST as chunkPOST } from '../../app/api/upload/chunk/route';
+import { POST as assemblePOST } from '../../app/api/upload/assemble/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { promises as fsPromises } from 'fs';
