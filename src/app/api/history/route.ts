@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       isPublished: published 
     },
     include: { platforms: true },
-    orderBy: published ? { createdAt: 'desc' } : { scheduledAt: 'asc' },
+    orderBy: published ? { scheduledAt: 'desc' } : { scheduledAt: 'asc' },
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
