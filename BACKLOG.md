@@ -37,7 +37,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video, only free to use audio.
 - [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
-- [ ] **Stop/Abort Posting**: Add a button to stop or abort the remaining platform uploads in a sequential flow.
+- [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise.
 - [x] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially.
 
 ## Low Priority 🛠️

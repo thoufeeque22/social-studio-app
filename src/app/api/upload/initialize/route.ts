@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         title: title || "Untitled Post",
         description: description || null,
         videoFormat: videoFormat || "short",
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : new Date(),
         isPublished: isPublished === undefined ? true : isPublished,
         stagedFileId: null, // To be updated after assembly
         platforms: {
