@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export interface PlatformResultInput {
   platform: string;
@@ -16,15 +17,12 @@ export interface PlatformResultInput {
 }
 
 /**
- * Upserts a single platform result for a post history entry.
+ * Upserts a single platform result for a post history entry (Internal version for Worker).
  */
-export async function upsertPlatformResult(historyId: string, result: PlatformResultInput) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
-
+export async function upsertPlatformResultInternal(userId: string, historyId: string, result: PlatformResultInput) {
   // Verify ownership
   const history = await prisma.postHistory.findUnique({
-    where: { id: historyId, userId: session.user.id }
+    where: { id: historyId, userId: userId }
   });
   if (!history) throw new Error('History entry not found');
 
@@ -60,12 +58,23 @@ export async function upsertPlatformResult(historyId: string, result: PlatformRe
   });
 }
 
+/**
+ * Upserts a single platform result for a post history entry (Authenticated version for UI).
+ */
+export async function upsertPlatformResult(historyId: string, result: PlatformResultInput) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+  return await upsertPlatformResultInternal(session.user.id, historyId, result);
+}
+
 export interface SavePostHistoryInput {
   title: string;
   description?: string;
   videoFormat: 'short' | 'long';
   platforms: PlatformResultInput[];
-  stagedFileId?: string; // New field
+  stagedFileId?: string; 
+  scheduledAt?: Date | null;
+  isPublished?: boolean;
 }
 
 export async function savePostHistory(data: SavePostHistoryInput) {
@@ -81,6 +90,8 @@ export async function savePostHistory(data: SavePostHistoryInput) {
       description: data.description,
       videoFormat: data.videoFormat,
       stagedFileId: data.stagedFileId,
+      scheduledAt: data.scheduledAt,
+      isPublished: data.isPublished ?? true,
       platforms: {
         create: data.platforms.map((p) => ({
           platform: p.platform,
@@ -99,6 +110,10 @@ export async function savePostHistory(data: SavePostHistoryInput) {
       platforms: true,
     },
   });
+
+  revalidatePath('/');
+  revalidatePath('/schedule');
+  revalidatePath('/history');
 
   return { success: true, data: postHistory };
 }
@@ -220,6 +235,124 @@ export async function retryUploadAction(resultId: string) {
     });
     return { success: false, error: err.message };
   }
+}
+
+/**
+ * Fetches upcoming scheduled posts for the current user.
+ */
+export async function getUpcomingPosts() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  return await prisma.postHistory.findMany({
+    where: {
+      userId: session.user.id,
+      isPublished: false
+    },
+    orderBy: {
+      scheduledAt: 'asc'
+    },
+    take: 5
+  });
+}
+
+/**
+ * Updates a scheduled post (before it is published).
+ */
+export async function updateScheduledPost(id: string, data: { title?: string; description?: string; scheduledAt?: string }) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  const updated = await prisma.postHistory.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined
+    }
+  });
+
+  revalidatePath('/schedule');
+  revalidatePath('/');
+
+  return updated;
+}
+
+/**
+ * Marks a scheduled post to be published ASAP.
+ */
+export async function publishNowAction(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  // Set scheduledAt to NOW, so the worker picks it up on next tick.
+  const updated = await prisma.postHistory.update({
+    where: { id },
+    data: {
+      scheduledAt: new Date()
+    }
+  });
+
+  revalidatePath('/schedule');
+  revalidatePath('/history');
+  revalidatePath('/');
+
+  return updated;
+}
+
+/**
+ * Deletes a scheduled post.
+ */
+export async function deleteScheduledPost(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  // Also clean up the temporary file if it exists
+  if (post.stagedFileId) {
+    try {
+      const path = await import('path');
+      const fs = await import('fs');
+      const filePath = path.join(process.cwd(), "src/tmp", post.stagedFileId);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) {
+      console.warn("Failed to delete temp file during post cancellation:", e);
+    }
+  }
+
+  const deleted = await prisma.postHistory.delete({
+    where: { id }
+  });
+
+  revalidatePath('/schedule');
+  revalidatePath('/');
+
+  return deleted;
 }
 
 

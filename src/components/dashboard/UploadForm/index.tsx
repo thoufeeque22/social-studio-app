@@ -22,6 +22,9 @@ interface UploadFormProps {
   onToggleAccount: (id: string) => void;
   onFileChange: (file: File) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  isScheduled: boolean;
+  scheduledAt: string;
+  onSchedulingChange: (isScheduled: boolean, date: string) => void;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -39,6 +42,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onToggleAccount,
   onFileChange,
   onSubmit,
+  isScheduled,
+  scheduledAt,
+  onSchedulingChange,
 }) => {
   const isComplete = uploadStatus?.includes('successfully');
 
@@ -206,6 +212,50 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           onToggleAccount={onToggleAccount} 
         />
 
+        <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'hsla(var(--muted)/0.3)', border: '1px solid hsla(var(--border)/0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={isScheduled}
+                onChange={(e) => onSchedulingChange(e.target.checked, scheduledAt)}
+                style={{ marginRight: '0.5rem' }}
+              />
+              Schedule for later
+            </label>
+            {isScheduled && (
+              <div 
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={(e) => {
+                  const input = e.currentTarget.querySelector('input');
+                  if (input && 'showPicker' in input) (input as any).showPicker();
+                }}
+              >
+                <span style={{ position: 'absolute', left: '0.75rem', pointerEvents: 'none', fontSize: '1rem' }}>📅</span>
+                <input 
+                  type="datetime-local" 
+                  value={scheduledAt}
+                  onChange={(e) => onSchedulingChange(true, e.target.value)}
+                  min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                  required
+                  style={{ 
+                    background: 'hsla(var(--background)/0.5)', 
+                    border: '1px solid hsla(var(--border)/0.5)',
+                    borderRadius: '0.5rem',
+                    padding: '0.5rem 0.75rem 0.5rem 2.5rem',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    width: 'auto',
+                    minWidth: '240px',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
         <button 
           type="submit" 
           disabled={isUploading || (accounts.length > 0 && selectedAccountIds.length === 0)}
@@ -222,7 +272,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
           }}
         >
-          {isUploading ? '📤 Processing...' : '🚀 Post Video'}
+          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : '🚀 Post Video'}
         </button>
         
         {uploadStatus && (

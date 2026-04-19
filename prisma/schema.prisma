@@ -73,6 +73,8 @@ model PostHistory {
   title        String
   description  String?
   videoFormat  String               @default("short")
+  scheduledAt  DateTime?
+  isPublished  Boolean              @default(true)
   stagedFileId String?
   createdAt    DateTime             @default(now())
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -84,6 +86,7 @@ model PostPlatformResult {
   postHistoryId  String
   platform       String
   accountName    String?
+  accountId      String?
   platformPostId String?
   permalink      String?
   status         String      @default("success")

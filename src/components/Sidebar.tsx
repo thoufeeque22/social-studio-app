@@ -9,10 +9,10 @@ const Sidebar = () => {
   const { data: session } = useSession();
   const menuItems = [
     { name: 'Dashboard', icon: '📊', path: '/' },
+    { name: 'Schedule', icon: '📅', path: '/schedule' },
     { name: 'History', icon: '📜', path: '/history' },
     { name: 'Media Gallery', icon: '🖼️', path: '/media' },
-    { name: 'Schedule', icon: '📅', path: '/schedule' },
-    { name: 'Analytics', icon: '📈', path: '/analytics' },
+    // { name: 'Analytics', icon: '📈', path: '/analytics' },
     { name: 'Settings', icon: '⚙️', path: '/settings' },
   ];
 

@@ -78,13 +78,13 @@ export async function stageVideoFile({
   file,
   onStatusUpdate,
   metadata,
-  platformIds,
+  platforms,
   resumeHistoryId
 }: { 
   file: File; 
   onStatusUpdate: (status: string) => void;
-  metadata?: { title?: string; description?: string; videoFormat?: string };
-  platformIds: string[];
+  metadata?: { title?: string; description?: string; videoFormat?: string; scheduledAt?: string; isPublished?: boolean };
+  platforms: { platform: string; accountId: string }[];
   resumeHistoryId?: string;
 }): Promise<{ stagedFileId: string; fileName: string; historyId: string }> {
   // 0. CREATE DETERMINISTIC UPLOAD ID (Fingerprinting for resumption)
@@ -101,7 +101,7 @@ export async function stageVideoFile({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         ...metadata,
-        platformIds
+        platforms
       }),
     });
 
@@ -172,7 +172,8 @@ export async function stageVideoFile({
       uploadId,
       fileName: file.name,
       totalChunks,
-      ...metadata
+      ...metadata,
+      historyId
     }),
   });
 
@@ -245,13 +246,14 @@ export async function distributeToPlatforms({
       const payload = {
         stagedFileId,
         fileName,
-        title: formData.get('title'),
-        description: formData.get('description'),
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
         videoFormat,
         accountId: realAccountId,
         contentMode,
       };
 
+      // HTTP API CALL (Standard Browser context)
       const response = await fetch(`/api/upload/${platform}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

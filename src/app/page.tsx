@@ -30,6 +30,9 @@ export default function Home() {
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const draftFileRef = useRef<File | null>(null);
 
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
+
   // Load persisted file from IndexedDB on mount
   useEffect(() => {
     getDraftFile().then(file => {
@@ -237,19 +240,49 @@ export default function Home() {
       const title = (data.get('title') as string) || file.name || 'Untitled Post';
       const description = (data.get('description') as string) || undefined;
       
-      // Extract platform names from selected IDs
-      const platformIds = selectedAccountIds.map(sid => {
-        const account = accounts.find(a => a.id === sid || `${a.provider === 'google' ? 'youtube' : a.provider}:${a.id}` === sid);
-        return account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
-      }).filter(p => p !== 'unknown');
+      // Preserve both platform names and their specific account IDs
+      const platforms = selectedAccountIds.map(sid => {
+        let platform: string;
+        let accountId: string;
+        
+        if (sid.includes(':')) {
+           const parts = sid.split(':');
+           platform = parts[0];
+           accountId = parts[1];
+        } else {
+           const account = accounts.find(a => a.id === sid);
+           if (!account) return null;
+           platform = account.provider === 'google' ? 'youtube' : account.provider;
+           accountId = account.id;
+        }
+        return { platform, accountId };
+      }).filter(p => p !== null);
 
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
         onStatusUpdate: setUploadStatus,
-        metadata: { title, description, videoFormat },
-        platformIds,
+        metadata: { 
+          title, 
+          description, 
+          videoFormat,
+          scheduledAt: isScheduled ? scheduledAt : undefined,
+          isPublished: !isScheduled
+        } as any,
+        platforms: platforms as any,
         resumeHistoryId: resumeHistoryId || undefined
       });
+
+      if (isScheduled) {
+        setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
+        setIsUploading(false);
+        window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+        clearDraftFile();
+        localStorage.removeItem('SS_DRAFT_TITLE');
+        localStorage.removeItem('SS_DRAFT_DESC');
+        setDraftFileName(null);
+        draftFileRef.current = null;
+        return;
+      }
 
       // Phase 2: Distribute to platforms with real-time updates
       setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
@@ -321,6 +354,12 @@ export default function Home() {
           onToggleAccount={handleToggleAccount}
           onFileChange={handleFileChange}
           onSubmit={handleUpload}
+          isScheduled={isScheduled}
+          scheduledAt={scheduledAt}
+          onSchedulingChange={(scheduled, date) => {
+            setIsScheduled(scheduled);
+            setScheduledAt(date);
+          }}
         />
 
         <SidebarInfo accounts={accounts} />

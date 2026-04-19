@@ -1,13 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Account } from '@/lib/types';
 import { PLATFORMS } from '@/lib/constants';
+import { getUpcomingPosts } from '@/app/actions/history';
+import { usePolling } from '@/hooks/usePolling';
 
 interface SidebarInfoProps {
   accounts: Account[];
 }
 
 export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
+  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchQueue = () => {
+    getUpcomingPosts()
+      .then(setUpcoming)
+      .finally(() => setIsLoading(false));
+  };
+
+  // Switch to high-frequency polling when a post is due very soon
+  const hasActivePosts = upcoming.some(post => {
+    const scheduledTime = new Date(post.scheduledAt).getTime();
+    return scheduledTime <= Date.now() + 30000;
+  });
+
+  usePolling({
+    callback: fetchQueue,
+    interval: hasActivePosts ? 5000 : 30000,
+    isActive: upcoming.length > 0
+  });
+
+  useEffect(() => {
+    fetchQueue();
+    window.addEventListener('refresh-upcoming', fetchQueue);
+    return () => window.removeEventListener('refresh-upcoming', fetchQueue);
+  }, []);
+
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <GlassCard style={{ padding: '2rem' }}>
@@ -35,19 +64,49 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       <GlassCard style={{ padding: '2rem', flex: 1 }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upcoming Posts</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {[1, 2].map((i) => (
-            <div key={i} style={{ display: 'flex', gap: '1rem', opacity: 0.5 }}>
-              <div style={{ 
-                width: '2px', 
-                background: 'hsl(var(--primary))', 
-                borderRadius: '2px',
-              }} />
-              <div>
-                <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>Post Scenario {i}</p>
-                <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>Feature in dev...</p>
+          {isLoading ? (
+            [1, 2].map(i => (
+              <div key={i} className="animate-pulse" style={{ display: 'flex', gap: '1rem' }}>
+                 <div style={{ width: '2px', background: 'hsla(var(--muted)/0.2)', borderRadius: '2px' }} />
+                 <div style={{ flex: 1 }}>
+                   <div style={{ height: '0.85rem', width: '60%', background: 'hsla(var(--muted)/0.2)', marginBottom: '0.5rem', borderRadius: '4px' }} />
+                   <div style={{ height: '0.75rem', width: '40%', background: 'hsla(var(--muted)/0.1)', borderRadius: '4px' }} />
+                 </div>
               </div>
+            ))
+          ) : upcoming.length > 0 ? (
+            upcoming.map((post) => (
+              <div key={post.id} style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ 
+                  width: '2px', 
+                  background: 'hsl(var(--primary))', 
+                  borderRadius: '2px',
+                }} />
+                <div>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>{post.title}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
+                      {new Date(post.scheduledAt).toLocaleString(undefined, { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
+                    {new Date(post.scheduledAt) < new Date() && (
+                      <span style={{ fontSize: '0.65rem', background: 'hsla(var(--primary)/0.2)', color: 'hsl(var(--primary))', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        QUEUED
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>
+              No upcoming posts scheduled.
             </div>
-          ))}
+          )}
         </div>
       </GlassCard>
     </section>

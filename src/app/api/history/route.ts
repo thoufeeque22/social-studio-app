@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const session = await auth();
 
@@ -13,10 +15,14 @@ export async function GET(req: NextRequest) {
   const cursor = searchParams.get('cursor');
   const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
 
+  const published = searchParams.get('published') !== 'false';
   const posts = await prisma.postHistory.findMany({
-    where: { userId: session.user.id },
+    where: { 
+      userId: session.user.id,
+      isPublished: published 
+    },
     include: { platforms: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: published ? { scheduledAt: 'desc' } : { scheduledAt: 'asc' },
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });

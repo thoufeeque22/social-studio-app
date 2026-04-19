@@ -13,6 +13,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
 import { getDraftFile } from '@/lib/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
+import { usePolling } from '@/hooks/usePolling';
 import styles from './history.module.css';
 
 interface PlatformResult {
@@ -23,6 +24,7 @@ interface PlatformResult {
   permalink: string | null;
   status: string;
   errorMessage: string | null;
+  accountId: string | null;
 }
 
 interface PostHistoryEntry {
@@ -74,6 +76,7 @@ export default function HistoryPage() {
   const fetchHistory = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
     if (cursor) params.set('cursor', cursor);
+    params.set('_t', Date.now().toString()); // Cache buster
 
     const res = await fetch(`/api/history?${params.toString()}`);
     const data = await res.json();
@@ -87,6 +90,19 @@ export default function HistoryPage() {
       setIsLoading(false);
     }).catch(() => setIsLoading(false));
   }, [fetchHistory]);
+
+  const hasActivePosts = posts.some(post => 
+    post.platforms.some(p => p.status === 'pending' || p.status === 'retrying')
+  );
+
+  usePolling({
+    callback: async () => {
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    },
+    interval: hasActivePosts ? 5000 : 60000,
+    isActive: posts.length > 0
+  });
 
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;
@@ -155,13 +171,17 @@ export default function HistoryPage() {
         file,
         onStatusUpdate: setInPlaceStatus,
         metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
-        platformIds: post.platforms.map(p => p.platform),
+        platforms: post.platforms.map(p => ({ 
+          platform: p.platform, 
+          accountId: (p as any).accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id
+        })).filter(p => p.accountId) as any,
         resumeHistoryId: post.id
       });
       
       const selectedAccountIds = post.platforms.map(p => {
-        const account = accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform);
-        return account ? (account.provider === 'facebook' ? `facebook:${account.id}` : account.id) : null;
+        const accountId = (p as any).accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id;
+        if (!accountId) return null;
+        return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${accountId}` : accountId;
       }).filter(Boolean) as string[];
 
       await distributeToPlatforms({
@@ -304,12 +324,15 @@ export default function HistoryPage() {
             const failedCount = post.platforms.filter(p => p.status === 'failed').length;
 
             return (
-              <div key={post.id} className={styles.postCard}>
+              <div key={post.id} className={`${styles.postCard} ${post.platforms.some(p => p.status === 'pending') ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
                 <GlassCard className={styles.cardInner}>
                   <div className={styles.cardHeader}>
                     <div>
-                      <h3 className={styles.postTitle}>{post.title}</h3>
+                      <h3 className={styles.postTitle}>
+                        {post.platforms.some(p => p.status === 'pending') && <span className={styles.processingDot} />}
+                        {post.title}
+                      </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
                       )}
