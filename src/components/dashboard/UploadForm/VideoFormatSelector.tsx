@@ -20,6 +20,7 @@ export const VideoFormatSelector: React.FC<VideoFormatSelectorProps> = ({ videoF
           <button
             key={format.id}
             type="button"
+            aria-pressed={videoFormat === format.id}
             onClick={() => onFormatChange(format.id)}
             style={{
               display: 'flex',

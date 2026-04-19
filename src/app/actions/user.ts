@@ -116,3 +116,41 @@ export async function togglePlatformPreference(platformId: string, isEnabled: bo
   
   return { success: true };
 }
+
+/**
+ * Fetches the preferred video format for the current user.
+ */
+export async function getVideoFormatPreference() {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    return "short";
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { preferredVideoFormat: true }
+  });
+
+  return user?.preferredVideoFormat || "short";
+}
+
+/**
+ * Updates the preferred video format for the current user.
+ */
+export async function updateVideoFormatPreference(format: string) {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { preferredVideoFormat: format }
+  });
+
+  revalidatePath("/");
+  
+  return { success: true };
+}

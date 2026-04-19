@@ -16,6 +16,7 @@ model User {
   accounts      Account[]
   platformPreferences PlatformPreference[]
   postHistories PostHistory[]
+  preferredVideoFormat String @default("short")
 
   sessions      Session[]
 }
