@@ -66,24 +66,34 @@ export async function POST(req: NextRequest) {
 
     // 3. Orchestrate the Facebook Publishing (Pull-based)
     let result;
-    if (videoFormat === 'short') {
-      result = await publishFacebookReel({
-        userId: session.user.id,
-        videoUrl: videoUrl,
-        description: fields.description || "",
-        accountId,
-      });
-    } else {
-      result = await publishFacebookVideo({
-        userId: session.user.id,
-        videoUrl: videoUrl,
-        title: fields.title || fileName || "Untitled Video",
-        description: fields.description || "",
-        accountId,
-      });
-    }
+    try {
+      if (videoFormat === 'short') {
+        result = await publishFacebookReel({
+          userId: session.user.id,
+          videoUrl: videoUrl,
+          description: fields.description || "",
+          accountId,
+          videoId: fields.videoId,
+        });
+      } else {
+        result = await publishFacebookVideo({
+          userId: session.user.id,
+          videoUrl: videoUrl,
+          title: fields.title || fileName || "Untitled Video",
+          description: fields.description || "",
+          accountId,
+          videoId: fields.videoId,
+        });
+      }
 
-    return NextResponse.json({ success: true, data: result });
+      return NextResponse.json({ success: true, data: result });
+    } catch (apiError: any) {
+      return NextResponse.json({ 
+        success: false, 
+        error: apiError.message,
+        videoId: apiError.videoId || fields.videoId
+      }, { status: 500 });
+    }
   } catch (error: any) {
     console.error("Facebook Native Upload Error:", error);
     return NextResponse.json({ 

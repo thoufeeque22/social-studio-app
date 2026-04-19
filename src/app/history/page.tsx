@@ -1,7 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * HISTORY PAGE
+ * Displays a list of all past uploads and their platform links.
+ * Supports:
+ * - Single platform retries (Cloud retry)
+ * - In-place physical upload resumption (Chunk retry)
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
+import { getDraftFile } from '@/lib/file-store';
+import { useAccounts } from '@/hooks/useAccounts';
 import styles from './history.module.css';
 
 interface PlatformResult {
@@ -55,6 +66,10 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
+  const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { accounts } = useAccounts();
 
   const fetchHistory = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
@@ -82,7 +97,100 @@ export default function HistoryPage() {
     setLoadingMore(false);
   };
 
-  const renderPlatformPill = (p: PlatformResult) => {
+  const [retryingIds, setRetryingIds] = useState<string[]>([]);
+
+  const handleRetry = async (e: React.MouseEvent, p: PlatformResult) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (retryingIds.includes(p.id)) return;
+
+    setRetryingIds(prev => [...prev, p.id]);
+    try {
+      const { retryUploadAction } = await import('@/app/actions/history');
+      const res = await retryUploadAction(p.id);
+      if (res.success) {
+        // Refresh history to see updating status
+        const data = await fetchHistory();
+        setPosts(data.data || []);
+      } else {
+        alert(`Retry failed: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Retry error: ${err.message}`);
+    } finally {
+      setRetryingIds(prev => prev.filter(id => id !== p.id));
+    }
+  };
+
+  const handleInPlaceResume = async (post: PostHistoryEntry) => {
+    setActiveResumingId(post.id);
+    setInPlaceStatus("🔍 Checking browser storage...");
+    
+    try {
+      let file = await getDraftFile();
+      
+      if (!file) {
+        setInPlaceStatus("📂 Please select the video file to resume...");
+        if (fileInputRef.current) {
+          fileInputRef.current.onchange = (e: any) => {
+             const selected = e.target.files?.[0];
+             if (selected) executePipeline(post, selected);
+          };
+          fileInputRef.current.click();
+        }
+        return;
+      }
+      
+      await executePipeline(post, file);
+    } catch (err: any) {
+      setInPlaceStatus(`❌ Error: ${err.message}`);
+      setTimeout(() => setActiveResumingId(null), 3000);
+    }
+  };
+
+  const executePipeline = async (post: PostHistoryEntry, file: File) => {
+    setInPlaceStatus("🚀 Starting resumption...");
+    try {
+      const { stagedFileId, fileName, historyId } = await stageVideoFile({
+        file,
+        onStatusUpdate: setInPlaceStatus,
+        metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
+        platformIds: post.platforms.map(p => p.platform),
+        resumeHistoryId: post.id
+      });
+      
+      const selectedAccountIds = post.platforms.map(p => {
+        const account = accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform);
+        return account ? (account.provider === 'facebook' ? `facebook:${account.id}` : account.id) : null;
+      }).filter(Boolean) as string[];
+
+      await distributeToPlatforms({
+        stagedFileId,
+        fileName,
+        formData: new FormData(), 
+        accounts,
+        selectedAccountIds,
+        contentMode: 'Manual',
+        videoFormat: post.videoFormat as any,
+        onStatusUpdate: setInPlaceStatus,
+        historyId,
+        onAccountSuccess: async () => {
+           const updated = await fetchHistory();
+           setPosts(updated.data || []);
+        }
+      });
+      
+      setInPlaceStatus("✨ All done!");
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+      setTimeout(() => setActiveResumingId(null), 2000);
+    } catch (err: any) {
+      setInPlaceStatus(`❌ Error: ${err.message}`);
+      setTimeout(() => setActiveResumingId(null), 5000);
+    }
+  };
+
+  const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
     const meta = PLATFORM_META[p.platform] || {
       icon: '🔗',
       label: p.platform,
@@ -90,20 +198,43 @@ export default function HistoryPage() {
     };
 
     const isFailed = p.status === 'failed';
-    const hasLink = !isFailed && p.permalink;
+    const isRetrying = p.status === 'retrying' || retryingIds.includes(p.id);
+    const isPending = p.status === 'pending';
+    
+    // Stale check for the WHOLE POST: if pending and older than 20s (unlikely to still be active in same session)
+    const postCreatedAt = new Date(post.createdAt).getTime();
+    const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+    
+    const hasLink = !isFailed && !isRetrying && !isPending && !isPostStale && p.permalink;
 
     const pillClasses = [
       styles.platformPill,
       meta.className,
-      isFailed ? styles.platformPillFailed : hasLink ? styles.platformPillSuccess : styles.platformPillNoLink,
+      isFailed ? styles.platformPillFailed : 
+      isRetrying ? styles.platformPillRetrying : 
+      (isPending && !isPostStale) ? styles.platformPillPending :
+      isPostStale ? styles.platformPillStale :
+      hasLink ? styles.platformPillSuccess : styles.platformPillNoLink,
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
     const content = (
       <>
-        <span className={styles.pillIcon}>{meta.icon}</span>
-        <span className={styles.pillLabel}>{meta.label}</span>
-        {isFailed && <span className={styles.failedBadge}>✕</span>}
+        <span className={styles.pillIcon}>
+          {isRetrying || (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : meta.icon}
+        </span>
+        <span className={styles.pillLabel}>
+          {isPostStale ? `${meta.label} (Incomplete)` : meta.label}
+        </span>
+        {isFailed && (
+          <button 
+            className={styles.retryButton} 
+            onClick={(e) => handleRetry(e, p)}
+            title="Retry Upload"
+          >
+            🔄
+          </button>
+        )}
         {hasLink && <span className={styles.pillLink}>↗</span>}
       </>
     );
@@ -128,7 +259,7 @@ export default function HistoryPage() {
         key={p.id}
         className={pillClasses}
         data-error={isFailed ? p.errorMessage || 'Upload failed' : undefined}
-        title={isFailed ? (p.errorMessage || 'Upload failed') : `Posted to ${meta.label}`}
+        title={isFailed ? (p.errorMessage || 'Upload failed') : isRetrying ? 'Retrying upload...' : `Posted to ${meta.label}`}
       >
         {content}
       </span>
@@ -152,6 +283,8 @@ export default function HistoryPage() {
         <p className={styles.subtitle}>
           A timeline of all your published content with direct links
         </p>
+        {/* Hidden file input for file selection during in-place resumption */}
+        <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/*" />
       </div>
 
       {posts.length === 0 ? (
@@ -188,11 +321,41 @@ export default function HistoryPage() {
                       <span className={styles.timestamp}>
                         {formatRelativeDate(post.createdAt)}
                       </span>
+                      {/* Post-level Resume Button if Stale */}
+                      {(() => {
+                        const postCreatedAt = new Date(post.createdAt).getTime();
+                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+                        if (isPostStale) {
+                          return (
+                            <button 
+                              className={styles.resumeButton}
+                              onClick={() => handleInPlaceResume(post)}
+                              disabled={activeResumingId === post.id}
+                              style={{ marginLeft: '1rem' }}
+                            >
+                              {activeResumingId === post.id ? '⌛ Processing' : '🚀 Resume Upload'}
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                   <div className={styles.platformRow}>
-                    {post.platforms.map(renderPlatformPill)}
+                    {post.platforms.map(p => renderPlatformPill(p, post))}
                   </div>
+
+                  {activeResumingId === post.id && (
+                    <div className={styles.inPlaceUploadProgress}>
+                      <div className={styles.progressBarWrapper}>
+                        <div 
+                          className={styles.progressBarFill} 
+                          style={{ width: inPlaceStatus?.includes('%') ? inPlaceStatus.match(/(\d+)%/)?.[1] + '%' : '100%' }}
+                        />
+                      </div>
+                      <p className={styles.progressBarStatus}>{inPlaceStatus}</p>
+                    </div>
+                  )}
                 </GlassCard>
               </div>
             );

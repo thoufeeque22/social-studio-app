@@ -89,19 +89,30 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Orchestrate the Instagram Publishing Flow
-    const result = await publishInstagramReel({
-      userId: session.user.id,
-      videoUrl: videoUrl,
-      caption: finalCaption,
-      musicId,
-      accountId,
-    });
+    try {
+      const result = await publishInstagramReel({
+        userId: session.user.id,
+        videoUrl: videoUrl,
+        caption: finalCaption,
+        musicId,
+        accountId,
+        creationId: fields.creationId,
+      });
 
-    return NextResponse.json({ success: true, data: result });
+      return NextResponse.json({ success: true, data: result });
+    } catch (apiError: any) {
+      return NextResponse.json({ 
+        success: false, 
+        error: apiError.message,
+        creationId: apiError.creationId || fields.creationId
+      }, { status: 500 });
+    }
   } catch (error: any) {
     console.error("Instagram Upload Error:", error);
     return NextResponse.json({ 
-      error: error.message || "Instagram upload failed" 
+      success: false,
+      error: error.message || "Instagram upload failed",
+      creationId: error.creationId
     }, { status: 500 });
   }
 }

@@ -73,18 +73,36 @@ export async function POST(req: NextRequest) {
     }
 
     // Call YouTube service
-    const videoData = await uploadToYouTube({
-      userId: session.user.id,
-      filePath: filePath,
-      title: finalTitle,
-      description: finalDescription,
-      privacy: 'private',
-      accountId
-    });
+    try {
+      const videoResult = await uploadToYouTube({
+        userId: session.user.id,
+        filePath: filePath,
+        title: finalTitle,
+        description: finalDescription,
+        privacy: 'private',
+        accountId,
+        resumableUrl: fields.resumableUrl
+      });
 
-    return NextResponse.json({ success: true, data: videoData });
+      return NextResponse.json({ 
+        success: true, 
+        data: videoResult.data, 
+        resumableUrl: videoResult.resumableUrl 
+      });
+    } catch (apiError: any) {
+      // If we have a resumableUrl from a partial failure, send it back
+      return NextResponse.json({ 
+        success: false, 
+        error: apiError.message, 
+        resumableUrl: apiError.resumableUrl 
+      }, { status: apiError.status === 'failed' ? 200 : 500 });
+    }
   } catch (error: any) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Upload route error:", error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message,
+      resumableUrl: error.resumableUrl 
+    }, { status: 500 });
   }
 }

@@ -7,8 +7,11 @@ export interface PlatformUploadResult {
   accountName: string | null;
   platformPostId: string | null;
   permalink: string | null;
-  status: 'success' | 'failed';
+  status: 'success' | 'failed' | 'pending';
   errorMessage?: string;
+  resumableUrl?: string;
+  videoId?: string;
+  creationId?: string;
 }
 
 interface UploadParams {
@@ -19,6 +22,7 @@ interface UploadParams {
   videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
   onAccountSuccess?: (accountId: string) => void;
+  historyId?: string; // Optional for real-time updates
 }
 
 /**
@@ -64,31 +68,76 @@ function extractPlatformPostId(platform: string, data: any): string | null {
 }
 
 /**
- * Coordinates the multi-platform upload process.
- * Returns both the raw results map and a structured platformResults array for history persistence.
+ * PHASE ONE: Staging via Chunking (Zero-Memory Crash)
+ * Uploads the file in chunks and returns the stagedFileId.
  */
-export async function performMultiPlatformUpload({
-  formData,
-  accounts,
-  selectedAccountIds,
-  contentMode,
-  videoFormat,
+export async function stageVideoFile({
+  file,
   onStatusUpdate,
-  onAccountSuccess
-}: UploadParams): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
-  const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
-  const results: Record<string, any> = {};
-  const platformResults: PlatformUploadResult[] = [];
+  metadata,
+  platformIds,
+  resumeHistoryId
+}: { 
+  file: File; 
+  onStatusUpdate: (status: string) => void;
+  metadata?: { title?: string; description?: string; videoFormat?: string };
+  platformIds: string[];
+  resumeHistoryId?: string;
+}): Promise<{ stagedFileId: string; fileName: string; historyId: string }> {
+  // 0. CREATE DETERMINISTIC UPLOAD ID (Fingerprinting for resumption)
+  const fingerprint = `${file.name}-${file.size}-${file.type}`.replace(/[^a-zA-Z0-9]/g, '_');
+  const uploadId = `resumable-${fingerprint}`;
 
-  // 1. PHASE ONE: Staging via Chunking (Zero-Memory Crash)
-  const file = formData.get('file') as File;
-  const uploadId = `up-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  let historyId = resumeHistoryId;
+
+  // 1. INITIALIZE HISTORY (Only if not resuming)
+  if (!historyId) {
+    onStatusUpdate("📝 Initializing post record...");
+    const initResponse = await fetch('/api/upload/initialize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        ...metadata,
+        platformIds
+      }),
+    });
+
+    const initData = await initResponse.json();
+    if (!initResponse.ok) {
+      throw new Error(`Initialization failed: ${initData.error}`);
+    }
+    historyId = initData.data.historyId;
+  } else {
+    onStatusUpdate("🚀 Resuming existing history record...");
+  }
+
+  // 2. CHECK EXISTING CHUNKS (Resumption logic)
+  onStatusUpdate("🔍 Checking for existing chunks...");
+  let existingChunks: number[] = [];
+  try {
+    const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`);
+    if (chunksResponse.ok) {
+      const data = await chunksResponse.json();
+      existingChunks = data.chunks || [];
+    }
+  } catch (err) {
+    console.warn("Failed to check existing chunks, starting fresh.", err);
+  }
+
   const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-  onStatusUpdate(`📦 Initializing Chunked Upload (0 / ${totalChunks})...`);
+  if (existingChunks.length > 0) {
+    onStatusUpdate(`✨ Resuming upload! Found ${existingChunks.length} chunks already on server.`);
+  }
 
+  // 3. CHUNKED UPLOAD LOOP
   for (let i = 0; i < totalChunks; i++) {
+    // Skip if already uploaded
+    if (existingChunks.includes(i)) {
+      continue;
+    }
+
     const start = i * CHUNK_SIZE;
     const end = Math.min(file.size, start + CHUNK_SIZE);
     const chunk = file.slice(start, end);
@@ -119,7 +168,8 @@ export async function performMultiPlatformUpload({
     body: JSON.stringify({
       uploadId,
       fileName: file.name,
-      totalChunks
+      totalChunks,
+      ...metadata
     }),
   });
 
@@ -128,10 +178,33 @@ export async function performMultiPlatformUpload({
     throw new Error(`Assembly failed: ${stageResult.error}`);
   }
 
-  const stagedFileId = stageResult.data.fileId;
-  const fileName = stageResult.data.fileName;
+  return { 
+    stagedFileId: stageResult.data.fileId, 
+    fileName: stageResult.data.fileName,
+    historyId: stageResult.data.historyId
+  };
+}
 
-  // 2. PHASE TWO: Internal Distribution
+/**
+ * PHASE TWO: Internal Distribution
+ * Coordinates the multi-platform upload process.
+ * Optionally updates an existing PostHistory record in real-time.
+ */
+export async function distributeToPlatforms({
+  stagedFileId,
+  fileName,
+  formData,
+  accounts,
+  selectedAccountIds,
+  contentMode,
+  videoFormat,
+  onStatusUpdate,
+  onAccountSuccess,
+  historyId
+}: UploadParams & { stagedFileId: string; fileName: string }): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
+  const results: Record<string, any> = {};
+  const platformResults: PlatformUploadResult[] = [];
+
   onStatusUpdate("🚀 Physical upload complete. Distributing to platforms...");
 
   for (const selectionId of selectedAccountIds) {
@@ -139,93 +212,111 @@ export async function performMultiPlatformUpload({
     let platform: string;
     let realAccountId: string;
 
-    if (selectionId.includes(':')) {
-      [platform, realAccountId] = selectionId.split(':');
-    } else {
-      const account = accounts.find(a => a.id === selectionId);
-      if (!account) continue;
-      platform = account.provider === 'google' ? 'youtube' : account.provider;
-      realAccountId = selectionId;
-    }
-
-    const account = accounts.find(a => a.id === realAccountId);
+    const account = accounts.find(a => a.id === selectionId || `${a.provider === 'google' ? 'youtube' : a.provider}:${a.id}` === selectionId);
     if (!account) continue;
+    
+    platform = account.provider === 'google' ? 'youtube' : account.provider;
+    realAccountId = account.id;
 
     const displayName = formatHandle(account.accountName, platform);
-    onStatusUpdate(`Posting to ${platform} (${displayName})...`);
-    
+    onStatusUpdate(`📤 Publishing to ${displayName}...`);
+
     try {
-      // Prepare platform-specific metadata
       const payload = {
         stagedFileId,
         fileName,
         title: formData.get('title'),
         description: formData.get('description'),
-        contentMode,
         videoFormat,
-        accountId: realAccountId
+        accountId: realAccountId,
+        contentMode,
       };
 
       const response = await fetch(`/api/upload/${platform}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
-      if (!result.success) {
-        // Log the error but don't stop the whole process
-        console.error(`❌ [${platform}] Failed: ${result.error}`);
-        onStatusUpdate(`${displayName} Failed: ${result.error}`);
-        results[selectionId] = { error: result.error };
-        platformResults.push({
-          platform,
-          accountName: account.accountName,
-          platformPostId: null,
-          permalink: null,
-          status: 'failed',
-          errorMessage: result.error,
-        });
-        continue;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw { 
+          message: data.error || `Failed to upload to ${platform}`,
+          resumableUrl: data.resumableUrl,
+          videoId: data.videoId,
+          creationId: data.creationId
+        };
       }
-      
-      results[selectionId] = result.data;
-      platformResults.push({
+
+      const rawData = data.data || data;
+      const platformResult: PlatformUploadResult = {
         platform,
-        accountName: account.accountName,
-        platformPostId: extractPlatformPostId(platform, result.data),
-        permalink: generatePermalink(platform, result.data),
+        accountName: account?.accountName || null,
+        platformPostId: extractPlatformPostId(platform, rawData),
+        permalink: generatePermalink(platform, rawData),
         status: 'success',
-      });
-      onAccountSuccess?.(selectionId);
-      onStatusUpdate(`${displayName} Success!`);
+        videoId: rawData.videoId || rawData.id,
+        creationId: rawData.creationId
+      };
+      
+      results[selectionId] = rawData;
+      platformResults.push(platformResult);
+      // INCREMENTAL PERSISTENCE FIRST
+      if (historyId) {
+        const { upsertPlatformResult } = await import('@/app/actions/history');
+        await upsertPlatformResult(historyId, platformResult);
+      }
+
+      // THEN NOTIFY UI
+      if (onAccountSuccess) onAccountSuccess(selectionId);
+
     } catch (err: any) {
       console.error(`❌ [${platform}] Fatal Error: ${err.message}`);
       onStatusUpdate(`${displayName} Error: ${err.message}`);
       results[selectionId] = { error: err.message };
-      platformResults.push({
+      const platformResult: PlatformUploadResult = {
         platform,
         accountName: account?.accountName || null,
         platformPostId: null,
         permalink: null,
         status: 'failed',
         errorMessage: err.message,
-      });
+        resumableUrl: err.resumableUrl,
+        videoId: err.videoId,
+        creationId: err.creationId
+      };
+      platformResults.push(platformResult);
+
+      // INCREMENTAL PERSISTENCE
+      if (historyId) {
+        const { upsertPlatformResult } = await import('@/app/actions/history');
+        await upsertPlatformResult(historyId, platformResult);
+      }
+      
+      // NOTIFY UI EVEN ON FAILURE
+      if (onAccountSuccess) onAccountSuccess(selectionId);
     }
   }
 
-  // 3. PHASE THREE: Orchestrated Cleanup
-  // We trigger a cleanup after a delay to ensure platform crawlers (Meta/Google)
-  // have finished fetching the large file from our tunnel.
+  // Cleanup staged file after some time
   setTimeout(() => {
-    fetch('/api/upload/cleanup', {
-      method: 'POST',
+    fetch('/api/upload/assemble', {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stagedFileId })
+      body: JSON.stringify({ fileId: stagedFileId })
     }).catch(err => console.error("Secondary cleanup failed:", err));
-  }, 300000); // 5 minutes delay
+  }, 24 * 60 * 60 * 1000); // 24h retention
 
   return { raw: results, platformResults };
+}
+
+/**
+ * Coordinates the multi-platform upload process (Backward compatible).
+ */
+export async function performMultiPlatformUpload(params: UploadParams): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[]; stagedFileId: string }> {
+  const file = params.formData.get('file') as File;
+  const { stagedFileId, fileName } = await stageVideoFile({ file, onStatusUpdate: params.onStatusUpdate });
+  const results = await distributeToPlatforms({ ...params, stagedFileId, fileName });
+  return { ...results, stagedFileId };
 }
