@@ -7,6 +7,7 @@ interface PlatformSelectionProps {
   accounts: Account[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
   onToggleAccount: (id: string) => void;
 }
 
@@ -14,6 +15,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   accounts,
   selectedAccountIds,
   successfulAccountIds,
+  platformStatuses,
   onToggleAccount,
 }) => {
   return (
@@ -43,6 +45,9 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
             return items.map(item => {
               const isSelected = selectedAccountIds.includes(item.id);
               const isSuccess = successfulAccountIds.includes(item.id);
+              const status = platformStatuses[item.id] || (isSuccess ? 'success' : 'pending');
+              const isProcessing = status === 'uploading' || status === 'processing';
+              const isFailed = status === 'failed';
               
               return (
                 <button
@@ -52,11 +57,13 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   aria-label={`${item.platform}: ${item.displayName}`}
                   onClick={() => onToggleAccount(item.id)}
                   style={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     padding: '0.6rem 1rem',
                     borderRadius: '0.75rem',
-                    border: `1px solid ${isSuccess ? '#10B981' : isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
-                    background: isSuccess ? 'rgba(16, 185, 129, 0.1)' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
-                    color: isSuccess ? '#10B981' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    border: `1px solid ${isSuccess ? '#10B981' : isFailed ? '#EF4444' : isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
+                    background: isSuccess ? 'rgba(16, 185, 129, 0.1)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
+                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                     cursor: 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: 600,
@@ -67,10 +74,28 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     boxShadow: isSuccess ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none'
                   }}
                 >
+                  {/* Progress Strip */}
+                  {isProcessing && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      height: '3px',
+                      background: 'hsl(var(--primary))',
+                      width: status === 'uploading' ? '40%' : '85%',
+                      transition: 'width 2s ease-in-out',
+                      animation: 'pulse 1.5s infinite'
+                    }} />
+                  )}
+
                   {isSuccess ? (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
+                  ) : isProcessing ? (
+                     <div className="animate-spin" style={{ width: '10px', height: '10px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                  ) : isFailed ? (
+                    <span style={{ fontSize: '10px' }}>❌</span>
                   ) : (
                     <span style={{ 
                       width: '8px', 

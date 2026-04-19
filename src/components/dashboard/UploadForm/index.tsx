@@ -13,6 +13,7 @@ interface UploadFormProps {
   accounts: Account[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
   contentMode: StyleMode;
   videoFormat: VideoFormat;
   draftFileName: string | null;
@@ -29,6 +30,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   accounts,
   selectedAccountIds,
   successfulAccountIds,
+  platformStatuses,
   contentMode,
   videoFormat,
   draftFileName,
@@ -200,6 +202,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           accounts={accounts} 
           selectedAccountIds={selectedAccountIds} 
           successfulAccountIds={successfulAccountIds}
+          platformStatuses={platformStatuses}
           onToggleAccount={onToggleAccount} 
         />
 
