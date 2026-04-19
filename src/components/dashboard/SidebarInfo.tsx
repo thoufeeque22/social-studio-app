@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Account } from '@/lib/types';
-import { PLATFORMS } from '@/lib/constants';
+import { Account } from '@/lib/core/types';
+import { PLATFORMS } from '@/lib/core/constants';
 import { getUpcomingPosts } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
 

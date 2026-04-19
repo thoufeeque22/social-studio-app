@@ -35,7 +35,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       let rawData: any;
 
       if (p.platform === 'youtube') {
-        const { uploadToYouTube } = await import('@/lib/youtube');
+        const { uploadToYouTube } = await import('@/lib/platforms/youtube');
         rawData = await uploadToYouTube({
           userId,
           filePath,
@@ -44,7 +44,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           privacy: 'public'
         });
       } else if (p.platform === 'facebook') {
-        const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/facebook');
+        const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
         const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
         const videoUrl = `${baseUrl.replace(/\/$/, '')}/api/media/${encodeURIComponent(stagedFileId)}`;
         
@@ -54,7 +54,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           rawData = await publishFacebookVideo({ userId, videoUrl, title, description });
         }
       } else if (p.platform === 'instagram') {
-        const { publishInstagramReel } = await import('@/lib/instagram');
+        const { publishInstagramReel } = await import('@/lib/platforms/instagram');
         const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
         const videoUrl = `${baseUrl.replace(/\/$/, '')}/api/media/${encodeURIComponent(stagedFileId)}`;
         

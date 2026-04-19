@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
-import { Account, VideoFormat } from '@/lib/types';
-import { StyleMode } from '@/lib/constants';
+import { Account, VideoFormat } from '@/lib/core/types';
+import { StyleMode } from '@/lib/core/constants';
 import { VideoFormatSelector } from './VideoFormatSelector';
 
 interface UploadFormProps {

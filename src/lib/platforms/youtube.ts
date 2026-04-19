@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/core/prisma";
 import fs from "fs";
 
 export const getYouTubeClient = async (userId: string, accountId?: string) => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { streamMultipartFormData } from "@/lib/streaming-parser";
+import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 import path from "path";
 
 export const maxDuration = 7200; // 2 hours

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { publishFacebookVideo, publishFacebookReel } from "@/lib/facebook";
+import { publishFacebookVideo, publishFacebookReel } from "@/lib/platforms/facebook";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
-import { streamMultipartFormData } from "@/lib/streaming-parser";
+import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 
 export const maxDuration = 7200; // 2 hours
 

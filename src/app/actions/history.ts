@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/core/prisma';
 import { revalidatePath } from 'next/cache';
 
 export interface PlatformResultInput {
@@ -162,7 +162,7 @@ export async function retryUploadAction(resultId: string) {
     const description = result.postHistory.description || "";
 
     if (result.platform === 'youtube') {
-      const { uploadToYouTube } = await import('@/lib/youtube');
+      const { uploadToYouTube } = await import('@/lib/platforms/youtube');
       platformResult = await uploadToYouTube({
         userId: session.user.id,
         filePath,
@@ -172,7 +172,7 @@ export async function retryUploadAction(resultId: string) {
         resumableUrl: result.resumableUrl || undefined
       });
     } else if (result.platform === 'facebook') {
-      const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/facebook');
+      const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
       // For simplicity, we assume the tunnel URL is available for Meta to pull from
       let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
       if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
@@ -195,7 +195,7 @@ export async function retryUploadAction(resultId: string) {
         });
       }
     } else if (result.platform === 'instagram') {
-      const { publishInstagramReel } = await import('@/lib/instagram');
+      const { publishInstagramReel } = await import('@/lib/platforms/instagram');
       let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
       if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
       const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(stagedFileId)}`;

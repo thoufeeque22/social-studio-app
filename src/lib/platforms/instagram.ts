@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/core/prisma";
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {
   const account = accountId

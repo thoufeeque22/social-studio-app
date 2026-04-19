@@ -1,6 +1,6 @@
-import { Account } from '@/lib/types';
-import { formatHandle } from '@/lib/utils';
-import { StyleMode } from '@/lib/constants';
+import { Account } from '@/lib/core/types';
+import { formatHandle } from '@/lib/utils/utils';
+import { StyleMode } from '@/lib/core/constants';
 
 export interface PlatformUploadResult {
   platform: string;

@@ -11,6 +11,16 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }));
 
+// Mock Prisma
+vi.mock('@/lib/core/prisma', () => ({
+  prisma: {
+    postHistory: {
+      create: vi.fn().mockResolvedValue({ id: 'h1' }),
+      update: vi.fn().mockResolvedValue({ id: 'h1' }),
+    },
+  },
+}));
+
 // Setup base mocks
 vi.mock('fs', () => {
   const promises = {

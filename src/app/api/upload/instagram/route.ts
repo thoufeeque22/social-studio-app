@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { publishInstagramReel } from "@/lib/instagram";
-import { generatePostContent, StyleMode } from "@/lib/ai-writer";
+import { publishInstagramReel } from "@/lib/platforms/instagram";
+import { generatePostContent, StyleMode } from "@/lib/utils/ai-writer";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
-import { streamMultipartFormData } from "@/lib/streaming-parser";
+import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 
 export const maxDuration = 7200; // 2 hours
 

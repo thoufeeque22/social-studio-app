@@ -1,9 +1,9 @@
 "use server";
 
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { getYouTubeStats } from "@/lib/youtube";
-import { getInstagramStats } from "@/lib/instagram";
+import { prisma } from "@/lib/core/prisma";
+import { getYouTubeStats } from "@/lib/platforms/youtube";
+import { getInstagramStats } from "@/lib/platforms/instagram";
 
 export async function getDashboardStats() {
   const session = await auth();

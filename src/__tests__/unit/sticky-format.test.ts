@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getVideoFormatPreference, updateVideoFormatPreference } from '../../app/actions/user';
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../lib/core/prisma';
 import { auth } from '@/auth';
 
 // 1. Mock Auth
@@ -9,7 +9,7 @@ vi.mock('@/auth', () => ({
 }));
 
 // 2. Mock Prisma
-vi.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/core/prisma', () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),

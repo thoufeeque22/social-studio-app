@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractAccountName } from '../../lib/utils';
+import { extractAccountName } from '../../lib/utils/utils';
 
 describe('extractAccountName logic (OAuth Events)', () => {
   it('prioritizes username/handle/login (TikTok/Insta/X)', () => {

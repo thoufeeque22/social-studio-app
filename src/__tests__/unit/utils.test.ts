@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatHandle } from '../../lib/utils';
+import { formatHandle } from '../../lib/utils/utils';
 
 describe('formatHandle utility', () => {
   it('returns fallback if name is null', () => {

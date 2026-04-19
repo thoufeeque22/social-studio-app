@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, vi, expect, afterEach } from 'vitest';
 
 // 1. Mock Prisma BEFORE any other imports that might use it
-vi.mock('../../lib/prisma', () => ({
+vi.mock('../../lib/core/prisma', () => ({
   prisma: {
     account: {
       findFirst: vi.fn().mockResolvedValue({
@@ -16,8 +16,16 @@ vi.mock('../../lib/prisma', () => ({
 // 2. Clear fetch before each test
 global.fetch = vi.fn();
 
-import { uploadToYouTube } from '../../lib/youtube';
-import { publishInstagramReel } from '../../lib/instagram';
+import { uploadToYouTube } from '../../lib/platforms/youtube';
+import { publishInstagramReel } from '../../lib/platforms/instagram';
+
+// Mock fs for Instagram binary push
+vi.mock('fs', () => ({
+  promises: {
+    stat: vi.fn().mockResolvedValue({ size: 1000 }),
+    readFile: vi.fn().mockResolvedValue(Buffer.from('video data')),
+  }
+}));
 
 describe('Upload Integrations', () => {
   beforeEach(() => {
@@ -75,7 +83,7 @@ describe('Upload Integrations', () => {
     
     const publishPromise = publishInstagramReel({
       userId: 'test_user',
-      videoUrl: 'http://test.url/video.mp4',
+      filePath: 'fake.mp4',
       caption: 'Test Caption',
       musicId
     });

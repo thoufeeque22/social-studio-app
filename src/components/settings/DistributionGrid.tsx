@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from '@/app/settings/Settings.module.css';
-import { Account, PlatformPreference } from '@/lib/types';
-import { PLATFORMS } from '@/lib/constants';
+import { Account, PlatformPreference } from '@/lib/core/types';
+import { PLATFORMS } from '@/lib/core/constants';
 
 interface DistributionGridProps {
   accounts: Account[];

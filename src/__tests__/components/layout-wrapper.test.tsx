@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LayoutWrapper from '../../components/LayoutWrapper';
+import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import { usePathname } from 'next/navigation';
 
 // Mock next/navigation specifically for control
@@ -11,10 +11,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock components to simplify detection
-vi.mock('@/components/Sidebar', () => ({
+vi.mock('@/components/layout/Sidebar', () => ({
   default: () => <div data-testid="sidebar">Sidebar Mock</div>,
 }));
-vi.mock('@/components/Header', () => ({
+vi.mock('@/components/layout/Header', () => ({
   default: () => <div data-testid="header">Header Mock</div>,
 }));
 

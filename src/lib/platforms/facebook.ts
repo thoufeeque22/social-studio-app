@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/core/prisma";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 

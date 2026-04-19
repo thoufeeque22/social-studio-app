@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Account } from '@/lib/types';
-import { formatHandle } from '@/lib/utils';
+import { Account } from '@/lib/core/types';
+import { formatHandle } from '@/lib/utils/utils';
 
 interface PlatformSelectionProps {
   accounts: Account[];

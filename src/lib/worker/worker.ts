@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/core/prisma";
 import path from "path";
 import fs from "fs";
 

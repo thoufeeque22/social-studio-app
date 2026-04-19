@@ -1,8 +1,8 @@
 import React from 'react';
 import styles from '@/app/settings/Settings.module.css';
-import { Account } from '@/lib/types';
+import { Account } from '@/lib/core/types';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { formatHandle } from '@/lib/utils';
+import { formatHandle } from '@/lib/utils/utils';
 
 interface ConnectionSectionProps {
   title: string;
