@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { title, description, videoFormat, platformIds } = await req.json();
+    const { title, description, videoFormat, platformIds, scheduledAt, isPublished } = await req.json();
 
     if (!platformIds || !Array.isArray(platformIds)) {
       return NextResponse.json({ error: "Missing platform IDs" }, { status: 400 });
@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
         title: title || "Untitled Post",
         description: description || null,
         videoFormat: videoFormat || "short",
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        isPublished: isPublished === undefined ? true : isPublished,
         stagedFileId: null, // To be updated after assembly
         platforms: {
           create: platformIds.map(pId => ({

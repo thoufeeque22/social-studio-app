@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "50gb",
     },
     proxyClientMaxBodySize: "50gb",
+    instrumentationHook: true,
   },
 };
 

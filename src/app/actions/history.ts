@@ -65,7 +65,9 @@ export interface SavePostHistoryInput {
   description?: string;
   videoFormat: 'short' | 'long';
   platforms: PlatformResultInput[];
-  stagedFileId?: string; // New field
+  stagedFileId?: string; 
+  scheduledAt?: Date | null;
+  isPublished?: boolean;
 }
 
 export async function savePostHistory(data: SavePostHistoryInput) {
@@ -81,6 +83,8 @@ export async function savePostHistory(data: SavePostHistoryInput) {
       description: data.description,
       videoFormat: data.videoFormat,
       stagedFileId: data.stagedFileId,
+      scheduledAt: data.scheduledAt,
+      isPublished: data.isPublished ?? true,
       platforms: {
         create: data.platforms.map((p) => ({
           platform: p.platform,
@@ -220,6 +224,25 @@ export async function retryUploadAction(resultId: string) {
     });
     return { success: false, error: err.message };
   }
+}
+
+/**
+ * Fetches upcoming scheduled posts for the current user.
+ */
+export async function getUpcomingPosts() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  return await prisma.postHistory.findMany({
+    where: {
+      userId: session.user.id,
+      isPublished: false
+    },
+    orderBy: {
+      scheduledAt: 'asc'
+    },
+    take: 5
+  });
 }
 
 

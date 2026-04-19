@@ -83,7 +83,7 @@ export async function stageVideoFile({
 }: { 
   file: File; 
   onStatusUpdate: (status: string) => void;
-  metadata?: { title?: string; description?: string; videoFormat?: string };
+  metadata?: { title?: string; description?: string; videoFormat?: string; scheduledAt?: string; isPublished?: boolean };
   platformIds: string[];
   resumeHistoryId?: string;
 }): Promise<{ stagedFileId: string; fileName: string; historyId: string }> {
@@ -172,7 +172,8 @@ export async function stageVideoFile({
       uploadId,
       fileName: file.name,
       totalChunks,
-      ...metadata
+      ...metadata,
+      historyId
     }),
   });
 

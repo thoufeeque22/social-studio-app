@@ -30,6 +30,9 @@ export default function Home() {
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const draftFileRef = useRef<File | null>(null);
 
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
+
   // Load persisted file from IndexedDB on mount
   useEffect(() => {
     getDraftFile().then(file => {
@@ -239,17 +242,39 @@ export default function Home() {
       
       // Extract platform names from selected IDs
       const platformIds = selectedAccountIds.map(sid => {
-        const account = accounts.find(a => a.id === sid || `${a.provider === 'google' ? 'youtube' : a.provider}:${a.id}` === sid);
-        return account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
+        if (sid.includes(':')) {
+           return sid.split(':')[0]; // e.g. "instagram" from "instagram:123"
+        }
+        const account = accounts.find(a => a.id === sid);
+        if (!account) return 'unknown';
+        return account.provider === 'google' ? 'youtube' : account.provider;
       }).filter(p => p !== 'unknown');
 
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
         onStatusUpdate: setUploadStatus,
-        metadata: { title, description, videoFormat },
+        metadata: { 
+          title, 
+          description, 
+          videoFormat,
+          scheduledAt: isScheduled ? scheduledAt : undefined,
+          isPublished: !isScheduled
+        } as any,
         platformIds,
         resumeHistoryId: resumeHistoryId || undefined
       });
+
+      if (isScheduled) {
+        setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
+        setIsUploading(false);
+        window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+        clearDraftFile();
+        localStorage.removeItem('SS_DRAFT_TITLE');
+        localStorage.removeItem('SS_DRAFT_DESC');
+        setDraftFileName(null);
+        draftFileRef.current = null;
+        return;
+      }
 
       // Phase 2: Distribute to platforms with real-time updates
       setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
@@ -321,6 +346,12 @@ export default function Home() {
           onToggleAccount={handleToggleAccount}
           onFileChange={handleFileChange}
           onSubmit={handleUpload}
+          isScheduled={isScheduled}
+          scheduledAt={scheduledAt}
+          onSchedulingChange={(scheduled, date) => {
+            setIsScheduled(scheduled);
+            setScheduledAt(date);
+          }}
         />
 
         <SidebarInfo accounts={accounts} />

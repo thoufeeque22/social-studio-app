@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
 
   const posts = await prisma.postHistory.findMany({
-    where: { userId: session.user.id },
+    where: { 
+      userId: session.user.id,
+      isPublished: true 
+    },
     include: { platforms: true },
     orderBy: { createdAt: 'desc' },
     take: limit + 1,
