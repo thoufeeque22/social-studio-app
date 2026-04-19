@@ -246,13 +246,14 @@ export async function distributeToPlatforms({
       const payload = {
         stagedFileId,
         fileName,
-        title: formData.get('title'),
-        description: formData.get('description'),
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
         videoFormat,
         accountId: realAccountId,
         contentMode,
       };
 
+      // HTTP API CALL (Standard Browser context)
       const response = await fetch(`/api/upload/${platform}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

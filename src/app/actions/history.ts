@@ -17,15 +17,12 @@ export interface PlatformResultInput {
 }
 
 /**
- * Upserts a single platform result for a post history entry.
+ * Upserts a single platform result for a post history entry (Internal version for Worker).
  */
-export async function upsertPlatformResult(historyId: string, result: PlatformResultInput) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
-
+export async function upsertPlatformResultInternal(userId: string, historyId: string, result: PlatformResultInput) {
   // Verify ownership
   const history = await prisma.postHistory.findUnique({
-    where: { id: historyId, userId: session.user.id }
+    where: { id: historyId, userId: userId }
   });
   if (!history) throw new Error('History entry not found');
 
@@ -59,6 +56,15 @@ export async function upsertPlatformResult(historyId: string, result: PlatformRe
       creationId: result.creationId,
     }
   });
+}
+
+/**
+ * Upserts a single platform result for a post history entry (Authenticated version for UI).
+ */
+export async function upsertPlatformResult(historyId: string, result: PlatformResultInput) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+  return await upsertPlatformResultInternal(session.user.id, historyId, result);
 }
 
 export interface SavePostHistoryInput {
