@@ -5,8 +5,9 @@ import {
   extractPlatformPostId, 
   generatePermalink, 
   constructPublicVideoUrl,
-  formatPlatformCaption 
+  formatPlatformCaption
 } from '@/lib/core/distributor-utils';
+import { distributeSinglePlatform } from '@/lib/core/distributor-server';
 
 export interface ServerDistributeParams {
   stagedFileId: string;
@@ -38,58 +39,15 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
     try {
       console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId})`);
       
-      let rawData: any;
-      const finalCaption = formatPlatformCaption({
+      const rawData = await distributeSinglePlatform({
+        platform: p.platform,
+        userId,
+        filePath,
         title,
         description,
-        platform: p.platform
+        videoFormat,
+        accountId: p.accountId
       });
-
-      // MOCK_UPLOAD Check
-      if (process.env.MOCK_UPLOAD === "true") {
-        console.log(`🚀 [SERVER-DISTRIBUTOR] [MOCK MODE] Skipping real ${p.platform} distribution.`);
-        rawData = { id: `mock-${p.platform}-${Date.now()}`, success: true };
-      } else if (p.platform === 'youtube') {
-        const { uploadToYouTube } = await import('@/lib/platforms/youtube');
-        rawData = await uploadToYouTube({
-          userId,
-          filePath,
-          title,
-          description: finalCaption,
-          privacy: 'public',
-          accountId: p.accountId
-        });
-      } else if (p.platform === 'facebook') {
-        const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
-        const videoUrl = constructPublicVideoUrl(stagedFileId);
-        
-        if (videoFormat === 'short') {
-          rawData = await publishFacebookReel({ userId, videoUrl, description: finalCaption, accountId: p.accountId });
-        } else {
-          rawData = await publishFacebookVideo({ userId, videoUrl, title, description: finalCaption, accountId: p.accountId });
-        }
-      } else if (p.platform === 'instagram') {
-        const { publishInstagramReel } = await import('@/lib/platforms/instagram');
-        const videoUrl = constructPublicVideoUrl(stagedFileId);
-        
-        rawData = await publishInstagramReel({ 
-          userId, 
-          filePath, // Use filePath for binary upload if possible, or videoUrl
-          caption: finalCaption,
-          accountId: p.accountId
-        });
-      } else if (p.platform === 'tiktok') {
-        const { uploadToTikTok } = await import('@/lib/platforms/tiktok');
-        rawData = await uploadToTikTok({
-          userId,
-          filePath,
-          title: finalCaption,
-          accountId: p.accountId
-        });
-      } else {
-        console.warn(`⚠️ [SERVER-DISTRIBUTOR] Platform ${p.platform} not supported in direct mode yet.`);
-        continue;
-      }
 
       const platformResult = {
         platform: p.platform,

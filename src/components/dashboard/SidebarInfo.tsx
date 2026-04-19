@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Heading } from '@/components/ui/Heading';
 import { Account } from '@/lib/core/types';
 import { PLATFORMS } from '@/lib/core/constants';
 import { getUpcomingPosts } from '@/app/actions/history';
@@ -19,7 +22,6 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       .finally(() => setIsLoading(false));
   };
 
-  // Switch to high-frequency polling when a post is due very soon
   const hasActivePosts = upcoming.some(post => {
     const scheduledTime = new Date(post.scheduledAt).getTime();
     return scheduledTime <= Date.now() + 30000;
@@ -40,7 +42,7 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <GlassCard style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Active Platforms</h2>
+        <Heading level={2}>Active Platforms</Heading>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
           {PLATFORMS.map((p) => {
             const isEnabled = accounts.some(a => a.provider === p.provider && a.isDistributionEnabled);
@@ -52,7 +54,8 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
                 background: isEnabled ? 'hsla(var(--primary) / 0.1)' : 'hsla(var(--muted) / 0.2)',
                 borderRadius: '0.75rem',
                 fontSize: '0.8rem',
-                opacity: isEnabled ? 1 : 0.5
+                opacity: isEnabled ? 1 : 0.5,
+                transition: 'all 0.2s ease'
               }}>
                 {p.name.split(' ')[0]}
               </div>
@@ -62,15 +65,15 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       </GlassCard>
 
       <GlassCard style={{ padding: '2rem', flex: 1 }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upcoming Posts</h2>
+        <Heading level={2}>Upcoming Posts</Heading>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {isLoading ? (
             [1, 2].map(i => (
-              <div key={i} className="animate-pulse" style={{ display: 'flex', gap: '1rem' }}>
-                 <div style={{ width: '2px', background: 'hsla(var(--muted)/0.2)', borderRadius: '2px' }} />
+              <div key={i} style={{ display: 'flex', gap: '1rem' }}>
+                 <Skeleton width="2px" height="2.5rem" borderRadius="2px" />
                  <div style={{ flex: 1 }}>
-                   <div style={{ height: '0.85rem', width: '60%', background: 'hsla(var(--muted)/0.2)', marginBottom: '0.5rem', borderRadius: '4px' }} />
-                   <div style={{ height: '0.75rem', width: '40%', background: 'hsla(var(--muted)/0.1)', borderRadius: '4px' }} />
+                   <Skeleton width="60%" height="0.85rem" style={{ marginBottom: '0.5rem' }} />
+                   <Skeleton width="40%" height="0.75rem" />
                  </div>
               </div>
             ))
@@ -94,9 +97,7 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
                       })}
                     </p>
                     {new Date(post.scheduledAt) < new Date() && (
-                      <span style={{ fontSize: '0.65rem', background: 'hsla(var(--primary)/0.2)', color: 'hsl(var(--primary))', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                        QUEUED
-                      </span>
+                      <Badge variant="success">QUEUED</Badge>
                     )}
                   </div>
                 </div>
