@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from "@/lib/core/prisma";
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {

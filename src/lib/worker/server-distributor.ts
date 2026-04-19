@@ -1,3 +1,4 @@
+import "server-only";
 import { prisma } from './prisma';
 import { upsertPlatformResultInternal } from '@/app/actions/history';
 import path from 'path';

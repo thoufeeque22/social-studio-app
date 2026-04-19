@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "no-restricted-imports": ["error", {
+        "patterns": [{
+          "group": ["**/lib/platforms/*", "**/lib/worker/*"],
+          "message": "Platform SDKs and Worker logic are server-only. Use Server Actions or API routes instead."
+        }]
+      }]
+    }
+  }
 ]);
 
 export default eslintConfig;
