@@ -24,6 +24,7 @@ export default function Home() {
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>('short');
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
+  const [platformStatuses, setPlatformStatuses] = useState<Record<string, any>>({});
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const draftFileRef = useRef<File | null>(null);
@@ -243,6 +244,8 @@ export default function Home() {
       });
 
       // Phase 2: Distribute to platforms with real-time updates
+      setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
+
       const distribution = await distributeToPlatforms({
         stagedFileId,
         fileName,
@@ -252,6 +255,9 @@ export default function Home() {
         contentMode,
         videoFormat,
         onStatusUpdate: setUploadStatus,
+        onPlatformStatus: (id, status) => {
+          setPlatformStatuses(prev => ({ ...prev, [id]: status }));
+        },
         onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
         historyId
       });
@@ -295,6 +301,7 @@ export default function Home() {
           accounts={accounts}
           selectedAccountIds={selectedAccountIds}
           successfulAccountIds={successfulAccountIds}
+          platformStatuses={platformStatuses}
           contentMode={contentMode}
           videoFormat={videoFormat}
           draftFileName={draftFileName}

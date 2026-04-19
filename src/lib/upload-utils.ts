@@ -14,6 +14,8 @@ export interface PlatformUploadResult {
   creationId?: string;
 }
 
+export type IndividualStatus = 'pending' | 'uploading' | 'processing' | 'success' | 'failed';
+
 interface UploadParams {
   formData: FormData;
   accounts: Account[];
@@ -21,6 +23,7 @@ interface UploadParams {
   contentMode: StyleMode;
   videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
+  onPlatformStatus?: (platformId: string, status: IndividualStatus) => void;
   onAccountSuccess?: (accountId: string) => void;
   historyId?: string; // Optional for real-time updates
 }
@@ -199,6 +202,7 @@ export async function distributeToPlatforms({
   contentMode,
   videoFormat,
   onStatusUpdate,
+  onPlatformStatus,
   onAccountSuccess,
   historyId
 }: UploadParams & { stagedFileId: string; fileName: string }): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
@@ -207,24 +211,35 @@ export async function distributeToPlatforms({
 
   onStatusUpdate("🚀 Physical upload complete. Distributing to platforms...");
 
-  for (const selectionId of selectedAccountIds) {
+  // DYNAMIC CONCURRENCY LOGIC
+  const file = formData.get('file') as File;
+  const sizeMB = (file?.size || 0) / (1024 * 1024);
+  let concurrency = 2; // Default
+  if (sizeMB < 50) concurrency = 4;
+  else if (sizeMB > 300) concurrency = 1;
+
+  console.log(`🚀 [CONCURRENCY] File size: ${sizeMB.toFixed(1)}MB. Concurrency limit: ${concurrency}`);
+
+  const queue = [...selectedAccountIds];
+  
+  const processOne = async (selectionId: string) => {
     let platform: string;
     let realAccountId: string;
 
-    // Check if the selectionId is prefixed (e.g., "instagram:ck...")
+    // Parse platform and ID
     if (selectionId.includes(':')) {
       [platform, realAccountId] = selectionId.split(':');
     } else {
       const account = accounts.find(a => a.id === selectionId);
-      if (!account) continue;
+      if (!account) return;
       platform = account.provider === 'google' ? 'youtube' : account.provider;
       realAccountId = account.id;
     }
 
     const account = accounts.find(a => a.id === realAccountId);
+    const displayName = formatHandle(account?.accountName || 'Unknown', platform);
 
-    const displayName = formatHandle(account.accountName, platform);
-    onStatusUpdate(`📤 Publishing to ${displayName}...`);
+    if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading');
 
     try {
       const payload = {
@@ -267,18 +282,19 @@ export async function distributeToPlatforms({
       
       results[selectionId] = rawData;
       platformResults.push(platformResult);
-      // INCREMENTAL PERSISTENCE FIRST
+      
+      if (onPlatformStatus) onPlatformStatus(selectionId, 'success');
+      
+      // PERSISTENT UPDATE
       if (historyId) {
         const { upsertPlatformResult } = await import('@/app/actions/history');
         await upsertPlatformResult(historyId, platformResult);
       }
 
-      // THEN NOTIFY UI
       if (onAccountSuccess) onAccountSuccess(selectionId);
 
     } catch (err: any) {
-      console.error(`❌ [${platform}] Fatal Error: ${err.message}`);
-      onStatusUpdate(`${displayName} Error: ${err.message}`);
+      console.error(`❌ [${platform}] Error: ${err.message}`);
       results[selectionId] = { error: err.message };
       const platformResult: PlatformUploadResult = {
         platform,
@@ -293,16 +309,26 @@ export async function distributeToPlatforms({
       };
       platformResults.push(platformResult);
 
-      // INCREMENTAL PERSISTENCE
+      if (onPlatformStatus) onPlatformStatus(selectionId, 'failed');
+
       if (historyId) {
         const { upsertPlatformResult } = await import('@/app/actions/history');
         await upsertPlatformResult(historyId, platformResult);
       }
       
-      // NOTIFY UI EVEN ON FAILURE
       if (onAccountSuccess) onAccountSuccess(selectionId);
     }
-  }
+  };
+
+  // Execute queue with concurrency limit
+  const workers = Array(Math.min(concurrency, queue.length)).fill(null).map(async () => {
+    while (queue.length > 0) {
+      const id = queue.shift();
+      if (id) await processOne(id);
+    }
+  });
+
+  await Promise.all(workers);
 
   // Cleanup staged file after some time
   setTimeout(() => {
