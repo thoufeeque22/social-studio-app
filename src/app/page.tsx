@@ -11,6 +11,7 @@ import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
 import { StyleMode } from '@/lib/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/file-store';
+import { getVideoFormatPreference, updateVideoFormatPreference } from '@/app/actions/user';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -37,7 +38,14 @@ export default function Home() {
         setDraftFileName(file.name);
       }
     });
-  }, []);
+
+    // Load Sticky Video Format
+    if (session?.user?.id) {
+      getVideoFormatPreference().then(format => {
+        if (format) setVideoFormat(format as 'short' | 'long');
+      });
+    }
+  }, [session?.user?.id]);
 
   // 0. Smart Resumption Pre-fill
   useEffect(() => {
@@ -306,7 +314,10 @@ export default function Home() {
           videoFormat={videoFormat}
           draftFileName={draftFileName}
           onModeChange={setContentMode}
-          onFormatChange={setVideoFormat}
+          onFormatChange={(format) => {
+            setVideoFormat(format);
+            updateVideoFormatPreference(format).catch(err => console.error("Failed to save format preference", err));
+          }}
           onToggleAccount={handleToggleAccount}
           onFileChange={handleFileChange}
           onSubmit={handleUpload}
