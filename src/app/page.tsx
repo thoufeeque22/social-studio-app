@@ -8,9 +8,9 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
-import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
-import { StyleMode } from '@/lib/constants';
-import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/file-store';
+import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
+import { StyleMode } from '@/lib/core/constants';
+import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
 import { getVideoFormatPreference, updateVideoFormatPreference } from '@/app/actions/user';
 
 export default function Home() {

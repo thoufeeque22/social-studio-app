@@ -10,8 +10,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
-import { getDraftFile } from '@/lib/file-store';
+import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
+import { getDraftFile } from '@/lib/upload/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
 import { usePolling } from '@/hooks/usePolling';
 import styles from './history.module.css';

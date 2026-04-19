@@ -1,5 +1,5 @@
 import React from 'react';
-import { STYLE_MODES, StyleMode } from '@/lib/constants';
+import { STYLE_MODES, StyleMode } from '@/lib/core/constants';
 
 interface AIStyleSelectorProps {
   contentMode: StyleMode;

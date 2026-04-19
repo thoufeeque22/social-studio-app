@@ -19,3 +19,20 @@ vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
   useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
 }));
+
+// Mock Next.js Server (NextResponse, NextRequest)
+vi.mock('next/server', () => {
+  return {
+    NextResponse: {
+      json: vi.fn((data, init) => ({
+        status: init?.status || 200,
+        json: async () => data,
+      })),
+      redirect: vi.fn((url) => ({
+        status: 307,
+        headers: { get: () => url }
+      }))
+    },
+    NextRequest: vi.fn(),
+  };
+});

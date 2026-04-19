@@ -1,8 +1,14 @@
 'use server';
 
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/core/prisma';
+import { protectedAction, revalidateDashboard } from '@/lib/core/action-utils';
+import { 
+  extractPlatformPostId, 
+  generatePermalink 
+} from '@/lib/core/distributor-utils';
+import { distributeSinglePlatform } from '@/lib/core/distributor-server';
+import path from 'path';
+import fs from 'fs';
 
 export interface PlatformResultInput {
   platform: string;
@@ -17,10 +23,9 @@ export interface PlatformResultInput {
 }
 
 /**
- * Upserts a single platform result for a post history entry (Internal version for Worker).
+ * Upserts a single platform result (Internal version for Worker).
  */
 export async function upsertPlatformResultInternal(userId: string, historyId: string, result: PlatformResultInput) {
-  // Verify ownership
   const history = await prisma.postHistory.findUnique({
     where: { id: historyId, userId: userId }
   });
@@ -33,38 +38,18 @@ export async function upsertPlatformResultInternal(userId: string, historyId: st
         platform: result.platform
       }
     },
-    update: {
-      accountName: result.accountName,
-      platformPostId: result.platformPostId,
-      permalink: result.permalink,
-      status: result.status,
-      errorMessage: result.errorMessage,
-      resumableUrl: result.resumableUrl,
-      videoId: result.videoId,
-      creationId: result.creationId,
-    },
-    create: {
-      postHistoryId: historyId,
-      platform: result.platform,
-      accountName: result.accountName,
-      platformPostId: result.platformPostId,
-      permalink: result.permalink,
-      status: result.status,
-      errorMessage: result.errorMessage,
-      resumableUrl: result.resumableUrl,
-      videoId: result.videoId,
-      creationId: result.creationId,
-    }
+    update: { ...result, postHistoryId: historyId },
+    create: { ...result, postHistoryId: historyId }
   });
 }
 
 /**
- * Upserts a single platform result for a post history entry (Authenticated version for UI).
+ * Upserts a single platform result for a post history entry (Authenticated).
  */
 export async function upsertPlatformResult(historyId: string, result: PlatformResultInput) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
-  return await upsertPlatformResultInternal(session.user.id, historyId, result);
+  return protectedAction(async (userId) => {
+    return await upsertPlatformResultInternal(userId, historyId, result);
+  });
 }
 
 export interface SavePostHistoryInput {
@@ -78,281 +63,209 @@ export interface SavePostHistoryInput {
 }
 
 export async function savePostHistory(data: SavePostHistoryInput) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error('Unauthorized');
-  }
-
-  const postHistory = await prisma.postHistory.create({
-    data: {
-      userId: session.user.id,
-      title: data.title,
-      description: data.description,
-      videoFormat: data.videoFormat,
-      stagedFileId: data.stagedFileId,
-      scheduledAt: data.scheduledAt,
-      isPublished: data.isPublished ?? true,
-      platforms: {
-        create: data.platforms.map((p) => ({
-          platform: p.platform,
-          accountName: p.accountName || null,
-          platformPostId: p.platformPostId || null,
-          permalink: p.permalink || null,
-          status: p.status,
-          errorMessage: p.errorMessage || null,
-          resumableUrl: p.resumableUrl || null,
-          videoId: p.videoId || null,
-          creationId: p.creationId || null,
-        })),
+  return protectedAction(async (userId) => {
+    const postHistory = await prisma.postHistory.create({
+      data: {
+        userId,
+        title: data.title,
+        description: data.description,
+        videoFormat: data.videoFormat,
+        stagedFileId: data.stagedFileId,
+        scheduledAt: data.scheduledAt,
+        isPublished: data.isPublished ?? true,
+        platforms: {
+          create: data.platforms.map((p) => ({
+            platform: p.platform,
+            accountName: p.accountName || null,
+            platformPostId: p.platformPostId || null,
+            permalink: p.permalink || null,
+            status: p.status,
+            errorMessage: p.errorMessage || null,
+            resumableUrl: p.resumableUrl || null,
+            videoId: p.videoId || null,
+            creationId: p.creationId || null,
+          })),
+        },
       },
-    },
-    include: {
-      platforms: true,
-    },
+      include: {
+        platforms: true,
+      },
+    });
+
+    await revalidateDashboard();
+    return { success: true, data: postHistory };
   });
-
-  revalidatePath('/');
-  revalidatePath('/schedule');
-  revalidatePath('/history');
-
-  return { success: true, data: postHistory };
 }
 
 /**
  * Retries a failed upload attempt for a specific platform.
+ * NOW USES CENTRALIZED DISTRIBUTION LOGIC.
  */
 export async function retryUploadAction(resultId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
+  return protectedAction(async (userId) => {
+    const result = await prisma.postPlatformResult.findUnique({
+      where: { id: resultId },
+      include: { postHistory: true }
+    });
 
-  const result = await prisma.postPlatformResult.findUnique({
-    where: { id: resultId },
-    include: { postHistory: true }
-  });
-
-  if (!result || result.postHistory.userId !== session.user.id) {
-    throw new Error('Upload result not found.');
-  }
-
-  // Increment retry count
-  await prisma.postPlatformResult.update({
-     where: { id: resultId },
-     data: { 
-       retryCount: { increment: 1 },
-       lastRetryAt: new Date(),
-       status: 'retrying',
-       errorMessage: null
-     }
-  });
-
-  try {
-    const stagedFileId = result.postHistory.stagedFileId;
-    if (!stagedFileId) throw new Error("Original staged file reference missing.");
-
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
-    
-    const fs = await import('fs');
-    if (!fs.existsSync(filePath)) {
-      throw new Error("Source video file has been purged from the server. Retries are only available for 24 hours.");
+    if (!result || result.postHistory.userId !== userId) {
+      throw new Error('Upload result not found.');
     }
 
-    let platformResult;
-    const title = result.postHistory.title;
-    const description = result.postHistory.description || "";
+    // 1. Mark as retrying
+    await prisma.postPlatformResult.update({
+       where: { id: resultId },
+       data: { 
+         status: 'retrying',
+         errorMessage: null,
+         retryCount: { increment: 1 },
+         lastRetryAt: new Date()
+       }
+    });
 
-    if (result.platform === 'youtube') {
-      const { uploadToYouTube } = await import('@/lib/youtube');
-      platformResult = await uploadToYouTube({
-        userId: session.user.id,
+    try {
+      const stagedFileId = result.postHistory.stagedFileId;
+      if (!stagedFileId) throw new Error("Original staged file reference missing.");
+
+      const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
+      if (!fs.existsSync(filePath)) {
+        throw new Error("Source video file has been purged from the server (24h limit).");
+      }
+
+      // 2. USE CENTRALIZED LOGIC
+      const platformResult = await distributeSinglePlatform({
+        platform: result.platform,
+        userId,
         filePath,
-        title,
-        description,
-        privacy: 'private',
-        resumableUrl: result.resumableUrl || undefined
+        title: result.postHistory.title,
+        description: result.postHistory.description || "",
+        videoFormat: result.postHistory.videoFormat as any,
+        accountId: result.accountId || undefined,
+        fields: {
+          resumableUrl: result.resumableUrl,
+          videoId: result.videoId,
+          creationId: result.creationId
+        }
       });
-    } else if (result.platform === 'facebook') {
-      const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/facebook');
-      // For simplicity, we assume the tunnel URL is available for Meta to pull from
-      let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-      const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(stagedFileId)}`;
 
-      if (result.postHistory.videoFormat === 'short') {
-        platformResult = await publishFacebookReel({
-          userId: session.user.id,
-          videoUrl,
-          description,
-          videoId: result.videoId || undefined
-        });
-      } else {
-        platformResult = await publishFacebookVideo({
-          userId: session.user.id,
-          videoUrl,
-          title,
-          description,
-          videoId: result.videoId || undefined
-        });
-      }
-    } else if (result.platform === 'instagram') {
-      const { publishInstagramReel } = await import('@/lib/instagram');
-      let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-      const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(stagedFileId)}`;
-
-      platformResult = await publishInstagramReel({
-        userId: session.user.id,
-        videoUrl,
-        caption: `${title}\n\n${description}`,
-        creationId: result.creationId || undefined
+      // 3. Update with success
+      await prisma.postPlatformResult.update({
+        where: { id: resultId },
+        data: { 
+          status: 'success',
+          platformPostId: extractPlatformPostId(result.platform, platformResult),
+          permalink: generatePermalink(result.platform, platformResult),
+          videoId: (platformResult as any).videoId || (platformResult as any).id,
+          creationId: (platformResult as any).creationId,
+          errorMessage: null
+        }
       });
-    } else {
-      throw new Error(`Retry not yet supported for ${result.platform}`);
+
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Retry attempt failed for ${result.platform}:`, err);
+      await prisma.postPlatformResult.update({
+        where: { id: resultId },
+        data: { 
+          status: 'failed', 
+          errorMessage: err.message,
+          resumableUrl: err.resumableUrl || result.resumableUrl,
+          videoId: err.videoId || result.videoId,
+          creationId: err.creationId || result.creationId
+        }
+      });
+      return { success: false, error: err.message };
     }
-
-    // Update with success
-    await prisma.postPlatformResult.update({
-      where: { id: resultId },
-      data: { 
-        status: 'success',
-        platformPostId: (platformResult as any).id || (platformResult as any).videoId || (platformResult as any).platformPostId,
-        permalink: result.permalink || null, // We could re-generate this
-      }
-    });
-
-    return { success: true };
-  } catch (err: any) {
-    console.error(`Retry attempt failed for ${result.platform}:`, err);
-    await prisma.postPlatformResult.update({
-      where: { id: resultId },
-      data: { 
-        status: 'failed', 
-        errorMessage: err.message,
-        resumableUrl: err.resumableUrl || result.resumableUrl,
-        videoId: err.videoId || result.videoId,
-        creationId: err.creationId || result.creationId
-      }
-    });
-    return { success: false, error: err.message };
-  }
+  });
 }
 
 /**
- * Fetches upcoming scheduled posts for the current user.
+ * Fetches upcoming scheduled posts.
  */
 export async function getUpcomingPosts() {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
-
-  return await prisma.postHistory.findMany({
-    where: {
-      userId: session.user.id,
-      isPublished: false
-    },
-    orderBy: {
-      scheduledAt: 'asc'
-    },
-    take: 5
-  });
+  return protectedAction(async (userId) => {
+    return await prisma.postHistory.findMany({
+      where: {
+        userId,
+        isPublished: false
+      },
+      orderBy: {
+        scheduledAt: 'asc'
+      },
+      take: 5
+    });
+  }).catch(() => []);
 }
 
 /**
  * Updates a scheduled post (before it is published).
  */
 export async function updateScheduledPost(id: string, data: { title?: string; description?: string; scheduledAt?: string }) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
+  return protectedAction(async (userId) => {
+    const post = await prisma.postHistory.findUnique({
+      where: { id, userId }
+    });
 
-  const post = await prisma.postHistory.findUnique({
-    where: { id, userId: session.user.id }
+    if (!post || post.isPublished) throw new Error('Post not found or already published.');
+
+    const updated = await prisma.postHistory.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined
+      }
+    });
+
+    await revalidateDashboard();
+    return updated;
   });
-
-  if (!post || post.isPublished) {
-    throw new Error('Post not found or already published.');
-  }
-
-  const updated = await prisma.postHistory.update({
-    where: { id },
-    data: {
-      title: data.title,
-      description: data.description,
-      scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined
-    }
-  });
-
-  revalidatePath('/schedule');
-  revalidatePath('/');
-
-  return updated;
 }
 
 /**
  * Marks a scheduled post to be published ASAP.
  */
 export async function publishNowAction(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
+  return protectedAction(async (userId) => {
+    const post = await prisma.postHistory.findUnique({
+      where: { id, userId }
+    });
 
-  const post = await prisma.postHistory.findUnique({
-    where: { id, userId: session.user.id }
+    if (!post || post.isPublished) throw new Error('Post not found or already published.');
+
+    const updated = await prisma.postHistory.update({
+      where: { id },
+      data: { scheduledAt: new Date() }
+    });
+
+    await revalidateDashboard();
+    return updated;
   });
-
-  if (!post || post.isPublished) {
-    throw new Error('Post not found or already published.');
-  }
-
-  // Set scheduledAt to NOW, so the worker picks it up on next tick.
-  const updated = await prisma.postHistory.update({
-    where: { id },
-    data: {
-      scheduledAt: new Date()
-    }
-  });
-
-  revalidatePath('/schedule');
-  revalidatePath('/history');
-  revalidatePath('/');
-
-  return updated;
 }
 
 /**
  * Deletes a scheduled post.
  */
 export async function deleteScheduledPost(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error('Unauthorized');
+  return protectedAction(async (userId) => {
+    const post = await prisma.postHistory.findUnique({
+      where: { id, userId }
+    });
 
-  const post = await prisma.postHistory.findUnique({
-    where: { id, userId: session.user.id }
-  });
+    if (!post || post.isPublished) throw new Error('Post not found or already published.');
 
-  if (!post || post.isPublished) {
-    throw new Error('Post not found or already published.');
-  }
-
-  // Also clean up the temporary file if it exists
-  if (post.stagedFileId) {
-    try {
-      const path = await import('path');
-      const fs = await import('fs');
-      const filePath = path.join(process.cwd(), "src/tmp", post.stagedFileId);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+    if (post.stagedFileId) {
+      try {
+        const filePath = path.join(process.cwd(), "src/tmp", post.stagedFileId);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (e) {
+        console.warn("Failed to delete temp file:", e);
       }
-    } catch (e) {
-      console.warn("Failed to delete temp file during post cancellation:", e);
     }
-  }
 
-  const deleted = await prisma.postHistory.delete({
-    where: { id }
+    const deleted = await prisma.postHistory.delete({ where: { id } });
+
+    await revalidateDashboard();
+    return deleted;
   });
-
-  revalidatePath('/schedule');
-  revalidatePath('/');
-
-  return deleted;
 }
-
-

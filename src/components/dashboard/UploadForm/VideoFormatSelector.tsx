@@ -1,5 +1,5 @@
 import React from 'react';
-import { VideoFormat } from '@/lib/types';
+import { VideoFormat } from '@/lib/core/types';
 
 interface VideoFormatSelectorProps {
   videoFormat: VideoFormat;

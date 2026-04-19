@@ -6,7 +6,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { DistributionGrid } from '@/components/settings/DistributionGrid';
 import { ConnectionSection } from '@/components/settings/ConnectionSection';
-import { PLATFORMS } from '@/lib/constants';
+import { PLATFORMS } from '@/lib/core/constants';
 import styles from './Settings.module.css';
 
 const SettingsPage = () => {

@@ -1,156 +1,123 @@
 "use server";
 
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/core/prisma";
+import { protectedAction, revalidateDashboard } from "@/lib/core/action-utils";
 
 /**
  * Fetches all connected accounts for the current authenticated user.
  */
 export async function getUserAccounts() {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return [];
-  }
-
-  return await prisma.account.findMany({
-    where: { userId: session.user.id },
-    select: {
-      id: true,
-      provider: true,
-      accountName: true,
-      isDistributionEnabled: true,
-    }
-  });
+  return protectedAction(async (userId) => {
+    return await prisma.account.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        provider: true,
+        accountName: true,
+        isDistributionEnabled: true,
+      }
+    });
+  }).catch(() => []); // Graceful fallback to empty list
 }
 
 /**
  * Toggles the distribution status for a specific connected account.
  */
 export async function toggleAccountDistribution(accountId: string, isEnabled: boolean) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  return protectedAction(async (userId) => {
+    await prisma.account.update({
+      where: { 
+        id: accountId,
+        userId // Security check
+      },
+      data: {
+        isDistributionEnabled: isEnabled
+      }
+    });
 
-  await prisma.account.update({
-    where: { 
-      id: accountId,
-      userId: session.user.id // Security check
-    },
-    data: {
-      isDistributionEnabled: isEnabled
-    }
+    await revalidateDashboard();
+    return { success: true };
   });
-
-  revalidatePath("/");
-  revalidatePath("/settings");
-  
-  return { success: true };
 }
+
 /**
  * Removes a connected account from the database.
  */
 export async function disconnectAccount(accountId: string) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  return protectedAction(async (userId) => {
+    await prisma.account.delete({
+      where: { 
+        id: accountId,
+        userId // Security check
+      }
+    });
 
-  await prisma.account.delete({
-    where: { 
-      id: accountId,
-      userId: session.user.id // Security check
-    }
+    await revalidateDashboard();
+    return { success: true };
   });
-
-  revalidatePath("/");
-  revalidatePath("/settings");
-  
-  return { success: true };
 }
+
 /**
  * Fetches platform preferences for the current user.
  */
 export async function getPlatformPreferences() {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return [];
-  }
-
-  return await prisma.platformPreference.findMany({
-    where: { userId: session.user.id }
-  });
+  return protectedAction(async (userId) => {
+    return await prisma.platformPreference.findMany({
+      where: { userId }
+    });
+  }).catch(() => []);
 }
 
 /**
  * Toggles the visibility/enablement of a platform in the settings dashboard.
  */
 export async function togglePlatformPreference(platformId: string, isEnabled: boolean) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  await prisma.platformPreference.upsert({
-    where: { 
-      userId_platformId: {
-        userId: session.user.id,
-        platformId: platformId
+  return protectedAction(async (userId) => {
+    await prisma.platformPreference.upsert({
+      where: { 
+        userId_platformId: {
+          userId,
+          platformId: platformId
+        }
+      },
+      update: { isEnabled },
+      create: {
+        userId,
+        platformId: platformId,
+        isEnabled
       }
-    },
-    update: { isEnabled },
-    create: {
-      userId: session.user.id,
-      platformId: platformId,
-      isEnabled
-    }
-  });
+    });
 
-  revalidatePath("/settings");
-  
-  return { success: true };
+    await revalidateDashboard();
+    return { success: true };
+  });
 }
 
 /**
  * Fetches the preferred video format for the current user.
  */
 export async function getVideoFormatPreference() {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return "short";
-  }
+  return protectedAction(async (userId) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredVideoFormat: true }
+    });
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { preferredVideoFormat: true }
-  });
-
-  return user?.preferredVideoFormat || "short";
+    return user?.preferredVideoFormat || "short";
+  }).catch(() => "short");
 }
 
 /**
  * Updates the preferred video format for the current user.
  */
 export async function updateVideoFormatPreference(format: string) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
+  return protectedAction(async (userId) => {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { preferredVideoFormat: format }
+    });
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { preferredVideoFormat: format }
+    await revalidateDashboard();
+    return { success: true };
   });
-
-  revalidatePath("/");
-  
-  return { success: true };
 }

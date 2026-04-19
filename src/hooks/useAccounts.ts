@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getUserAccounts, toggleAccountDistribution, disconnectAccount as disconnectAccountAction, getPlatformPreferences, togglePlatformPreference as togglePlatformPreferenceAction } from '@/app/actions/user';
-import { Account, PlatformPreference } from '@/lib/types';
+import { Account, PlatformPreference } from '@/lib/core/types';
 
 /**
  * Custom hook to fetch a list of user accounts and manage the state
