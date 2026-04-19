@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     writeStream.end();
 
     // Give it a moment to finish writing
-    await new Promise((resolve) => writeStream.on('finish', resolve));
+    await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
 
     // Cleanup the empty chunk directory
     await fs.rmdir(chunkDir);

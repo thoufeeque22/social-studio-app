@@ -8,6 +8,7 @@ import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { performMultiPlatformUpload } from '@/lib/upload-utils';
+import { savePostHistory } from '@/app/actions/history';
 import { StyleMode } from '@/lib/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/file-store';
 
@@ -173,7 +174,7 @@ export default function Home() {
         data.set('file', file);
       }
       
-      await performMultiPlatformUpload({
+      const { platformResults } = await performMultiPlatformUpload({
         formData: data,
         accounts,
         selectedAccountIds,
@@ -183,7 +184,21 @@ export default function Home() {
         onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id])
       });
 
-      setUploadStatus('All uploads completed successfully!');
+      // Persist to Post History
+      const title = (data.get('title') as string) || file.name || 'Untitled Post';
+      const description = (data.get('description') as string) || undefined;
+      try {
+        await savePostHistory({
+          title,
+          description,
+          videoFormat,
+          platforms: platformResults,
+        });
+      } catch (historyErr) {
+        console.error('Failed to save post history:', historyErr);
+      }
+
+      setUploadStatus('All uploads completed successfully! ✨ Click view your live links in the History section.');
       form.reset();
       // Clear all persistence after success
       localStorage.removeItem('SS_DRAFT_TITLE');
@@ -191,7 +206,7 @@ export default function Home() {
       draftFileRef.current = null;
       setDraftFileName(null);
       await clearDraftFile();
-      alert('Post completed across selected accounts!');
+      // No alert, the UI status is enough or we can use a custom toast if preferred
     } catch (error: any) {
       console.error('Process error:', error);
       setUploadStatus(`Error: ${error.message}`);
