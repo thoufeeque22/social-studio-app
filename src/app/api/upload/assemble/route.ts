@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   // --- AUTO-SCRUB SAFETY TASK ---
-  // Periodically clean up src/tmp for files older than 2 hours
+  // Periodically clean up src/tmp for files older than 24 hours
   try {
     const tempDir = path.join(process.cwd(), "src/tmp");
     if (fsSync.existsSync(tempDir)) {
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
       for (const file of files) {
         const filePath = path.join(tempDir, file);
         const stats = await fs.stat(filePath);
-        if (stats.isFile() && (now - stats.mtimeMs > 2 * 60 * 60 * 1000)) {
+        if (stats.isFile() && (now - stats.mtimeMs > 24 * 60 * 60 * 1000)) {
           await fs.unlink(filePath);
           console.log(`🧹 [AUTO-SCRUB] Purged old temp file: ${file}`);
         }
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   // ------------------------------
 
   try {
-    const { uploadId, fileName, totalChunks } = await req.json();
+    const { uploadId, fileName, totalChunks, title, description, videoFormat, historyId } = await req.json();
     
     if (!uploadId || !fileName || totalChunks === undefined) {
       return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
@@ -84,11 +85,40 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ [ASSEMBLE] Success: ${fileId}`);
 
+    // UPSERT POST HISTORY RECORD (RELIABILITY FIX V4)
+    let history;
+    if (historyId) {
+      history = await prisma.postHistory.update({
+        where: { id: historyId, userId: session.user.id },
+        data: {
+          stagedFileId: fileId,
+          // metadata might have changed slightly or we just ensure it is set
+          title: title || undefined,
+          description: description || undefined,
+        }
+      });
+    } else {
+      // Fallback for legacy flows
+      history = await prisma.postHistory.create({
+        data: {
+          userId: session.user.id,
+          title: title || fileName || "Untitled Post",
+          description: description || null,
+          videoFormat: videoFormat || "short",
+          stagedFileId: fileId,
+          platforms: {
+            create: []
+          }
+        }
+      });
+    }
+
     return NextResponse.json({ 
       success: true, 
       data: { 
         fileId,
-        fileName
+        fileName,
+        historyId: history.id
       } 
     });
   } catch (error: any) {

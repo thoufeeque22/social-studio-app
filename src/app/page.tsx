@@ -2,18 +2,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
-import { performMultiPlatformUpload } from '@/lib/upload-utils';
-import { savePostHistory } from '@/app/actions/history';
+import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
 import { StyleMode } from '@/lib/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/file-store';
 
 export default function Home() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const resumeHistoryId = searchParams.get('resume');
   const { accounts, setAccounts } = useAccounts();
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -35,6 +37,54 @@ export default function Home() {
       }
     });
   }, []);
+
+  // 0. Smart Resumption Pre-fill
+  useEffect(() => {
+    if (resumeHistoryId && accounts.length > 0) {
+      const loadResumptionData = async () => {
+        setUploadStatus("🔍 Loading resumption data...");
+        try {
+          const res = await fetch(`/api/history/${resumeHistoryId}`);
+          if (res.ok) {
+            const { data } = await res.json();
+            // 1. Update Title/Description in LocalStorage (for the form defaultValues)
+            if (data.title) localStorage.setItem('SS_DRAFT_TITLE', data.title);
+            if (data.description) localStorage.setItem('SS_DRAFT_DESC', data.description || '');
+            
+            // 2. Update Stateful selections
+            setVideoFormat(data.videoFormat as 'short' | 'long');
+            
+            // 3. Map platforms back to account IDs
+            const platformNames = data.platforms.map((p: any) => p.platform);
+            const matchingIds: string[] = [];
+            
+            accounts.forEach(acc => {
+              const pName = acc.provider === 'google' ? 'youtube' : acc.provider;
+              if (platformNames.includes(pName)) {
+                if (acc.provider === 'facebook') {
+                   // Special case for our platform names logic
+                   matchingIds.push(`facebook:${acc.id}`);
+                   matchingIds.push(`instagram:${acc.id}`);
+                } else {
+                   matchingIds.push(acc.id);
+                }
+              }
+            });
+            
+            if (matchingIds.length > 0) {
+              setSelectedAccountIds(matchingIds);
+            }
+            
+            setUploadStatus(`✅ Ready to resume: "${data.title}"`);
+          }
+        } catch (err) {
+          console.error("Failed to load resumption data", err);
+          setUploadStatus("⚠️ Failed to load resumption context");
+        }
+      };
+      loadResumptionData();
+    }
+  }, [resumeHistoryId, accounts]);
 
   // 1. Persistence: Platform Selection Stickiness
   useEffect(() => {
@@ -174,29 +224,37 @@ export default function Home() {
         data.set('file', file);
       }
       
-      const { platformResults } = await performMultiPlatformUpload({
+      // Phase 1: Initialize + Stage file
+      const title = (data.get('title') as string) || file.name || 'Untitled Post';
+      const description = (data.get('description') as string) || undefined;
+      
+      // Extract platform names from selected IDs
+      const platformIds = selectedAccountIds.map(sid => {
+        const account = accounts.find(a => a.id === sid || `${a.provider === 'google' ? 'youtube' : a.provider}:${a.id}` === sid);
+        return account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
+      }).filter(p => p !== 'unknown');
+
+      const { stagedFileId, fileName, historyId } = await stageVideoFile({
+        file,
+        onStatusUpdate: setUploadStatus,
+        metadata: { title, description, videoFormat },
+        platformIds,
+        resumeHistoryId: resumeHistoryId || undefined
+      });
+
+      // Phase 2: Distribute to platforms with real-time updates
+      await distributeToPlatforms({
+        stagedFileId,
+        fileName,
         formData: data,
         accounts,
         selectedAccountIds,
         contentMode,
         videoFormat,
         onStatusUpdate: setUploadStatus,
-        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id])
+        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
+        historyId
       });
-
-      // Persist to Post History
-      const title = (data.get('title') as string) || file.name || 'Untitled Post';
-      const description = (data.get('description') as string) || undefined;
-      try {
-        await savePostHistory({
-          title,
-          description,
-          videoFormat,
-          platforms: platformResults,
-        });
-      } catch (historyErr) {
-        console.error('Failed to save post history:', historyErr);
-      }
 
       setUploadStatus('All uploads completed successfully! ✨ Click view your live links in the History section.');
       form.reset();
@@ -224,6 +282,7 @@ export default function Home() {
 
       <div className="responsive-grid">
         <UploadForm 
+          key={resumeHistoryId || 'new-post'}
           isUploading={isUploading}
           uploadStatus={uploadStatus}
           accounts={accounts}

@@ -61,14 +61,21 @@ export const publishFacebookVideo = async ({
   title,
   description,
   accountId,
+  videoId: existingVideoId,
 }: {
   userId: string;
   videoUrl: string;
   title: string;
   description: string;
   accountId?: string;
+  videoId?: string;
 }) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
+
+  if (existingVideoId) {
+    console.log(`🚀 [FB-PULL] Resuming status check for existing Video ID: ${existingVideoId}`);
+    return { success: true, videoId: existingVideoId, pageName };
+  }
 
   console.log(`🚀 [FB-PULL] Initializing Feed Pull for: ${pageName}`);
 
@@ -85,7 +92,10 @@ export const publishFacebookVideo = async ({
   });
 
   const initData = await initRes.json();
-  if (initData.error) throw new Error(`FB Video Pull Failed: ${initData.error.message}`);
+  if (initData.error) {
+    console.error("❌ Facebook Video Pull Initialization Failed:", JSON.stringify(initData.error, null, 2));
+    throw new Error(`FB Video Pull Failed: ${initData.error.message} (URL: ${videoUrl})`);
+  }
   
   console.log(`Successfully initiated Facebook Video pull for ${pageName}`);
   return { success: true, videoId: initData.id, pageName };
@@ -103,46 +113,56 @@ export const publishFacebookReel = async ({
   videoUrl,
   description,
   accountId,
+  videoId: existingVideoId,
 }: {
   userId: string;
   videoUrl: string;
   description: string;
   accountId?: string;
+  videoId?: string;
 }) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
+  let videoId = existingVideoId;
 
-  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 1: Initializing for ${pageName}`);
+  if (!videoId) {
+    console.log(`🚀 [FB-REEL-HANDSHAKE] Step 1: Initializing for ${pageName}`);
 
-  // 1. START Step
-  const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      upload_phase: "start",
-      access_token: pageAccessToken,
-    }),
-  });
+    // 1. START Step
+    const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        upload_phase: "start",
+        access_token: pageAccessToken,
+      }),
+    });
 
-  const initData = await initRes.json();
-  if (initData.error) throw new Error(`Reel Handshake Step 1 Failed: ${initData.error.message}`);
-  const { video_id: videoId } = initData;
-
-  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 2: Triggering Pull for ${videoId}`);
-
-  // 2. TRIGGER PULL Step (to rupload)
-  // Per Meta specs, providing file_url in this step triggers the pull
-  const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `OAuth ${pageAccessToken}`,
-      "file_url": videoUrl,
-      "offset": "0",
+    const initData = await initRes.json();
+    if (initData.error) {
+      console.error("❌ Facebook Reel Handshake Step 1 Failed:", JSON.stringify(initData.error, null, 2));
+      throw new Error(`Reel Handshake Step 1 Failed: ${initData.error.message}`);
     }
-  });
+    videoId = initData.video_id;
 
-  const uploadData = await uploadRes.json();
-  if (!uploadData || uploadData.success === false) {
-    throw new Error(`Reel Handshake Step 2 Failed: ${JSON.stringify(uploadData)}`);
+    console.log(`🚀 [FB-REEL-HANDSHAKE] Step 2: Triggering Pull for ${videoId}`);
+
+    // 2. TRIGGER PULL Step (to rupload)
+    const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `OAuth ${pageAccessToken}`,
+        "file_url": videoUrl,
+        "offset": "0",
+      }
+    });
+
+    const uploadData = await uploadRes.json();
+    if (!uploadData || uploadData.success === false || uploadData.error) {
+      console.error("❌ Facebook Reel Step 2 (Pull Trigger) Failed:", JSON.stringify(uploadData, null, 2));
+      throw new Error(`Reel Handshake Step 2 Failed: ${uploadData.error?.message || JSON.stringify(uploadData)} (URL: ${videoUrl})`);
+    }
+  } else {
+    console.log(`🚀 [FB-REEL-RESUME] Resuming from polling/finish for Video ID: ${videoId}`);
   }
 
   // 3. POLLING Step (5 Minutes Max)

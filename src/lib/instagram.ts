@@ -46,41 +46,48 @@ export const publishInstagramReel = async ({
   caption,
   musicId,
   accountId,
-}: PublishReelParams & { accountId?: string }) => {
+  creationId: existingCreationId,
+}: PublishReelParams & { accountId?: string; creationId?: string }) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
+  let creationId = existingCreationId;
 
   console.log(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
 
-  // STEP 1: Create Media Container
-  const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
-  
-  const bodyPayload: any = {
-    video_url: videoUrl,
-    caption: caption,
-    media_type: "REELS",
-    share_to_feed: true,
-    access_token: userAccessToken,
-  };
+  try {
+    if (!creationId) {
+      // STEP 1: Create Media Container
+      const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
+      
+      const bodyPayload: any = {
+        video_url: videoUrl,
+        caption: caption,
+        media_type: "REELS",
+        share_to_feed: true,
+        access_token: userAccessToken,
+      };
 
-  if (musicId) {
-    bodyPayload.audio_id = musicId;
-  }
+      if (musicId) {
+        bodyPayload.audio_id = musicId;
+      }
 
-  const containerRes = await fetch(containerUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(bodyPayload),
-  });
+      const containerRes = await fetch(containerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyPayload),
+      });
 
-  const containerData = await containerRes.json();
+      const containerData = await containerRes.json();
 
-  if (containerData.error) {
-    console.error("Instagram Container Error:", containerData.error);
-    throw new Error(`Instagram Step 1 Failed: ${containerData.error.message}`);
-  }
+      if (containerData.error) {
+        console.error("❌ Instagram Container Error:", JSON.stringify(containerData.error, null, 2));
+        throw new Error(`Instagram Step 1 Failed: ${containerData.error.message} (URL: ${videoUrl})`);
+      }
 
-  const creationId = containerData.id;
-  console.log(`Container created: ${creationId}. Waiting for processing...`);
+      creationId = containerData.id;
+      console.log(`Container created: ${creationId}. Waiting for processing...`);
+    } else {
+      console.log(`Resuming Instagram upload with existing Creation ID: ${creationId}`);
+    }
 
   // STEP 2: Poll for Processing Status
   let status = "IN_PROGRESS";
@@ -125,6 +132,11 @@ export const publishInstagramReel = async ({
     throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
   }
 
-  console.log("Reel successfully published!");
-  return publishData;
+    console.log("Reel successfully published!");
+    return { ...publishData, creationId };
+  } catch (error: any) {
+    console.error("Instagram Upload Error:", error);
+    // Wrap error to include creationId if we have one
+    throw { message: error.message, creationId, status: "failed" };
+  }
 };

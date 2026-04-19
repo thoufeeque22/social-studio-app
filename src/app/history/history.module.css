@@ -230,6 +230,116 @@
   color: hsl(var(--destructive));
 }
 
+.retryButton {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 2px;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.retryButton:hover {
+  transform: rotate(45deg) scale(1.1);
+}
+
+.platformPillRetrying {
+  background: hsla(250, 80%, 60%, 0.12);
+  color: hsl(250, 80%, 75%);
+  border-color: hsla(250, 80%, 60%, 0.3);
+  cursor: wait;
+}
+
+.platformPillRetrying .pillIcon {
+  animation: rotate 2s linear infinite;
+}
+
+.platformPillPending {
+  background: hsla(200, 80%, 60%, 0.12);
+  color: hsl(200, 80%, 75%);
+  border-color: hsla(200, 80%, 60%, 0.3);
+  cursor: wait;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.platformPillStale {
+  background: hsla(45, 80%, 60%, 0.12);
+  color: hsl(45, 80%, 75%);
+  border-color: hsla(45, 80%, 60%, 0.3);
+  cursor: help;
+}
+
+.resumeButton {
+  background: hsla(38, 92%, 50%, 0.15);
+  border: 1px solid hsla(38, 92%, 50%, 0.4);
+  color: hsl(38, 92%, 65%);
+  margin-left: 10px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.resumeButton:hover {
+  background: hsla(38, 92%, 50%, 0.25);
+  border-color: hsla(38, 92%, 50%, 0.6);
+  transform: translateY(-1px);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.inPlaceUploadProgress {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: hsla(var(--primary) / 0.05);
+  border: 1px solid hsla(var(--primary) / 0.1);
+  border-radius: 0.75rem;
+}
+
+.progressBarWrapper {
+  width: 100%;
+  height: 6px;
+  background: hsla(var(--foreground) / 0.1);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: hsl(var(--primary));
+  transition: width 0.3s ease;
+  border-radius: 99px;
+}
+
+.progressBarStatus {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--primary));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Empty State */
 .emptyState {
   text-align: center;
