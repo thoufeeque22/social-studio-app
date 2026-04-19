@@ -25,6 +25,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Sticky Platform Selection**: Persist the user's platform selection preferences so they don't have to re-select their favorite channels for every new post.
 - [x] **Sticky Video Format**: Persist the user's target video format choice (Short/Long) across sessions.
 - [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
+- [ ] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload.
 
 ## Medium Priority 📈
 - [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
@@ -50,3 +51,5 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Documentation**: Create user enablement and developer documentation.
 - [ ] **Legal Review**: General review to ensure the app abides by relevant laws and regulations.
 - [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
+- [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title.
+- [ ] **Notification Utility (Bell Icon)**: Investigate and implement functionality for the currently hardcoded bell icon (e.g., in-app notifications for upload success/failure).
