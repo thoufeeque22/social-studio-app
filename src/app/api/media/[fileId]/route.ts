@@ -73,8 +73,7 @@ export async function GET(
           "Content-Type": mimeType,
           "Content-Range": `bytes ${start}-${end}/${stats.size}`,
           "Accept-Ranges": "bytes",
-          "Content-Length": chunkSize.toString(),
-          "ngrok-skip-browser-warning": "true",
+          "Content-Length": chunkSize.toString()
         },
       });
     } else {
@@ -95,8 +94,7 @@ export async function GET(
         headers: {
           "Content-Type": mimeType,
           "Content-Length": stats.size.toString(),
-          "Accept-Ranges": "bytes",
-          "ngrok-skip-browser-warning": "true",
+          "Accept-Ranges": "bytes"
         },
       });
     }

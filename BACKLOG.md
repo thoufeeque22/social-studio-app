@@ -24,7 +24,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Fault-Tolerant Dispatching**: Update the sequential upload loop so that a failure on one platform (e.g., Facebook) does not stop the distribution to others.
 - [x] **Sticky Platform Selection**: Persist the user's platform selection preferences so they don't have to re-select their favorite channels for every new post.
 - [x] **Sticky Video Format**: Persist the user's target video format choice (Short/Long) across sessions.
-- [ ] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
+- [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
 
 ## Medium Priority 📈
 - [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
