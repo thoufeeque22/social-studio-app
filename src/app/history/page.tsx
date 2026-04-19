@@ -304,12 +304,15 @@ export default function HistoryPage() {
             const failedCount = post.platforms.filter(p => p.status === 'failed').length;
 
             return (
-              <div key={post.id} className={styles.postCard}>
+              <div key={post.id} className={`${styles.postCard} ${post.platforms.some(p => p.status === 'pending') ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
                 <GlassCard className={styles.cardInner}>
                   <div className={styles.cardHeader}>
                     <div>
-                      <h3 className={styles.postTitle}>{post.title}</h3>
+                      <h3 className={styles.postTitle}>
+                        {post.platforms.some(p => p.status === 'pending') && <span className={styles.processingDot} />}
+                        {post.title}
+                      </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
                       )}

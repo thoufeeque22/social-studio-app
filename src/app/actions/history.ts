@@ -245,4 +245,87 @@ export async function getUpcomingPosts() {
   });
 }
 
+/**
+ * Updates a scheduled post (before it is published).
+ */
+export async function updateScheduledPost(id: string, data: { title?: string; description?: string; scheduledAt?: string }) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  return await prisma.postHistory.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined
+    }
+  });
+}
+
+/**
+ * Marks a scheduled post to be published ASAP.
+ */
+export async function publishNowAction(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  // Set scheduledAt to NOW, so the worker picks it up on next tick.
+  return await prisma.postHistory.update({
+    where: { id },
+    data: {
+      scheduledAt: new Date()
+    }
+  });
+}
+
+/**
+ * Deletes a scheduled post.
+ */
+export async function deleteScheduledPost(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error('Unauthorized');
+
+  const post = await prisma.postHistory.findUnique({
+    where: { id, userId: session.user.id }
+  });
+
+  if (!post || post.isPublished) {
+    throw new Error('Post not found or already published.');
+  }
+
+  // Also clean up the temporary file if it exists
+  if (post.stagedFileId) {
+    try {
+      const path = await import('path');
+      const fs = await import('fs');
+      const filePath = path.join(process.cwd(), "src/tmp", post.stagedFileId);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) {
+      console.warn("Failed to delete temp file during post cancellation:", e);
+    }
+  }
+
+  return await prisma.postHistory.delete({
+    where: { id }
+  });
+}
+
 

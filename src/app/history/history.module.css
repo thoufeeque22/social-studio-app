@@ -425,6 +425,27 @@
   opacity: 1;
 }
 
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 hsla(var(--primary) / 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px hsla(var(--primary) / 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 hsla(var(--primary) / 0); }
+}
+
+.processingDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: hsl(var(--primary));
+  border-radius: 50%;
+  margin-right: 12px;
+  animation: pulseDot 2s infinite;
+}
+
+.activePost .cardInner {
+  border-color: hsla(var(--primary) / 0.3);
+  box-shadow: 0 0 20px hsla(var(--primary) / 0.1);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
