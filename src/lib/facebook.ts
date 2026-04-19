@@ -53,18 +53,17 @@ export const getFacebookVideoStatus = async (videoId: string, accessToken: strin
 };
 
 /**
- * PULL-BASED UPLOAD FOR FACEBOOK VIDEOS (FEED)
+ * BINARY PUSH UPLOAD FOR FACEBOOK VIDEOS (FEED)
  */
 export const publishFacebookVideo = async ({
-  userId,
-  videoUrl,
   title,
   description,
+  filePath,
   accountId,
   videoId: existingVideoId,
 }: {
   userId: string;
-  videoUrl: string;
+  filePath: string;
   title: string;
   description: string;
   accountId?: string;
@@ -73,32 +72,34 @@ export const publishFacebookVideo = async ({
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
 
   if (existingVideoId) {
-    console.log(`🚀 [FB-PULL] Resuming status check for existing Video ID: ${existingVideoId}`);
+    console.log(`🚀 [FB-PUSH] Resuming status check for existing Video ID: ${existingVideoId}`);
     return { success: true, videoId: existingVideoId, pageName };
   }
 
-  console.log(`🚀 [FB-PULL] Initializing Feed Pull for: ${pageName}`);
+  console.log(`🚀 [FB-PUSH] Initializing Feed Binary Push for: ${pageName}`);
 
-  // 1. START Phase
-  const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/videos`, {
+  // 1. UPLOAD Phase (Binary Push)
+  const fileBuffer = await fs.readFile(filePath);
+  const formData = new FormData();
+  
+  formData.append("source", new Blob([fileBuffer]) as any, "video.mp4");
+  formData.append("title", title);
+  formData.append("description", description);
+  formData.append("access_token", pageAccessToken);
+
+  const res = await fetch(`https://graph-video.facebook.com/v20.0/${pageId}/videos`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      file_url: videoUrl,
-      title,
-      description,
-      access_token: pageAccessToken,
-    }),
+    body: formData,
   });
 
-  const initData = await initRes.json();
-  if (initData.error) {
-    console.error("❌ Facebook Video Pull Initialization Failed:", JSON.stringify(initData.error, null, 2));
-    throw new Error(`FB Video Pull Failed: ${initData.error.message} (URL: ${videoUrl})`);
+  const uploadData = await res.json();
+  if (uploadData.error) {
+    console.error("❌ Facebook Video Push Failed:", JSON.stringify(uploadData.error, null, 2));
+    throw new Error(`FB Video Push Failed: ${uploadData.error.message}`);
   }
   
-  console.log(`Successfully initiated Facebook Video pull for ${pageName}`);
-  return { success: true, videoId: initData.id, pageName };
+  console.log(`Successfully pushed Facebook Video for ${pageName}`);
+  return { success: true, videoId: uploadData.id, pageName };
 };
 
 /**
@@ -110,13 +111,13 @@ export const publishFacebookVideo = async ({
  */
 export const publishFacebookReel = async ({
   userId,
-  videoUrl,
   description,
+  filePath,
   accountId,
   videoId: existingVideoId,
 }: {
   userId: string;
-  videoUrl: string;
+  filePath: string;
   description: string;
   accountId?: string;
   videoId?: string;
@@ -144,22 +145,27 @@ export const publishFacebookReel = async ({
     }
     videoId = initData.video_id;
 
-    console.log(`🚀 [FB-REEL-HANDSHAKE] Step 2: Triggering Pull for ${videoId}`);
+    console.log(`🚀 [FB-REEL-PUSH] Step 2: Pushing Binary Data for ${videoId}`);
 
-    // 2. TRIGGER PULL Step (to rupload)
+    // 2. BINARY PUSH Step (to rupload)
+    const fileBuffer = await fs.readFile(filePath);
+    const fileStats = await fs.stat(filePath);
+
     const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
       method: "POST",
       headers: {
         "Authorization": `OAuth ${pageAccessToken}`,
-        "file_url": videoUrl,
-        "offset": "0",
-      }
+        "Offset": "0",
+        "X-Entity-Length": fileStats.size.toString(),
+        "X-Entity-Type": "video/mp4",
+      },
+      body: fileBuffer,
     });
 
     const uploadData = await uploadRes.json();
     if (!uploadData || uploadData.success === false || uploadData.error) {
-      console.error("❌ Facebook Reel Step 2 (Pull Trigger) Failed:", JSON.stringify(uploadData, null, 2));
-      throw new Error(`Reel Handshake Step 2 Failed: ${uploadData.error?.message || JSON.stringify(uploadData)} (URL: ${videoUrl})`);
+      console.error("❌ Facebook Reel Step 2 (Binary Push) Failed:", JSON.stringify(uploadData, null, 2));
+      throw new Error(`Reel Push Failed: ${uploadData.error?.message || JSON.stringify(uploadData)}`);
     }
   } else {
     console.log(`🚀 [FB-REEL-RESUME] Resuming from polling/finish for Video ID: ${videoId}`);

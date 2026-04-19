@@ -54,26 +54,7 @@ export async function POST(req: NextRequest) {
     const musicId = (fields.musicId as string) || undefined;
     const accountId = fields.accountId;
 
-    // 2. Generate the Public URL for Meta Crawler
-    let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-
-    const fileId = path.basename(filePath);
-    const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(fileId)}`;
-
-    console.log(`Instructing Instagram to fetch from: ${videoUrl}`);
-
-    // 3. Enrich through Intelligence Layer
-    const enrichedContent = await generatePostContent(
-      contentMode,
-      rawCaption || fileName || "Untitled Video",
-      rawDescription,
-      "instagram"
-    );
-
-    const finalCaption = `${enrichedContent.title}\n\n${enrichedContent.description}\n\n${enrichedContent.hashtags.join(" ")}`;
-
-    // If MOCK_UPLOAD is enabled, skip the actual API call
+    // 2. Mock mode check
     if (process.env.MOCK_UPLOAD === "true") {
       console.log("🚀 [MOCK MODE] Skipping actual Instagram API publish.");
       // Simulate API response
@@ -88,11 +69,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, data: mockResult });
     }
 
+    // 3. Enrich through Intelligence Layer
+    const enrichedContent = await generatePostContent(
+      contentMode,
+      rawCaption || fileName || "Untitled Video",
+      rawDescription,
+      "instagram"
+    );
+
+    const finalCaption = `${enrichedContent.title}\n\n${enrichedContent.description}\n\n${enrichedContent.hashtags.join(" ")}`;
+
     // 4. Orchestrate the Instagram Publishing Flow
     try {
       const result = await publishInstagramReel({
         userId: session.user.id,
-        videoUrl: videoUrl,
+        filePath,
         caption: finalCaption,
         musicId,
         accountId,

@@ -158,6 +158,8 @@ export const uploadToYouTube = async ({
       "Content-Range": `bytes ${startByte}-${fileSize - 1}/${fileSize}`,
     },
     body: fileStream as any,
+    // @ts-ignore
+    duplex: 'half'
   });
 
   if (!uploadRes.ok && uploadRes.status !== 308) {

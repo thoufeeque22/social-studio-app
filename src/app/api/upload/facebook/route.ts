@@ -48,29 +48,20 @@ export async function POST(req: NextRequest) {
     const videoFormat = fields.videoFormat || "short";
     const fileName = path.basename(filePath);
 
-    // 2. Generate the Public URL for Meta Crawler
-    let baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-
-    const fileId = path.basename(filePath);
-    const videoUrl = `${baseUrl}/api/media/${encodeURIComponent(fileId)}`;
-
-    console.log(`Instructing Facebook to fetch from: ${videoUrl}`);
-
-    // If MOCK_UPLOAD is enabled, skip the actual API call
+    // 2. Mock mode check
     if (process.env.MOCK_UPLOAD === "true") {
       console.log("🚀 [MOCK MODE] Skipping actual Facebook API publish.");
       if (fsSync.existsSync(filePath)) await fs.unlink(filePath);
       return NextResponse.json({ success: true, data: { id: `mock-fb-${Date.now()}` } });
     }
 
-    // 3. Orchestrate the Facebook Publishing (Pull-based)
+    // 3. Orchestrate the Facebook Publishing (Push-based)
     let result;
     try {
       if (videoFormat === 'short') {
         result = await publishFacebookReel({
           userId: session.user.id,
-          videoUrl: videoUrl,
+          filePath,
           description: fields.description || "",
           accountId,
           videoId: fields.videoId,
@@ -78,7 +69,7 @@ export async function POST(req: NextRequest) {
       } else {
         result = await publishFacebookVideo({
           userId: session.user.id,
-          videoUrl: videoUrl,
+          filePath,
           title: fields.title || fileName || "Untitled Video",
           description: fields.description || "",
           accountId,

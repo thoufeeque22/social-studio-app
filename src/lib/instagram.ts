@@ -35,14 +35,14 @@ export const getInstagramAccount = async (userId: string, accountId?: string) =>
 
 interface PublishReelParams {
   userId: string;
-  videoUrl: string;
+  filePath: string;
   caption: string;
   musicId?: string;
 }
 
 export const publishInstagramReel = async ({
   userId,
-  videoUrl,
+  filePath,
   caption,
   musicId,
   accountId,
@@ -55,11 +55,11 @@ export const publishInstagramReel = async ({
 
   try {
     if (!creationId) {
-      // STEP 1: Create Media Container
+      // STEP 1: Create Media Container (Resumable)
       const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
       
       const bodyPayload: any = {
-        video_url: videoUrl,
+        upload_type: "resumable",
         caption: caption,
         media_type: "REELS",
         share_to_feed: true,
@@ -79,12 +79,36 @@ export const publishInstagramReel = async ({
       const containerData = await containerRes.json();
 
       if (containerData.error) {
-        console.error("❌ Instagram Container Error:", JSON.stringify(containerData.error, null, 2));
-        throw new Error(`Instagram Step 1 Failed: ${containerData.error.message} (URL: ${videoUrl})`);
+        console.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
+        throw new Error(`Instagram Step 1 Failed: ${containerData.error.message}`);
       }
 
       creationId = containerData.id;
-      console.log(`Container created: ${creationId}. Waiting for processing...`);
+      console.log(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Pushing binary data...`);
+
+      // STEP 2: Binary Push to rupload
+      const { promises: fs } = await import('fs');
+      const fileStats = await fs.stat(filePath);
+      const fileBuffer = await fs.readFile(filePath);
+
+      const uploadRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `OAuth ${userAccessToken}`,
+          "Offset": "0",
+          "X-Entity-Length": fileStats.size.toString(),
+          "X-Entity-Name": `video_${Date.now()}.mp4`,
+          "X-Entity-Type": "video/mp4",
+        },
+        body: fileBuffer,
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadData || uploadData.success === false || uploadData.error) {
+        console.error("❌ Instagram Step 2 (Binary Push) Failed:", JSON.stringify(uploadData, null, 2));
+        throw new Error(`Instagram Step 2 Failed: ${uploadData.error?.message || JSON.stringify(uploadData)}`);
+      }
+      console.log(`🚀 [IG-REEL-PUSH] Binary push complete for ${creationId}. Waiting for processing...`);
     } else {
       console.log(`Resuming Instagram upload with existing Creation ID: ${creationId}`);
     }
@@ -106,7 +130,7 @@ export const publishInstagramReel = async ({
 
     if (status === "FINISHED") break;
     if (status === "ERROR") {
-      throw new Error("Instagram video processing failed. This usually means Meta could not fetch the file from your tunnel. Verify TUNNEL_URL in .env and make sure your ngrok tunnel is active.");
+      throw new Error("Instagram video processing failed. This usually indicates an issue with the Meta API or file format. Please check the logs.");
     }
   }
 

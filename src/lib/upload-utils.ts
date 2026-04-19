@@ -208,15 +208,20 @@ export async function distributeToPlatforms({
   onStatusUpdate("🚀 Physical upload complete. Distributing to platforms...");
 
   for (const selectionId of selectedAccountIds) {
-    // Parse virtual ID (platform:realId) or real ID
     let platform: string;
     let realAccountId: string;
 
-    const account = accounts.find(a => a.id === selectionId || `${a.provider === 'google' ? 'youtube' : a.provider}:${a.id}` === selectionId);
-    if (!account) continue;
-    
-    platform = account.provider === 'google' ? 'youtube' : account.provider;
-    realAccountId = account.id;
+    // Check if the selectionId is prefixed (e.g., "instagram:ck...")
+    if (selectionId.includes(':')) {
+      [platform, realAccountId] = selectionId.split(':');
+    } else {
+      const account = accounts.find(a => a.id === selectionId);
+      if (!account) continue;
+      platform = account.provider === 'google' ? 'youtube' : account.provider;
+      realAccountId = account.id;
+    }
+
+    const account = accounts.find(a => a.id === realAccountId);
 
     const displayName = formatHandle(account.accountName, platform);
     onStatusUpdate(`📤 Publishing to ${displayName}...`);

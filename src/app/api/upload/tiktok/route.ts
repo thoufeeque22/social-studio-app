@@ -48,13 +48,6 @@ export async function POST(req: NextRequest) {
     const contentMode = (fields.contentMode as StyleMode) || "Manual";
     const accountId = fields.accountId;
 
-    // 2. Generate the Public URL for TikTok's PULL_FROM_URL
-    const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
-    const fileId = path.basename(filePath);
-    const videoUrl = `${baseUrl}/api/media/${fileId}`;
-
-    console.log(`Instructing TikTok to fetch from: ${videoUrl}`);
-
     // 3. Enrich through Intelligence Layer
     const enrichedContent = await generatePostContent(
       contentMode,

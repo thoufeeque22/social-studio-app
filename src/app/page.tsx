@@ -243,7 +243,7 @@ export default function Home() {
       });
 
       // Phase 2: Distribute to platforms with real-time updates
-      await distributeToPlatforms({
+      const distribution = await distributeToPlatforms({
         stagedFileId,
         fileName,
         formData: data,
@@ -256,7 +256,14 @@ export default function Home() {
         historyId
       });
 
-      setUploadStatus('All uploads completed successfully! ✨ Click view your live links in the History section.');
+      const failures = distribution.platformResults.filter(r => r.status === 'failed');
+      if (failures.length === 0) {
+        setUploadStatus('All uploads completed successfully! ✨ Click view your live links in the History section.');
+      } else if (failures.length < distribution.platformResults.length) {
+        setUploadStatus(`Completed with ${failures.length} issue(s). ⚠️ Check History for details.`);
+      } else {
+        setUploadStatus('All uploads failed. ❌ Check History for technical details.');
+      }
       form.reset();
       // Clear all persistence after success
       localStorage.removeItem('SS_DRAFT_TITLE');
