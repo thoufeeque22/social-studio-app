@@ -1,6 +1,7 @@
 import { Account } from '@/lib/core/types';
 import { formatHandle } from '@/lib/utils/utils';
 import { StyleMode } from '@/lib/core/constants';
+import { extractPlatformPostId, generatePermalink } from '@/lib/core/distributor-utils';
 
 export interface PlatformUploadResult {
   platform: string;
@@ -28,47 +29,6 @@ interface UploadParams {
   historyId?: string; // Optional for real-time updates
 }
 
-/**
- * Generates a direct permalink to the published content on each platform.
- */
-function generatePermalink(platform: string, data: any): string | null {
-  if (!data) return null;
-
-  switch (platform) {
-    case 'youtube': {
-      const videoId = data.id || data.videoId;
-      return videoId ? `https://youtube.com/watch?v=${videoId}` : null;
-    }
-    case 'facebook': {
-      const videoId = data.videoId || data.id;
-      return videoId ? `https://facebook.com/${videoId}` : null;
-    }
-    case 'instagram': {
-      const mediaId = data.id;
-      return mediaId ? `https://instagram.com/reel/${mediaId}` : null;
-    }
-    case 'tiktok': {
-      // TikTok's publish API does not return a public URL
-      return null;
-    }
-    default:
-      return null;
-  }
-}
-
-/**
- * Extracts a platform-native post ID from the API response.
- */
-function extractPlatformPostId(platform: string, data: any): string | null {
-  if (!data) return null;
-  switch (platform) {
-    case 'youtube': return data.id || null;
-    case 'facebook': return data.videoId || data.id || null;
-    case 'instagram': return data.id || null;
-    case 'tiktok': return data.publish_id || null;
-    default: return null;
-  }
-}
 
 /**
  * PHASE ONE: Staging via Chunking (Zero-Memory Crash)
