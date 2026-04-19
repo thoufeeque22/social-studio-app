@@ -3,6 +3,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Account } from '@/lib/types';
 import { PLATFORMS } from '@/lib/constants';
 import { getUpcomingPosts } from '@/app/actions/history';
+import { usePolling } from '@/hooks/usePolling';
 
 interface SidebarInfoProps {
   accounts: Account[];
@@ -17,6 +18,18 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       .then(setUpcoming)
       .finally(() => setIsLoading(false));
   };
+
+  // Switch to high-frequency polling when a post is due very soon
+  const hasActivePosts = upcoming.some(post => {
+    const scheduledTime = new Date(post.scheduledAt).getTime();
+    return scheduledTime <= Date.now() + 30000;
+  });
+
+  usePolling({
+    callback: fetchQueue,
+    interval: hasActivePosts ? 5000 : 30000,
+    isActive: upcoming.length > 0
+  });
 
   useEffect(() => {
     fetchQueue();

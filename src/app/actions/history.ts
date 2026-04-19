@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export interface PlatformResultInput {
   platform: string;
@@ -103,6 +104,10 @@ export async function savePostHistory(data: SavePostHistoryInput) {
       platforms: true,
     },
   });
+
+  revalidatePath('/');
+  revalidatePath('/schedule');
+  revalidatePath('/history');
 
   return { success: true, data: postHistory };
 }
@@ -260,7 +265,7 @@ export async function updateScheduledPost(id: string, data: { title?: string; de
     throw new Error('Post not found or already published.');
   }
 
-  return await prisma.postHistory.update({
+  const updated = await prisma.postHistory.update({
     where: { id },
     data: {
       title: data.title,
@@ -268,6 +273,11 @@ export async function updateScheduledPost(id: string, data: { title?: string; de
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined
     }
   });
+
+  revalidatePath('/schedule');
+  revalidatePath('/');
+
+  return updated;
 }
 
 /**
@@ -286,12 +296,18 @@ export async function publishNowAction(id: string) {
   }
 
   // Set scheduledAt to NOW, so the worker picks it up on next tick.
-  return await prisma.postHistory.update({
+  const updated = await prisma.postHistory.update({
     where: { id },
     data: {
       scheduledAt: new Date()
     }
   });
+
+  revalidatePath('/schedule');
+  revalidatePath('/history');
+  revalidatePath('/');
+
+  return updated;
 }
 
 /**
@@ -323,9 +339,14 @@ export async function deleteScheduledPost(id: string) {
     }
   }
 
-  return await prisma.postHistory.delete({
+  const deleted = await prisma.postHistory.delete({
     where: { id }
   });
+
+  revalidatePath('/schedule');
+  revalidatePath('/');
+
+  return deleted;
 }
 
 

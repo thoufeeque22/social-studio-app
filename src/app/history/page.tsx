@@ -13,6 +13,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload-utils';
 import { getDraftFile } from '@/lib/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
+import { usePolling } from '@/hooks/usePolling';
 import styles from './history.module.css';
 
 interface PlatformResult {
@@ -74,6 +75,7 @@ export default function HistoryPage() {
   const fetchHistory = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
     if (cursor) params.set('cursor', cursor);
+    params.set('_t', Date.now().toString()); // Cache buster
 
     const res = await fetch(`/api/history?${params.toString()}`);
     const data = await res.json();
@@ -87,6 +89,19 @@ export default function HistoryPage() {
       setIsLoading(false);
     }).catch(() => setIsLoading(false));
   }, [fetchHistory]);
+
+  const hasActivePosts = posts.some(post => 
+    post.platforms.some(p => p.status === 'pending' || p.status === 'retrying')
+  );
+
+  usePolling({
+    callback: async () => {
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    },
+    interval: hasActivePosts ? 5000 : 60000,
+    isActive: posts.length > 0
+  });
 
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;

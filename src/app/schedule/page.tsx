@@ -8,6 +8,7 @@ import {
   deleteScheduledPost, 
   publishNowAction 
 } from '@/app/actions/history';
+import { usePolling } from '@/hooks/usePolling';
 
 interface PlatformResult {
   id: string;
@@ -31,7 +32,8 @@ export default function SchedulePage() {
 
   const fetchSchedule = useCallback(async () => {
     try {
-      const res = await fetch('/api/history?published=false');
+      // Add a timestamp to bypass any browser/Next.js client-side caching
+      const res = await fetch(`/api/history?published=false&_t=${Date.now()}`);
       const data = await res.json();
       setPosts(data.data || []);
     } catch (err) {
@@ -41,8 +43,29 @@ export default function SchedulePage() {
     }
   }, []);
 
+  // Determine if we need high-frequency polling
+  const hasActivePosts = posts.some(p => {
+    const scheduledTime = new Date(p.scheduledAt).getTime();
+    const now = Date.now();
+    // Active if in the past or within the next 30 seconds
+    return scheduledTime <= now + 30000;
+  });
+
+  usePolling({
+    callback: fetchSchedule,
+    interval: hasActivePosts ? 5000 : 30000,
+    isActive: posts.length > 0
+  });
+
   useEffect(() => {
     fetchSchedule();
+    
+    // Listen for the same refresh event used on the dashboard
+    window.addEventListener('refresh-upcoming', fetchSchedule);
+    
+    return () => {
+      window.removeEventListener('refresh-upcoming', fetchSchedule);
+    };
   }, [fetchSchedule]);
 
   const handleDelete = async (id: string) => {
@@ -51,6 +74,7 @@ export default function SchedulePage() {
     try {
       await deleteScheduledPost(id);
       setPosts(prev => prev.filter(p => p.id !== id));
+      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
     } catch (err: any) {
       alert(`Failed to delete: ${err.message}`);
     }
@@ -64,6 +88,7 @@ export default function SchedulePage() {
       // It will move to history automatically when worker picks it up
       // For now, we just remove it from the list or refresh
       setPosts(prev => prev.filter(p => p.id !== id));
+      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
       alert('Post moved to publishing queue! Check History in a few moments.');
     } catch (err: any) {
       alert(`Failed to publish: ${err.message}`);
@@ -84,6 +109,7 @@ export default function SchedulePage() {
       });
       setEditingPost(null);
       fetchSchedule();
+      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
     } catch (err: any) {
       alert(`Update failed: ${err.message}`);
     } finally {
