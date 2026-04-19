@@ -78,13 +78,13 @@ export async function stageVideoFile({
   file,
   onStatusUpdate,
   metadata,
-  platformIds,
+  platforms,
   resumeHistoryId
 }: { 
   file: File; 
   onStatusUpdate: (status: string) => void;
   metadata?: { title?: string; description?: string; videoFormat?: string; scheduledAt?: string; isPublished?: boolean };
-  platformIds: string[];
+  platforms: { platform: string; accountId: string }[];
   resumeHistoryId?: string;
 }): Promise<{ stagedFileId: string; fileName: string; historyId: string }> {
   // 0. CREATE DETERMINISTIC UPLOAD ID (Fingerprinting for resumption)
@@ -101,7 +101,7 @@ export async function stageVideoFile({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         ...metadata,
-        platformIds
+        platforms
       }),
     });
 

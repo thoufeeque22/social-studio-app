@@ -24,6 +24,7 @@ interface PlatformResult {
   permalink: string | null;
   status: string;
   errorMessage: string | null;
+  accountId: string | null;
 }
 
 interface PostHistoryEntry {
@@ -170,13 +171,17 @@ export default function HistoryPage() {
         file,
         onStatusUpdate: setInPlaceStatus,
         metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
-        platformIds: post.platforms.map(p => p.platform),
+        platforms: post.platforms.map(p => ({ 
+          platform: p.platform, 
+          accountId: (p as any).accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id
+        })).filter(p => p.accountId) as any,
         resumeHistoryId: post.id
       });
       
       const selectedAccountIds = post.platforms.map(p => {
-        const account = accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform);
-        return account ? (account.provider === 'facebook' ? `facebook:${account.id}` : account.id) : null;
+        const accountId = (p as any).accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id;
+        if (!accountId) return null;
+        return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${accountId}` : accountId;
       }).filter(Boolean) as string[];
 
       await distributeToPlatforms({

@@ -86,6 +86,7 @@ model PostPlatformResult {
   postHistoryId  String
   platform       String
   accountName    String?
+  accountId      String?
   platformPostId String?
   permalink      String?
   status         String      @default("success")

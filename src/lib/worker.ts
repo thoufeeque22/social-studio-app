@@ -74,8 +74,10 @@ export async function startPublishingWorker() {
           formData.set('file', fakeFile);
 
           const selectedAccountIds = post.platforms.map(p => {
-             const account = post.user.accounts.find(a => (a.provider === 'google' ? 'youtube' : a.provider) === p.platform);
-             return account ? (account.provider === 'facebook' ? `facebook:${account.id}` : account.id) : null;
+             if (p.platform === 'facebook' || p.platform === 'instagram') {
+               return `${p.platform}:${p.accountId}`;
+             }
+             return p.accountId;
           }).filter(Boolean) as string[];
 
           await distributeToPlatforms({

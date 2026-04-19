@@ -240,15 +240,23 @@ export default function Home() {
       const title = (data.get('title') as string) || file.name || 'Untitled Post';
       const description = (data.get('description') as string) || undefined;
       
-      // Extract platform names from selected IDs
-      const platformIds = selectedAccountIds.map(sid => {
+      // Preserve both platform names and their specific account IDs
+      const platforms = selectedAccountIds.map(sid => {
+        let platform: string;
+        let accountId: string;
+        
         if (sid.includes(':')) {
-           return sid.split(':')[0]; // e.g. "instagram" from "instagram:123"
+           const parts = sid.split(':');
+           platform = parts[0];
+           accountId = parts[1];
+        } else {
+           const account = accounts.find(a => a.id === sid);
+           if (!account) return null;
+           platform = account.provider === 'google' ? 'youtube' : account.provider;
+           accountId = account.id;
         }
-        const account = accounts.find(a => a.id === sid);
-        if (!account) return 'unknown';
-        return account.provider === 'google' ? 'youtube' : account.provider;
-      }).filter(p => p !== 'unknown');
+        return { platform, accountId };
+      }).filter(p => p !== null);
 
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
@@ -260,7 +268,7 @@ export default function Home() {
           scheduledAt: isScheduled ? scheduledAt : undefined,
           isPublished: !isScheduled
         } as any,
-        platformIds,
+        platforms: platforms as any,
         resumeHistoryId: resumeHistoryId || undefined
       });
 

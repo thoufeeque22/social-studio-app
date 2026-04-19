@@ -13,6 +13,7 @@ import { usePolling } from '@/hooks/usePolling';
 interface PlatformResult {
   id: string;
   platform: string;
+  accountId: string | null;
 }
 
 interface PostHistoryEntry {

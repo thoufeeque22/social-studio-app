@@ -10,10 +10,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { title, description, videoFormat, platformIds, scheduledAt, isPublished } = await req.json();
+    const { title, description, videoFormat, platforms, scheduledAt, isPublished } = await req.json();
 
-    if (!platformIds || !Array.isArray(platformIds)) {
-      return NextResponse.json({ error: "Missing platform IDs" }, { status: 400 });
+    if (!platforms || !Array.isArray(platforms)) {
+      return NextResponse.json({ error: "Missing platforms data" }, { status: 400 });
     }
 
     const history = await prisma.postHistory.create({
@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
         isPublished: isPublished === undefined ? true : isPublished,
         stagedFileId: null, // To be updated after assembly
         platforms: {
-          create: platformIds.map(pId => ({
-            platform: pId,
+          create: platforms.map((p: any) => ({
+            platform: p.platform,
+            accountId: p.accountId,
             status: 'pending' // Initial state
           }))
         }
