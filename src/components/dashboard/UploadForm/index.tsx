@@ -236,7 +236,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   type="datetime-local" 
                   value={scheduledAt}
                   onChange={(e) => onSchedulingChange(true, e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
+                  min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   required
                   style={{ 
                     background: 'hsla(var(--background)/0.5)', 

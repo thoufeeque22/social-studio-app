@@ -30,6 +30,14 @@ export default function SchedulePage() {
   const [editingPost, setEditingPost] = useState<PostHistoryEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper to format date for datetime-local input in LOCAL time
+  const formatToLocalDatetime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().slice(0, 16);
+  };
+
   const fetchSchedule = useCallback(async () => {
     try {
       // Add a timestamp to bypass any browser/Next.js client-side caching
@@ -237,7 +245,7 @@ export default function SchedulePage() {
                 <input 
                   type="datetime-local" 
                   name="scheduledAt" 
-                  defaultValue={new Date(editingPost.scheduledAt).toISOString().slice(0, 16)} 
+                  defaultValue={formatToLocalDatetime(editingPost.scheduledAt)} 
                   className={styles.formInput} 
                   required 
                 />
