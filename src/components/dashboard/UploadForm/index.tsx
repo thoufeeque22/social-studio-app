@@ -194,6 +194,21 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />
         
+        {contentMode !== 'Manual' && (
+          <div style={{ 
+            padding: '0.75rem', 
+            borderRadius: '0.75rem', 
+            background: 'hsla(var(--primary) / 0.05)', 
+            border: '1px solid hsla(var(--primary) / 0.15)',
+            marginTop: '0.25rem'
+          }}>
+            <p style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>✨</span>
+              <span><strong>AI Disclaimer:</strong> AI-generated content can be inaccurate. You will be prompted to <strong>Review Strategy</strong> before we post to your platforms.</span>
+            </p>
+          </div>
+        )}
+        
         <VideoFormatSelector videoFormat={videoFormat} onFormatChange={onFormatChange} />
 
         {videoFormat === 'long' && selectedAccountIds.some(id => id.startsWith('instagram:')) && (
@@ -272,8 +287,36 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
           }}
         >
-          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : '🚀 Post Video'}
+          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : contentMode !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video'}
         </button>
+
+        {!isScheduled && contentMode !== 'Manual' && !isUploading && (
+          <button
+            type="button"
+            onClick={(e) => {
+              // Trigger a direct post by adding a hidden field or passing a flag
+              const form = (e.currentTarget.closest('form') as HTMLFormElement);
+              const hidden = document.createElement('input');
+              hidden.type = 'hidden';
+              hidden.name = 'skipReview';
+              hidden.value = 'true';
+              form.appendChild(hidden);
+              form.requestSubmit();
+              hidden.remove();
+            }}
+            style={{
+              background: 'transparent',
+              border: '1px solid hsla(var(--border)/0.5)',
+              color: 'hsl(var(--muted-foreground))',
+              padding: '0.5rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            🚀 Skip Review & Post Directly
+          </button>
+        )}
         
         {uploadStatus && (
           <div style={{ textAlign: 'center' }}>

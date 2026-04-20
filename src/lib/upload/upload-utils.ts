@@ -25,8 +25,9 @@ interface UploadParams {
   videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
   onPlatformStatus?: (platformId: string, status: IndividualStatus) => void;
-  onAccountSuccess?: (accountId: string) => void;
+  onAccountSuccess?: (accountId: string, result: PlatformUploadResult) => void;
   historyId?: string; // Optional for real-time updates
+  reviewedContent?: Record<string, import('@/lib/utils/ai-writer').AIWriteResult>;
 }
 
 
@@ -165,24 +166,25 @@ export async function distributeToPlatforms({
   onStatusUpdate,
   onPlatformStatus,
   onAccountSuccess,
-  historyId
+  historyId,
+  reviewedContent
 }: UploadParams & { stagedFileId: string; fileName: string }): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
   const results: Record<string, any> = {};
   const platformResults: PlatformUploadResult[] = [];
 
   onStatusUpdate("🚀 Physical upload complete. Distributing to platforms...");
 
-  // DYNAMIC CONCURRENCY LOGIC
-  const file = formData.get('file') as File;
-  const sizeMB = (file?.size || 0) / (1024 * 1024);
-  let concurrency = 2; // Default
-  if (sizeMB < 50) concurrency = 4;
-  else if (sizeMB > 300) concurrency = 1;
-
-  console.log(`🚀 [CONCURRENCY] File size: ${sizeMB.toFixed(1)}MB. Concurrency limit: ${concurrency}`);
+  // Defensive concurrency - default to 2
+  let concurrency = 2;
+  try {
+    const file = formData.get('file') as File | null;
+    const size = file?.size || 0;
+    if (size > 300 * 1024 * 1024) concurrency = 1;
+    else if (size > 0 && size < 50 * 1024 * 1024) concurrency = 4;
+  } catch (e) {}
 
   const queue = [...selectedAccountIds];
-  
+
   const processOne = async (selectionId: string) => {
     let platform: string;
     let realAccountId: string;
@@ -211,6 +213,7 @@ export async function distributeToPlatforms({
         videoFormat,
         accountId: realAccountId,
         contentMode,
+        reviewedContent: reviewedContent ? reviewedContent[platform] : undefined,
       };
 
       // HTTP API CALL (Standard Browser context)
@@ -247,13 +250,7 @@ export async function distributeToPlatforms({
       
       if (onPlatformStatus) onPlatformStatus(selectionId, 'success');
       
-      // PERSISTENT UPDATE
-      if (historyId) {
-        const { upsertPlatformResult } = await import('@/app/actions/history');
-        await upsertPlatformResult(historyId, platformResult);
-      }
-
-      if (onAccountSuccess) onAccountSuccess(selectionId);
+      if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
 
     } catch (err: any) {
       console.error(`❌ [${platform}] Error: ${err.message}`);
@@ -273,22 +270,21 @@ export async function distributeToPlatforms({
 
       if (onPlatformStatus) onPlatformStatus(selectionId, 'failed');
 
-      if (historyId) {
-        const { upsertPlatformResult } = await import('@/app/actions/history');
-        await upsertPlatformResult(historyId, platformResult);
-      }
-      
-      if (onAccountSuccess) onAccountSuccess(selectionId);
+      if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
     }
   };
 
   // Execute queue with concurrency limit
-  const workers = Array(Math.min(concurrency, queue.length)).fill(null).map(async () => {
-    while (queue.length > 0) {
-      const id = queue.shift();
-      if (id) await processOne(id);
-    }
-  });
+  const workers = [];
+  const workerCount = Math.min(concurrency, queue.length);
+  for (let i = 0; i < workerCount; i++) {
+    workers.push((async () => {
+      while (queue.length > 0) {
+        const id = queue.shift();
+        if (id) await processOne(id);
+      }
+    })());
+  }
 
   await Promise.all(workers);
 
