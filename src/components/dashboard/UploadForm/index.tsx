@@ -287,10 +287,15 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
           }}
         >
-          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : contentMode !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video'}
+          {isUploading 
+            ? '📤 Processing...' 
+            : contentMode !== 'Manual' 
+              ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
+              : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
+          }
         </button>
 
-        {!isScheduled && contentMode !== 'Manual' && !isUploading && (
+        {contentMode !== 'Manual' && !isUploading && (
           <button
             type="button"
             onClick={(e) => {
@@ -314,7 +319,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               cursor: 'pointer'
             }}
           >
-            🚀 Skip Review & Post Directly
+            {isScheduled ? '🚀 Skip Review & Schedule Directly' : '🚀 Skip Review & Post Directly'}
           </button>
         )}
         

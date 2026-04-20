@@ -269,3 +269,16 @@ export async function deleteScheduledPost(id: string) {
     return deleted;
   });
 }
+
+import { AIWriteResult } from '@/lib/utils/ai-writer';
+
+/**
+ * Saves AI-reviewed platform metadata for scheduled posts.
+ */
+export async function saveStagedMetadata(stagedFileId: string, reviewedContent: Record<string, AIWriteResult>) {
+  return protectedAction(async (userId) => {
+    const metadataPath = path.join(process.cwd(), "src/tmp", `${stagedFileId}.metadata.json`);
+    fs.writeFileSync(metadataPath, JSON.stringify(reviewedContent, null, 2), "utf8");
+    return { success: true };
+  });
+}

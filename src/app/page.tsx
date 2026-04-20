@@ -35,6 +35,8 @@ export default function Home() {
     fileName: string; 
     historyId: string;
     formData: FormData;
+    isScheduled?: boolean;
+    scheduledAt?: string;
   } | null>(null);
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
@@ -286,6 +288,30 @@ export default function Home() {
         resumeHistoryId: resumeHistoryId || undefined
       });
 
+      // Phase 2: Optional AI Review OR Direct Distribution
+      if (contentMode !== 'Manual' && !skipReview) {
+        setUploadStatus("✨ Strategy Brainstorming...");
+        // Get generic platform names for preview
+        const pNames = platforms.map(p => p!.platform);
+        const previews = await getMultiPlatformAIPreviews(title, description || "", contentMode, pNames);
+        
+        if (previews) {
+          setAiPreviews(previews);
+          setStagedFlowData({ 
+            stagedFileId, 
+            fileName, 
+            historyId, 
+            formData: data,
+            isScheduled,
+            scheduledAt: isScheduled ? scheduledAt : undefined
+          });
+          setIsReviewing(true);
+          setUploadStatus("Review required for AI content.");
+          setIsUploading(false);
+          return;
+        }
+      }
+
       if (isScheduled) {
         setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
         setIsUploading(false);
@@ -296,23 +322,6 @@ export default function Home() {
         setDraftFileName(null);
         draftFileRef.current = null;
         return;
-      }
-
-      // Phase 2: Optional AI Review OR Direct Distribution
-      if (contentMode !== 'Manual' && !skipReview) {
-        setUploadStatus("✨ Strategy Brainstorming...");
-        // Get generic platform names for preview
-        const pNames = platforms.map(p => p!.platform);
-        const previews = await getMultiPlatformAIPreviews(title, description || "", contentMode, pNames);
-        
-        if (previews) {
-          setAiPreviews(previews);
-          setStagedFlowData({ stagedFileId, fileName, historyId, formData: data });
-          setIsReviewing(true);
-          setUploadStatus("Review required for AI content.");
-          setIsUploading(false);
-          return;
-        }
       }
 
       // Manual Mode -> Distribute directly
@@ -394,6 +403,25 @@ export default function Home() {
   const handleConfirmReview = async (finalContent: Record<string, AIWriteResult>) => {
     if (!stagedFlowData) return;
     setIsReviewing(false); // Return to main UI to show upload progress
+
+    if (stagedFlowData.isScheduled) {
+       setIsUploading(true);
+       setUploadStatus(`📅 Finalizing scheduled post...`);
+       import('@/app/actions/history').then(async ({ saveStagedMetadata }) => {
+         await saveStagedMetadata(stagedFlowData.stagedFileId, finalContent);
+         setUploadStatus(`📅 Post scheduled for ${new Date(stagedFlowData.scheduledAt!).toLocaleString()}!`);
+         setIsUploading(false);
+         window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+         clearDraftFile();
+         localStorage.removeItem('SS_DRAFT_TITLE');
+         localStorage.removeItem('SS_DRAFT_DESC');
+         setDraftFileName(null);
+         draftFileRef.current = null;
+         setStagedFlowData(null);
+       });
+       return;
+    }
+
     await executeDistribution(
       stagedFlowData.stagedFileId,
       stagedFlowData.fileName,
