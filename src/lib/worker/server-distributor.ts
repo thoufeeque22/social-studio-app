@@ -22,6 +22,7 @@ export interface ServerDistributeParams {
     accountId: string;
     accountName: string | null;
   }[];
+  reviewedContent?: Record<string, { title: string; description: string; hashtags?: string[] }>;
 }
 
 /**
@@ -38,14 +39,24 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
   for (const p of platforms) {
     try {
+      let finalTitle = title;
+      let finalDesc = description;
+      
+      if (params.reviewedContent && params.reviewedContent[p.platform]) {
+        const custom = params.reviewedContent[p.platform];
+        finalTitle = custom.title || title;
+        const hashText = custom.hashtags && custom.hashtags.length > 0 ? `\n\n${custom.hashtags.join(' ')}` : '';
+        finalDesc = (custom.description || description) + hashText;
+      }
+
       console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId})`);
       
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
         userId,
         filePath,
-        title,
-        description,
+        title: finalTitle,
+        description: finalDesc,
         videoFormat,
         accountId: p.accountId
       });

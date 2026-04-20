@@ -42,15 +42,16 @@ Output must be ONLY valid JSON in this format:
 {
   "title": "Your Title",
   "description": "Your Description",
-  "hashtags": ["#tag1", "#tag2"]
-}`;
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
+}
+Always generate exactly 5 hashtags by default.`;
 
   if (platform === 'youtube') {
     systemPrompt += `\nConstraints: The title MUST be under 60 characters for YouTube Shorts. The description should be engaging and SEO-rich.`;
   } else if (platform === 'tiktok') {
-    systemPrompt += `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy.`;
+    systemPrompt += `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy. Maximum 5 hashtags allowed.`;
   } else if (platform === 'instagram') {
-    systemPrompt += `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length.`;
+    systemPrompt += `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length. Maximum 5 hashtags allowed.`;
   }
 
   if (mode === 'Hook') {
@@ -116,6 +117,12 @@ function fallbackMockAI(mode: StyleMode, rawText: string, platform: Platform): A
   return {
     title: mode === 'Hook' ? `🔥 ${title}` : title,
     description,
-    hashtags: ['#viral', `#${platform}`, `#${mode.toLowerCase()}`],
+    hashtags: [
+      '#viral', 
+      `#${platform}`, 
+      `#${mode.toLowerCase()}`, 
+      '#socialstudio', 
+      '#trending'
+    ],
   };
 }

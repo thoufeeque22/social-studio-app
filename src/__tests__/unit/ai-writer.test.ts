@@ -52,6 +52,7 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     
     expect(result.title).toBe('🔥 Hello');
     expect(result.description).toBe("You won't believe what happens at the end! \uD83E\uDD2F\uD83D\uDC47");
-    expect(result.hashtags).toEqual(['#viral', '#instagram', '#hook']);
+    expect(result.hashtags).toEqual(['#viral', '#instagram', '#hook', '#socialstudio', '#trending']);
   });
 });
+

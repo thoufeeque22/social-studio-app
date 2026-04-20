@@ -34,7 +34,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram [parked for next phase]
 - [x] **Scheduling & Calendar Queue**: Plan out posts across platforms and replace the "Upcoming Posts" wireframe on the main view with actual data.
 - [x] **Background Publishing Worker**: Implement a cron job or worker service to automatically publish scheduled posts when their time arrives.
-- [ ] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting.
+- [x] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting.
 - [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video, only free to use audio.
 - [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.

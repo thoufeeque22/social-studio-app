@@ -9,6 +9,7 @@ import {
   publishNowAction 
 } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
+import { AIContentReview } from '@/components/dashboard/AIContentReview';
 
 interface PlatformResult {
   id: string;
@@ -22,6 +23,7 @@ interface PostHistoryEntry {
   description: string | null;
   videoFormat: string;
   scheduledAt: string;
+  stagedFileId: string | null;
   platforms: PlatformResult[];
 }
 
@@ -30,6 +32,9 @@ export default function SchedulePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<PostHistoryEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [aiPreviews, setAiPreviews] = useState<Record<string, any>>({});
+  const [isAILoading, setIsAILoading] = useState(false);
 
   // Helper to format date for datetime-local input in LOCAL time
   const formatToLocalDatetime = (dateStr: string) => {
@@ -126,6 +131,62 @@ export default function SchedulePage() {
     }
   };
 
+  const handleAIBrainstorm = async () => {
+    if (!editingPost) return;
+    setIsAILoading(true);
+    try {
+      const pNames = editingPost.platforms.map(p => p.platform);
+      
+      const form = document.querySelector('form');
+      const formData = form ? new FormData(form) : null;
+      const currentTitle = formData?.get('title') as string || editingPost.title;
+      const currentDesc = formData?.get('description') as string || editingPost.description || '';
+
+      const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+      const previews = await getMultiPlatformAIPreviews(currentTitle, currentDesc, 'Vibe', pNames);
+      
+      if (previews) {
+        setAiPreviews(previews);
+        setIsReviewing(true);
+      }
+    } catch (err) {
+      alert('AI Brainstorm failed.');
+      console.error(err);
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const handleConfirmReview = async (finalContent: Record<string, any>) => {
+    if (!editingPost || !editingPost.stagedFileId) {
+       alert("Error: Missing file reference. Cannot save platform-specific metadata.");
+       return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const { saveStagedMetadata } = await import('@/app/actions/history');
+      await saveStagedMetadata(editingPost.stagedFileId, finalContent);
+      
+      const firstPlatform = Object.keys(finalContent)[0];
+      const newGlobalTitle = finalContent[firstPlatform]?.title || editingPost.title;
+      
+      await updateScheduledPost(editingPost.id, {
+        title: newGlobalTitle,
+      });
+
+      setIsReviewing(false);
+      setEditingPost(null);
+      fetchSchedule();
+      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+    } catch (err) {
+      alert('Failed to save AI metadata sidecar');
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className={styles.schedulePage}>
@@ -217,12 +278,50 @@ export default function SchedulePage() {
         </div>
       )}
 
+      {/* AI Review Modal */}
+      {isReviewing && editingPost && (
+        <div className={styles.modalOverlay}>
+          <div style={{ width: '100%', maxWidth: '800px' }}>
+            <AIContentReview 
+              previews={aiPreviews}
+              onBack={() => setIsReviewing(false)}
+              onConfirm={handleConfirmReview}
+              isProcessing={isSaving}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
-      {editingPost && (
+      {editingPost && !isReviewing && (
         <div className={styles.modalOverlay}>
           <GlassCard className={styles.modalContent}>
             <h2 className={styles.modalTitle}>Edit Scheduled Post</h2>
             <form onSubmit={handleUpdate}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={handleAIBrainstorm}
+                  disabled={isAILoading}
+                  style={{
+                    background: 'hsla(var(--primary)/0.1)',
+                    color: 'hsl(var(--primary))',
+                    border: '1px solid hsla(var(--primary)/0.3)',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    transition: 'all 0.2s',
+                    opacity: isAILoading ? 0.7 : 1
+                  }}
+                >
+                  ✨ {isAILoading ? 'Brainstorming...' : 'Brainstorm Strategies & Polish'}
+                </button>
+              </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Title</label>
                 <input 

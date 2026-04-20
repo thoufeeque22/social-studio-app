@@ -82,12 +82,24 @@ export async function handlePlatformUploadRequest({
     }
 
     // 4. Enrich through Intelligence Layer (AI)
-    const enrichedContent = await generatePostContent(
-      contentMode,
-      rawTitle,
-      rawDescription,
-      platform as any
-    );
+    // BYPASS if already reviewed on client
+    let enrichedContent;
+    if (fields.reviewedContent) {
+      console.log(`✨ [${platform}] Using user-reviewed content.`);
+      const rc = fields.reviewedContent as any;
+      enrichedContent = {
+        title: rc.title,
+        description: rc.description,
+        hashtags: rc.hashtags || []
+      };
+    } else {
+      enrichedContent = await generatePostContent(
+        contentMode,
+        rawTitle,
+        rawDescription,
+        platform as any
+      );
+    }
 
     // Standard formatting for Caption/Description
     const finalCaption = formatPlatformCaption({
