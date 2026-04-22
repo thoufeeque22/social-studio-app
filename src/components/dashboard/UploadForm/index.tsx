@@ -272,9 +272,42 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
           }}
         >
-          {isUploading ? '📤 Processing...' : isScheduled ? '📅 Schedule Post' : '🚀 Post Video'}
+          {isUploading 
+            ? '📤 Processing...' 
+            : contentMode !== 'Manual' 
+              ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
+              : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
+          }
         </button>
         
+        {contentMode !== 'Manual' && !isUploading && (
+          <button
+            type="button"
+            onClick={(e) => {
+              // Trigger a direct post by adding a hidden field or passing a flag
+              const form = (e.currentTarget.closest('form') as HTMLFormElement);
+              const hidden = document.createElement('input');
+              hidden.type = 'hidden';
+              hidden.name = 'skipReview';
+              hidden.value = 'true';
+              form.appendChild(hidden);
+              form.requestSubmit();
+              hidden.remove();
+            }}
+            style={{
+              background: 'transparent',
+              border: '1px solid hsla(var(--border)/0.5)',
+              color: 'hsl(var(--muted-foreground))',
+              padding: '0.5rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.8rem',
+              cursor: 'pointer'
+            }}
+          >
+            {isScheduled ? '🚀 Skip Review & Schedule Directly' : '🚀 Skip Review & Post Directly'}
+          </button>
+        )}
+
         {uploadStatus && (
           <div style={{ textAlign: 'center' }}>
             {isComplete ? (
