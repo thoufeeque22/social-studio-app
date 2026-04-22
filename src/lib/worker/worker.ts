@@ -73,6 +73,16 @@ export async function startPublishingWorker() {
               throw new Error(`File purged or missing: ${filePath}`);
             }
 
+            const metadataPath = path.join(process.cwd(), "src/tmp", `${stagedFileId}.metadata.json`);
+            let reviewedContent = undefined;
+            if (fs.existsSync(metadataPath)) {
+               try {
+                  reviewedContent = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+               } catch (e) {
+                  console.warn("⚠️ [WORKER] Failed to parse metadata sidecar", e);
+               }
+            }
+
             // Direct server call bypassed HTTP APIs and Auth sessions
             const { distributeToPlatformsServer } = await import('./server-distributor');
 
@@ -87,7 +97,8 @@ export async function startPublishingWorker() {
                 platform: p.platform,
                 accountId: p.accountId!,
                 accountName: p.accountName
-              }))
+              })),
+              reviewedContent
             });
 
             console.log(`✅ [WORKER] Published successfully: ${post.title}`);
