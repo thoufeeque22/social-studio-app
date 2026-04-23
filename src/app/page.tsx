@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
@@ -47,6 +49,11 @@ export default function Home() {
 
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
+
+  // AI Review States
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [aiPreviews, setAiPreviews] = useState<any[]>([]);
+  const [reviewContext, setReviewContext] = useState<any>(null);
 
   // Load persisted file from IndexedDB on mount
   useEffect(() => {
@@ -288,27 +295,38 @@ export default function Home() {
         resumeHistoryId: resumeHistoryId || undefined
       });
 
-      // Phase 2: Optional AI Review OR Direct Distribution
+      const skipReview = data.get('skipReview') === 'true';
       if (contentMode !== 'Manual' && !skipReview) {
-        setUploadStatus("✨ Strategy Brainstorming...");
-        // Get generic platform names for preview
-        const pNames = platforms.map(p => p!.platform);
-        const previews = await getMultiPlatformAIPreviews(title, description || "", contentMode, pNames);
+        setIsUploading(true);
+        setUploadStatus('🧠 Brainstorming AI Strategies...');
+        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         
-        if (previews) {
+        try {
+          const previews = await getMultiPlatformAIPreviews(
+            contentMode,
+            title,
+            description || '',
+            platforms.map(p => p.platform)
+          );
+          
           setAiPreviews(previews);
-          setStagedFlowData({ 
-            stagedFileId, 
-            fileName, 
-            historyId, 
+          setReviewContext({
+            stagedFileId,
+            historyId,
+            fileName,
             formData: data,
-            isScheduled,
-            scheduledAt: isScheduled ? scheduledAt : undefined
+            platforms
           });
           setIsReviewing(true);
-          setUploadStatus("Review required for AI content.");
           setIsUploading(false);
+          setUploadStatus(null);
           return;
+        } catch (err: any) {
+           console.error(err);
+           alert("AI Generation failed. Check console and API key.");
+           setIsUploading(false);
+           setUploadStatus(null);
+           return;
         }
       }
 
@@ -400,36 +418,81 @@ export default function Home() {
     }
   };
 
-  const handleConfirmReview = async (finalContent: Record<string, AIWriteResult>) => {
-    if (!stagedFlowData) return;
-    setIsReviewing(false); // Return to main UI to show upload progress
+  const handleConfirmReview = async (reviewedContent: Record<string, any>) => {
+    if (!reviewContext) return;
+    setIsReviewing(false);
+    setIsUploading(true);
+    setUploadStatus('🚀 Applying Approved Strategy...');
+    
+    try {
+      const { saveStagedMetadata } = await import('@/app/actions/history');
+      await saveStagedMetadata(reviewContext.stagedFileId, reviewedContent);
+      
+      if (isScheduled) {
+        setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
+        setIsUploading(false);
+        window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+        clearDraftFile();
+        localStorage.removeItem('SS_DRAFT_TITLE');
+        localStorage.removeItem('SS_DRAFT_DESC');
+        setDraftFileName(null);
+        draftFileRef.current = null;
+        return;
+      }
 
-    if (stagedFlowData.isScheduled) {
-       setIsUploading(true);
-       setUploadStatus(`📅 Finalizing scheduled post...`);
-       import('@/app/actions/history').then(async ({ saveStagedMetadata }) => {
-         await saveStagedMetadata(stagedFlowData.stagedFileId, finalContent);
-         setUploadStatus(`📅 Post scheduled for ${new Date(stagedFlowData.scheduledAt!).toLocaleString()}!`);
-         setIsUploading(false);
-         window.dispatchEvent(new CustomEvent('refresh-upcoming'));
-         clearDraftFile();
-         localStorage.removeItem('SS_DRAFT_TITLE');
-         localStorage.removeItem('SS_DRAFT_DESC');
-         setDraftFileName(null);
-         draftFileRef.current = null;
-         setStagedFlowData(null);
-       });
-       return;
+      setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
+      
+      const distribution = await distributeToPlatforms({
+        stagedFileId: reviewContext.stagedFileId,
+        fileName: reviewContext.fileName,
+        formData: reviewContext.formData,
+        accounts,
+        selectedAccountIds,
+        contentMode,
+        videoFormat,
+        onStatusUpdate: setUploadStatus,
+        onPlatformStatus: (id, status) => {
+          setPlatformStatuses(prev => ({ ...prev, [id]: status }));
+        },
+        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
+        historyId: reviewContext.historyId,
+        reviewedContent
+      });
+      
+      const failures = distribution.platformResults.filter(r => r.status === 'failed');
+      if (failures.length === 0) {
+        setUploadStatus('All uploads completed successfully! ✨');
+      } else {
+        setUploadStatus('Completed with issues. ⚠️ Check History.');
+      }
+      
+      localStorage.removeItem('SS_DRAFT_TITLE');
+      localStorage.removeItem('SS_DRAFT_DESC');
+      draftFileRef.current = null;
+      setDraftFileName(null);
+      await clearDraftFile();
+    } catch (err: any) {
+      console.error(err);
+      setUploadStatus(`Error: ${err.message}`);
+      alert(err.message);
+    } finally {
+      setIsUploading(false);
     }
-
-    await executeDistribution(
-      stagedFlowData.stagedFileId,
-      stagedFlowData.fileName,
-      stagedFlowData.historyId,
-      stagedFlowData.formData,
-      finalContent
-    );
   };
+
+  if (isReviewing && reviewContext) {
+    return (
+      <div className="flex-1 overflow-auto p-4 md:p-8" style={{ background: 'hsl(var(--background))' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <AIContentReview 
+            previews={aiPreviews}
+            onBack={() => { setIsReviewing(false); setIsUploading(false); setUploadStatus(null); }}
+            onConfirm={handleConfirmReview}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">

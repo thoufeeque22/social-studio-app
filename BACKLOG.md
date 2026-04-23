@@ -26,6 +26,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Sticky Video Format**: Persist the user's target video format choice (Short/Long) across sessions.
 - [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
 - [ ] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload.
+- [ ] **Bug**: AI sometimes generates more than 5 hashtags for Instagram (e.g., 7) despite the 5-hashtag restriction rule.
 
 ## Medium Priority 📈
 - [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
@@ -35,11 +36,14 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Scheduling & Calendar Queue**: Plan out posts across platforms and replace the "Upcoming Posts" wireframe on the main view with actual data.
 - [x] **Background Publishing Worker**: Implement a cron job or worker service to automatically publish scheduled posts when their time arrives.
 - [x] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting.
-- [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video, only free to use audio.
+- [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video, only free to use audio. [parked for next phase]
 - [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise.
 - [x] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially.
+- [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
+- [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
+- [x] **Full AI Generation Pipeline**: Implement AI generation to completely remove all hardcoded mock titles, descriptions, and hashtags from the app.
 
 ## Low Priority 🛠️
 - [x] **Header Navigation**: "Create Post" active scrolling.

@@ -27,10 +27,6 @@ export async function generatePostContent(
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn("GEMINI_API_KEY is not set. Using mocked AI response.");
-      return fallbackMockAI(mode, rawText, platform);
-    }
     throw new Error("GEMINI_API_KEY is not configured for production use.");
   }
 
@@ -65,7 +61,7 @@ Always generate exactly 5 hashtags by default.`;
   const prompt = `Raw Text: ${rawText}\nVideo Context: ${videoContext}`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -95,34 +91,8 @@ Always generate exactly 5 hashtags by default.`;
     throw new Error("Invalid response structure from LLM");
   } catch (error) {
     console.error("AI Generation Error:", error);
-    if (process.env.NODE_ENV === 'development') {
-      return fallbackMockAI(mode, rawText, platform);
-    }
     throw error;
   }
 }
 
-function fallbackMockAI(mode: StyleMode, rawText: string, platform: Platform): AIWriteResult {
-  // Simple fallback logic to demonstrate the pipeline
-  let title = rawText || "My Awesome Video";
-  if (platform === 'youtube' && title.length > 55) {
-    title = title.substring(0, 52) + "...";
-  }
 
-  let description = "Watch this amazing new update! 🚀";
-  if (mode === 'Hook') description = "You won't believe what happens at the end! 🤯👇";
-  if (mode === 'Gen-Z') description = "this is living rent free in my head fr fr 💀";
-  if (mode === 'SEO') description = "Detailed guide on mastering social media automation. Learn the best strategies today.";
-
-  return {
-    title: mode === 'Hook' ? `🔥 ${title}` : title,
-    description,
-    hashtags: [
-      '#viral', 
-      `#${platform}`, 
-      `#${mode.toLowerCase()}`, 
-      '#socialstudio', 
-      '#trending'
-    ],
-  };
-}

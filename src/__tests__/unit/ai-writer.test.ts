@@ -44,15 +44,12 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       .rejects.toThrow('GEMINI_API_KEY is not configured for production use.');
   });
 
-  it('should use fallback mock if GEMINI_API_KEY is missing in development', async () => {
+  it('should throw Error if GEMINI_API_KEY is missing in development', async () => {
     vi.stubEnv('GEMINI_API_KEY', '');
     vi.stubEnv('NODE_ENV', 'development');
 
-    const result = await generatePostContent('Hook', 'Hello', 'World', 'instagram');
-    
-    expect(result.title).toBe('🔥 Hello');
-    expect(result.description).toBe("You won't believe what happens at the end! \uD83E\uDD2F\uD83D\uDC47");
-    expect(result.hashtags).toEqual(['#viral', '#instagram', '#hook', '#socialstudio', '#trending']);
+    await expect(generatePostContent('Hook', 'Hello', 'World', 'instagram'))
+      .rejects.toThrow('GEMINI_API_KEY is not configured for production use.');
   });
 });
 
