@@ -6,13 +6,47 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Deploy to VPS (130.162.57.229)
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Build Next.js App
+      run: npm run build
+      env:
+        NEXTAUTH_SECRET: dummy_secret_for_build_only
+        DATABASE_URL: sqlite://./prisma/dev.db
+
+    - name: Deploy to VPS via Rsync
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+        VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+        
+        echo "Syncing build artifacts to Oracle Cloud VM..."
+        rsync -avz --delete \
+          --exclude '.git' \
+          --exclude 'node_modules' \
+          --exclude '.env' \
+          --exclude '.env.local' \
+          --exclude 'src/tmp' \
+          ./ ${VPS_USERNAME}@${VPS_HOST}:~/social-studio-app/
+
+    - name: Install Production Deps & Restart Server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -20,4 +54,5 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
           cd ~/social-studio-app
-          ./update.sh
+          npm install
+          pm2 restart all || pm2 start npm --name "social-studio" -- start

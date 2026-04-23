@@ -83,8 +83,9 @@ export const uploadToYouTube = async ({
   if (!uploadUrl) {
     console.log("📺 [YT-RESUME] Initializing new resumable session...");
     
-    const auth = await youtube.context._options.auth?.getAccessToken();
-    const token = typeof auth === "string" ? auth : auth?.token;
+    const authObj = youtube.context._options.auth as any;
+    const authResult = typeof authObj?.getAccessToken === 'function' ? await authObj.getAccessToken() : authObj;
+    const token = typeof authResult === 'string' ? authResult : (authResult?.token || authObj?.credentials?.access_token);
 
     const metadataRes = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
       method: "POST",

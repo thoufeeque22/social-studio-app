@@ -31,21 +31,23 @@ export async function getDashboardStats() {
       }
     });
 
-    const platformResults = await Promise.all(platformPromises);
+    const platformResults = (await Promise.all(platformPromises)).filter(Boolean) as any[];
 
     let totalReach = 0;
     let totalFollowers = 0;
     let activePlatforms = 0;
 
     platformResults.forEach(res => {
-      if (!res || !res.data) return;
+      if (!res?.data) return;
       activePlatforms++;
       if (res.type === 'youtube') {
-        totalReach += res.data.views;
-        totalFollowers += res.data.subscribers;
+        const d = res.data as { views: number; subscribers: number };
+        totalReach += d.views || 0;
+        totalFollowers += d.subscribers || 0;
       } else if (res.type === 'instagram') {
-        totalReach += res.data.reach;
-        totalFollowers += res.data.followers;
+        const d = res.data as { reach: number; followers: number };
+        totalReach += d.reach || 0;
+        totalFollowers += d.followers || 0;
       }
     });
 

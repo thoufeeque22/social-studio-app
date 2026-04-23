@@ -305,7 +305,7 @@ export async function distributeToPlatforms({
  */
 export async function performMultiPlatformUpload(params: UploadParams): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[]; stagedFileId: string }> {
   const file = params.formData.get('file') as File;
-  const { stagedFileId, fileName } = await stageVideoFile({ file, onStatusUpdate: params.onStatusUpdate });
-  const results = await distributeToPlatforms({ ...params, stagedFileId, fileName });
+  const { stagedFileId, fileName } = await stageVideoFile({ file, onStatusUpdate: params.onStatusUpdate, platforms: [], metadata: {} as any });
+  const results = await distributeToPlatforms({ ...params, stagedFileId, fileName, historyId: '' });
   return { ...results, stagedFileId };
 }

@@ -63,7 +63,7 @@ describe('Server Distributor', () => {
     // Verify Facebook call (Reel because videoFormat is short)
     expect(mockPublishFacebookReel).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'user-1',
-      videoUrl: expect.stringContaining('mysubdomain.cloudflare.com/api/media/file-123')
+      filePath: expect.stringContaining('file-123')
     }));
 
     // Verify DB updates

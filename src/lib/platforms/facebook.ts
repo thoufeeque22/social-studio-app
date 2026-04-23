@@ -57,6 +57,7 @@ export const getFacebookVideoStatus = async (videoId: string, accessToken: strin
  * BINARY PUSH UPLOAD FOR FACEBOOK VIDEOS (FEED)
  */
 export const publishFacebookVideo = async ({
+  userId,
   title,
   description,
   filePath,
@@ -171,6 +172,8 @@ export const publishFacebookReel = async ({
   } else {
     console.log(`🚀 [FB-REEL-RESUME] Resuming from polling/finish for Video ID: ${videoId}`);
   }
+
+  if (!videoId) throw new Error("Failed to acquire Video ID for polling");
 
   // 3. POLLING Step (5 Minutes Max)
   console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Polling for ingestion...`);

@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from './prisma';
+import { prisma } from '@/lib/core/prisma';
 import { upsertPlatformResultInternal } from '@/app/actions/history';
 import path from 'path';
 import { 

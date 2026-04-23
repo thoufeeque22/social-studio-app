@@ -10,14 +10,14 @@ import path from "path";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { uploadId: string } }
+  { params }: { params: Promise<{ uploadId: string }> }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { uploadId } = params;
+  const { uploadId } = await params;
   const chunkDir = path.join(process.cwd(), "src/tmp/chunks", uploadId);
 
   try {

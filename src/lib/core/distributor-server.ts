@@ -57,12 +57,10 @@ export async function distributeSinglePlatform({
   
   if (platform === 'facebook') {
     const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
-    const videoUrl = constructPublicVideoUrl(path.basename(filePath));
-    
     if (videoFormat === 'short') {
-      return await publishFacebookReel({ userId, videoUrl, description: finalCaption, accountId, videoId: fields.videoId });
+      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId });
     } else {
-      return await publishFacebookVideo({ userId, videoUrl, title, description: finalCaption, accountId, videoId: fields.videoId });
+      return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId });
     }
   } 
   
@@ -81,10 +79,10 @@ export async function distributeSinglePlatform({
   } 
   
   if (platform === 'tiktok') {
-    const { uploadToTikTok } = await import('@/lib/platforms/tiktok');
-    return await uploadToTikTok({
+    const { publishTikTokVideo } = await import('@/lib/platforms/tiktok');
+    return await publishTikTokVideo({
       userId,
-      filePath,
+      videoPath: filePath,
       title: finalCaption,
       accountId
     });

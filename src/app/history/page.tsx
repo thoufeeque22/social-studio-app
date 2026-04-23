@@ -33,6 +33,7 @@ interface PostHistoryEntry {
   description: string | null;
   videoFormat: string;
   createdAt: string;
+  stagedFileId: string | null;
   platforms: PlatformResult[];
 }
 

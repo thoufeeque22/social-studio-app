@@ -10,7 +10,6 @@ import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
-import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { StyleMode } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
@@ -18,7 +17,9 @@ import { getVideoFormatPreference, updateVideoFormatPreference } from '@/app/act
 import { getMultiPlatformAIPreviews } from '@/app/actions/ai';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 
-export default function Home() {
+import { Suspense } from 'react';
+
+function DashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const resumeHistoryId = searchParams.get('resume');
@@ -50,9 +51,6 @@ export default function Home() {
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
 
-  // AI Review States
-  const [isReviewing, setIsReviewing] = useState(false);
-  const [aiPreviews, setAiPreviews] = useState<any[]>([]);
   const [reviewContext, setReviewContext] = useState<any>(null);
 
   // Load persisted file from IndexedDB on mount
@@ -295,7 +293,6 @@ export default function Home() {
         resumeHistoryId: resumeHistoryId || undefined
       });
 
-      const skipReview = data.get('skipReview') === 'true';
       if (contentMode !== 'Manual' && !skipReview) {
         setIsUploading(true);
         setUploadStatus('🧠 Brainstorming AI Strategies...');
@@ -303,9 +300,9 @@ export default function Home() {
         
         try {
           const previews = await getMultiPlatformAIPreviews(
-            contentMode,
             title,
             description || '',
+            contentMode,
             platforms.map(p => p.platform)
           );
           
@@ -488,6 +485,7 @@ export default function Home() {
             previews={aiPreviews}
             onBack={() => { setIsReviewing(false); setIsUploading(false); setUploadStatus(null); }}
             onConfirm={handleConfirmReview}
+            isProcessing={isUploading}
           />
         </div>
       </div>
@@ -543,5 +541,13 @@ export default function Home() {
         <SidebarInfo accounts={accounts} />
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>Loading Dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

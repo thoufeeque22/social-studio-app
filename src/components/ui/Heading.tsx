@@ -13,7 +13,7 @@ export const Heading: React.FC<HeadingProps> = ({
   className = '',
   style 
 }) => {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as React.ElementType;
   
   const getBaseStyles = (): React.CSSProperties => {
     switch (level) {
