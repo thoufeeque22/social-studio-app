@@ -52,3 +52,4 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       .rejects.toThrow('GEMINI_API_KEY is not configured for production use.');
   });
 });
+

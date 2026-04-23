@@ -36,3 +36,6 @@ vi.mock('next/server', () => {
     NextRequest: vi.fn(),
   };
 });
+
+// Mock server-only to prevent test crashes
+vi.mock('server-only', () => ({}));

@@ -10,10 +10,13 @@ import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
+import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { StyleMode } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
 import { getVideoFormatPreference, updateVideoFormatPreference } from '@/app/actions/user';
+import { getMultiPlatformAIPreviews } from '@/app/actions/ai';
+import { AIWriteResult } from '@/lib/utils/ai-writer';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -25,6 +28,18 @@ export default function Home() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<StyleMode>('Manual');
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>('short');
+
+  // AI Review States
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
+  const [stagedFlowData, setStagedFlowData] = useState<{ 
+    stagedFileId: string; 
+    fileName: string; 
+    historyId: string;
+    formData: FormData;
+    isScheduled?: boolean;
+    scheduledAt?: string;
+  } | null>(null);
 
   const [isInitialSync, setIsInitialSync] = React.useState(false);
   const [platformStatuses, setPlatformStatuses] = useState<Record<string, any>>({});
@@ -237,6 +252,7 @@ export default function Home() {
     setIsUploading(true);
     try {
       const data = new FormData(form);
+      const skipReview = data.get('skipReview') === 'true';
       
       // Ensure the file is in FormData (it may come from IndexedDB, not the input)
       if (!data.get('file') || (data.get('file') as File).size === 0) {
@@ -326,13 +342,38 @@ export default function Home() {
         return;
       }
 
-      // Phase 2: Distribute to platforms with real-time updates
-      setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
+      // Manual Mode -> Distribute directly
+      await executeDistribution(stagedFileId, fileName, historyId, data);
 
+    } catch (error: any) {
+      console.error('Process error:', error);
+      setUploadStatus(`Error: ${error.message}`);
+      alert(error.message);
+      setIsUploading(false);
+    }
+  };
+
+  const executeDistribution = async (
+    stagedFileId: string, 
+    fileName: string, 
+    historyId: string, 
+    formData: FormData,
+    reviewedContent?: Record<string, AIWriteResult>
+  ) => {
+    setIsUploading(true);
+    setUploadStatus("🚀 Orchestrating distribution...");
+    setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
+
+    try {
+      // If we have reviewed content, we need to pass it to the distribution call
+      // or ensure the API respects it. 
+      // For now, we'll pass the first platform's reviewed text back into the formData 
+      // if it's the same for all, or we modify distributeToPlatforms to take a Map.
+      
       const distribution = await distributeToPlatforms({
         stagedFileId,
         fileName,
-        formData: data,
+        formData,
         accounts,
         selectedAccountIds,
         contentMode,
@@ -341,32 +382,39 @@ export default function Home() {
         onPlatformStatus: (id, status) => {
           setPlatformStatuses(prev => ({ ...prev, [id]: status }));
         },
-        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
-        historyId
+        onAccountSuccess: (id, result) => {
+          setSuccessfulAccountIds(prev => [...prev, id]);
+          // PERSISTENT UPDATE (Handled on caller side now)
+          if (historyId) {
+            import('@/app/actions/history').then(({ upsertPlatformResult }) => {
+              upsertPlatformResult(historyId, result).catch(err => console.error("History persistence failed:", err));
+            });
+          }
+        },
+        historyId,
+        // PASS REVIEWED CONTENT (We'll update upload-utils to handle this)
+        reviewedContent: (reviewedContent as any)
       });
 
       const failures = distribution.platformResults.filter(r => r.status === 'failed');
       if (failures.length === 0) {
-        setUploadStatus('All uploads completed successfully! ✨ Click view your live links in the History section.');
-      } else if (failures.length < distribution.platformResults.length) {
-        setUploadStatus(`Completed with ${failures.length} issue(s). ⚠️ Check History for details.`);
+        setUploadStatus('All uploads completed successfully! ✨');
       } else {
-        setUploadStatus('All uploads failed. ❌ Check History for technical details.');
+        setUploadStatus(`Completed with ${failures.length} issues.`);
       }
-      form.reset();
-      // Clear all persistence after success
+      
+      // Cleanup
       localStorage.removeItem('SS_DRAFT_TITLE');
       localStorage.removeItem('SS_DRAFT_DESC');
       draftFileRef.current = null;
       setDraftFileName(null);
       await clearDraftFile();
-      // No alert, the UI status is enough or we can use a custom toast if preferred
     } catch (error: any) {
-      console.error('Process error:', error);
       setUploadStatus(`Error: ${error.message}`);
-      alert(error.message);
     } finally {
       setIsUploading(false);
+      setIsReviewing(false);
+      setStagedFlowData(null);
     }
   };
 
@@ -453,32 +501,44 @@ export default function Home() {
       {/* Stats parked for next phase */}
 
       <div className="responsive-grid">
-        <UploadForm 
-          key={resumeHistoryId || 'new-post'}
-          isUploading={isUploading}
-          uploadStatus={uploadStatus}
-          accounts={accounts}
-          selectedAccountIds={selectedAccountIds}
-          successfulAccountIds={successfulAccountIds}
-          platformStatuses={platformStatuses}
-          contentMode={contentMode}
-          videoFormat={videoFormat}
-          draftFileName={draftFileName}
-          onModeChange={setContentMode}
-          onFormatChange={(format) => {
-            setVideoFormat(format);
-            updateVideoFormatPreference(format).catch(err => console.error("Failed to save format preference", err));
-          }}
-          onToggleAccount={handleToggleAccount}
-          onFileChange={handleFileChange}
-          onSubmit={handleUpload}
-          isScheduled={isScheduled}
-          scheduledAt={scheduledAt}
-          onSchedulingChange={(scheduled, date) => {
-            setIsScheduled(scheduled);
-            setScheduledAt(date);
-          }}
-        />
+        {isReviewing ? (
+          <AIContentReview 
+            previews={aiPreviews}
+            onBack={() => {
+              setIsReviewing(false);
+              setUploadStatus("Ready to resume.");
+            }}
+            onConfirm={handleConfirmReview}
+            isProcessing={isUploading}
+          />
+        ) : (
+          <UploadForm 
+            key={resumeHistoryId || 'new-post'}
+            isUploading={isUploading}
+            uploadStatus={uploadStatus}
+            accounts={accounts}
+            selectedAccountIds={selectedAccountIds}
+            successfulAccountIds={successfulAccountIds}
+            platformStatuses={platformStatuses}
+            contentMode={contentMode}
+            videoFormat={videoFormat}
+            draftFileName={draftFileName}
+            onModeChange={setContentMode}
+            onFormatChange={(format) => {
+              setVideoFormat(format);
+              updateVideoFormatPreference(format).catch(err => console.error("Failed to save format preference", err));
+            }}
+            onToggleAccount={handleToggleAccount}
+            onFileChange={handleFileChange}
+            onSubmit={handleUpload}
+            isScheduled={isScheduled}
+            scheduledAt={scheduledAt}
+            onSchedulingChange={(scheduled, date) => {
+              setIsScheduled(scheduled);
+              setScheduledAt(date);
+            }}
+          />
+        )}
 
         <SidebarInfo accounts={accounts} />
       </div>
