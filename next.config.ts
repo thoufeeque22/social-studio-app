@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     },
     proxyClientMaxBodySize: "50gb",
   },
-  serverExternalPackages: ["@prisma/client"],
+  serverExternalPackages: ["@prisma/client", "prisma"],
 };
 
 export default nextConfig;
