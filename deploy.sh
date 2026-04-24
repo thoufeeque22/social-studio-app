@@ -14,8 +14,9 @@ npm run build
 
 # 2. Package the build
 echo "🎁 Packaging build files..."
-# We only include the essentials. node_modules is NOT included.
-tar -czf next-deploy.tar.gz .next public package.json next.config.ts sentry.*.config.ts
+# COPYFILE_DISABLE prevents Mac from adding ._ hidden files
+# --no-xattrs prevents the "extended header" warnings on Linux
+COPYFILE_DISABLE=1 tar --no-xattrs -czf next-deploy.tar.gz .next public package.json next.config.ts sentry.*.config.ts
 
 # 3. Upload to VPS
 echo "📤 Uploading to VPS ($VPS_IP)..."
