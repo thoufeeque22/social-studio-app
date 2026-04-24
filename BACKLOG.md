@@ -30,6 +30,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload.
 - [ ] **Bug**: AI sometimes generates more than 5 hashtags for Instagram (e.g., 7) despite the 5-hashtag restriction rule.
 - [x] **Real-time Error Monitoring**: Integrate Sentry or a similar service to receive instant notifications (Email/Slack) when users encounter runtime crashes.
+- [ ] **Mobile App Wrapper (Capacitor)**: Turn Social Studio into a native iOS/Android app by wrapping the responsive web dashboard in a native shell.
 
 ## Medium Priority 📈
 - [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
