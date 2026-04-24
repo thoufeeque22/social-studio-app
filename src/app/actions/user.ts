@@ -121,3 +121,32 @@ export async function updateVideoFormatPreference(format: string) {
     return { success: true };
   });
 }
+
+/**
+ * Fetches the preferred AI style for the current user.
+ */
+export async function getAIStylePreference() {
+  return protectedAction(async (userId) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferredAIStyle: true }
+    });
+
+    return (user?.preferredAIStyle as any) || "Manual";
+  }).catch(() => "Manual");
+}
+
+/**
+ * Updates the preferred AI style for the current user.
+ */
+export async function updateAIStylePreference(style: string) {
+  return protectedAction(async (userId) => {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { preferredAIStyle: style }
+    });
+
+    await revalidateDashboard();
+    return { success: true };
+  });
+}

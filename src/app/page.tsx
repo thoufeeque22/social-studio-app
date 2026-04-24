@@ -13,7 +13,7 @@ import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { StyleMode } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
-import { getVideoFormatPreference, updateVideoFormatPreference } from '@/app/actions/user';
+import { getVideoFormatPreference, updateVideoFormatPreference, getAIStylePreference, updateAIStylePreference } from '@/app/actions/user';
 import { getMultiPlatformAIPreviews } from '@/app/actions/ai';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 
@@ -71,10 +71,13 @@ function DashboardContent() {
       }
     });
 
-    // Load Sticky Video Format
+    // Load Sticky Preferences
     if (session?.user?.id) {
       getVideoFormatPreference().then(format => {
         if (format) setVideoFormat(format as 'short' | 'long');
+      });
+      getAIStylePreference().then(style => {
+        if (style) setContentMode(style as StyleMode);
       });
     }
   }, [session?.user?.id]);
@@ -174,6 +177,13 @@ function DashboardContent() {
   }, [accounts, isInitialSync, preferences]);
 
   const handleToggleAccount = (id: string) => {
+    // If we're interacting after a previous upload, clear the old success/failure states
+    if (!isUploading && (successfulAccountIds.length > 0 || Object.keys(platformStatuses).length > 0)) {
+      setSuccessfulAccountIds([]);
+      setPlatformStatuses({});
+      setUploadStatus(null);
+    }
+
     setSelectedAccountIds(prev => 
       prev.includes(id) ? prev.filter(aid => aid !== id) : [...prev, id]
     );
@@ -183,6 +193,11 @@ function DashboardContent() {
     draftFileRef.current = file;
     setDraftFileName(file.name);
     await storeDraftFile(file);
+    
+    // Reset statuses for a new post
+    setUploadStatus(null);
+    setSuccessfulAccountIds([]);
+    setPlatformStatuses({});
   };
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -539,7 +554,10 @@ function DashboardContent() {
             contentMode={contentMode}
             videoFormat={videoFormat}
             draftFileName={draftFileName}
-            onModeChange={setContentMode}
+            onModeChange={(mode) => {
+              setContentMode(mode);
+              updateAIStylePreference(mode).catch(err => console.error("Failed to save style preference", err));
+            }}
             onFormatChange={(format) => {
               setVideoFormat(format);
               updateVideoFormatPreference(format).catch(err => console.error("Failed to save format preference", err));

@@ -17,6 +17,7 @@ model User {
   platformPreferences PlatformPreference[]
   postHistories PostHistory[]
   preferredVideoFormat String @default("short")
+  preferredAIStyle    String @default("Manual")
 
   sessions      Session[]
 }
