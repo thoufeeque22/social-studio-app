@@ -1,4 +1,3 @@
-import "server-only";
 import { google } from "googleapis";
 import { prisma } from "@/lib/core/prisma";
 import fs from "fs";

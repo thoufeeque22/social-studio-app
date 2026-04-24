@@ -1,18 +1,24 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { distributeToPlatformsServer } from '../../lib/worker/server-distributor';
-import { upsertPlatformResultInternal } from '../../app/actions/history';
 
 // Mock Dependencies
+const mockUpsert = vi.fn().mockResolvedValue({ id: 'res-1' });
 vi.mock('../../lib/core/prisma', () => ({
-  prisma: {},
+  prisma: {
+    postPlatformResult: {
+      upsert: (...args: any[]) => mockUpsert(...args),
+    },
+    postHistory: {
+      update: vi.fn().mockResolvedValue({}),
+      findUnique: vi.fn().mockResolvedValue({}),
+    }
+  },
 }));
 
-vi.mock('../../app/actions/history', () => ({
-  upsertPlatformResultInternal: vi.fn().mockResolvedValue({ id: 'res-1' }),
-}));
+// Remove unused mock
 
 // Mock Platform SDKs
-const mockUploadToYouTube = vi.fn().mockResolvedValue({ id: 'yt-123' });
+const mockUploadToYouTube = vi.fn().mockResolvedValue({ data: { id: 'yt-123' } });
 vi.mock('../../lib/platforms/youtube', () => ({
   uploadToYouTube: (params: any) => mockUploadToYouTube(params),
 }));
@@ -67,10 +73,18 @@ describe('Server Distributor', () => {
     }));
 
     // Verify DB updates
-    expect(upsertPlatformResultInternal).toHaveBeenCalledTimes(2);
-    expect(upsertPlatformResultInternal).toHaveBeenCalledWith('user-1', 'history-1', expect.objectContaining({
-      platform: 'youtube',
-      status: 'success'
+    expect(mockUpsert).toHaveBeenCalledTimes(2);
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        postHistoryId_platform: {
+          postHistoryId: 'history-1',
+          platform: 'youtube'
+        }
+      },
+      create: expect.objectContaining({
+        platform: 'youtube',
+        status: 'success'
+      })
     }));
   });
 
@@ -88,10 +102,18 @@ describe('Server Distributor', () => {
     await distributeToPlatformsServer(baseParams);
 
     // Should have recorded error in DB
-    expect(upsertPlatformResultInternal).toHaveBeenCalledWith('user-1', 'history-1', expect.objectContaining({
-      platform: 'youtube',
-      status: 'failed',
-      errorMessage: 'YT API Down'
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        postHistoryId_platform: {
+          postHistoryId: 'history-1',
+          platform: 'youtube'
+        }
+      },
+      create: expect.objectContaining({
+        platform: 'youtube',
+        status: 'failed',
+        errorMessage: 'YT API Down'
+      })
     }));
   });
 });

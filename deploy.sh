@@ -30,6 +30,7 @@ ssh -i $SSH_KEY $VPS_USER@$VPS_IP << 'EOF'
   # Install dependencies on server (much lighter than building)
   npm install --production --legacy-peer-deps
   pm2 restart social-studio
+  pm2 restart social-studio-worker || pm2 start "npm run worker" --name "social-studio-worker"
   rm -f next-deploy.tar.gz
 EOF
 

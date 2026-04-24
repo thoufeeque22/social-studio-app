@@ -62,3 +62,4 @@ jobs:
           npm install --production --legacy-peer-deps
           npx prisma generate
           pm2 restart social-studio --update-env || pm2 start "npm run start" --name "social-studio"
+          pm2 restart social-studio-worker --update-env || pm2 start "npm run worker" --name "social-studio-worker"
