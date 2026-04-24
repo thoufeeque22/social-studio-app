@@ -47,7 +47,7 @@ export function generatePermalink(platform: string, data: any): string | null {
  * Uses TUNNEL_URL in development/tunnel environments.
  */
 export function constructPublicVideoUrl(stagedFileId: string): string {
-  const baseUrl = process.env.TUNNEL_URL || process.env.AUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : "");
   return `${baseUrl.replace(/\/$/, '')}/api/media/${encodeURIComponent(stagedFileId)}`;
 }
 

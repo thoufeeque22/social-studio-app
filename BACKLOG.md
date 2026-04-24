@@ -12,6 +12,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
 - [ ] **Scheduling Worker Relocation**: Move the background worker initialization out of `instrumentation.ts` to a more stable location (e.g., a dedicated server startup script) to avoid Turbopack hashing issues in production.
 - [x] **Mobile Responsiveness Pass**: Audit and improve the mobile UI/UX across all pages, ensuring the dashboard, history, and settings are fully responsive.
+- [ ] **Bug**: YouTube distribution channel appears enabled by default in the post creation UI even when disabled in settings.
 - [x] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
 - [x] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
 - [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
