@@ -29,10 +29,10 @@ ssh -i $SSH_KEY $VPS_USER@$VPS_IP << 'EOF'
   # Install dependencies on server (much lighter than building)
   npm install --production --legacy-peer-deps
   pm2 restart social-studio
-  rm next-deploy.tar.gz
+  rm -f next-deploy.tar.gz
 EOF
 
 # 5. Cleanup local
-rm next-deploy.tar.gz
+rm -f next-deploy.tar.gz
 
 echo "✅ Deployment complete! Social Studio is live."

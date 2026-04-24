@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -20,8 +20,17 @@ import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { Suspense } from 'react';
 
 function DashboardContent() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
   const resumeHistoryId = searchParams.get('resume');
   const { accounts, setAccounts } = useAccounts();
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
