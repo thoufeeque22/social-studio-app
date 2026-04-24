@@ -59,6 +59,6 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
           cd ~/social-studio-app
-          npm install --legacy-peer-deps
+          npm install --production --legacy-peer-deps
           npx prisma generate
-          pm2 restart all || pm2 start npm --name "social-studio" -- start
+          pm2 restart social-studio --update-env || pm2 start "npm run start" --name "social-studio"
