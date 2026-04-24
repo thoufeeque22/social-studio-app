@@ -22,11 +22,6 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Distribution Channels</label>
-        {accounts.length === 0 && (
-          <Link href="/settings" style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', textDecoration: 'none' }}>
-            Connect an account →
-          </Link>
-        )}
       </div>
       
       <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -111,10 +106,37 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
             });
           })
         ) : (
-          <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>
-            No active platforms found. Please enable them in Settings.
+          <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', fontStyle: 'italic', margin: 0 }}>
+            No active platforms found.
           </p>
         )}
+        <Link 
+          href="/settings" 
+          style={{ 
+            fontSize: '0.8rem', 
+            color: 'hsl(var(--primary))', 
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            padding: '0.6rem 1rem',
+            borderRadius: '0.75rem',
+            background: 'hsla(var(--primary) / 0.1)',
+            border: '1px solid hsla(var(--primary) / 0.2)',
+            fontWeight: 500,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'hsla(var(--primary) / 0.15)';
+            e.currentTarget.style.borderColor = 'hsla(var(--primary) / 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'hsla(var(--primary) / 0.1)';
+            e.currentTarget.style.borderColor = 'hsla(var(--primary) / 0.2)';
+          }}
+        >
+          {accounts.length > 0 ? '⚙️ Manage Channels' : '➕ Connect Account'}
+        </Link>
       </div>
       {accounts.length > 0 && selectedAccountIds.length === 0 && (
         <p style={{ fontSize: '0.75rem', color: '#EF4444' }}>Please select at least one account.</p>

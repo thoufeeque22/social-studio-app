@@ -240,3 +240,16 @@ input:checked + .slider:before {
   cursor: not-allowed;
   transform: none;
 }
+@media (max-width: 768px) {
+  .grid, .connectionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+}

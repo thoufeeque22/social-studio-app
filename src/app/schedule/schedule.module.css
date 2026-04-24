@@ -340,10 +340,36 @@
   color: hsl(var(--muted-foreground));
 }
 
+@media (max-width: 768px) {
+  .headerTop {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .metaBadges {
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .postTitle {
+    font-size: 0.95rem;
+  }
+
+  .cardInner {
+    padding: 1rem;
+  }
+}
+
 @media (max-width: 640px) {
   .timeline::before { display: none; }
   .postCard { padding-left: 0; }
   .timelineDot { display: none; }
-  .cardHeader { flex-direction: column; }
+  .cardHeader { flex-direction: column; gap: 0.5rem; }
   .actionRow { flex-wrap: wrap; }
+  .actionButton { flex: 1; min-width: 120px; justify-content: center; }
 }
