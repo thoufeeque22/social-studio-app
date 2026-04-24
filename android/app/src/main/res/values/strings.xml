@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Social Studio</string>
+    <string name="title_activity_main">Social Studio</string>
+    <string name="package_name">com.thoufeeque.socialstudio</string>
+    <string name="custom_url_scheme">com.thoufeeque.socialstudio</string>
+</resources>
