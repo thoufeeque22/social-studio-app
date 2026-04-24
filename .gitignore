@@ -45,3 +45,6 @@ next-env.d.ts
 *.db-journal
 /src/tmp
 /scratch
+
+# Sentry Config File
+.env.sentry-build-plugin
