@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
   // Allow Tunnel requests to hit the dev server without being blocked
   allowedDevOrigins: [
     "khalilah-spritelike-flossily.ngrok-free.dev",
-    "*.trycloudflare.com"
+    "*.trycloudflare.com",
+    "social-studio.duckdns.org"
   ],
   experimental: {
     serverActions: {
