@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
-import { Account, VideoFormat } from '@/lib/core/types';
+import { Account, VideoFormat, PlatformPreference } from '@/lib/core/types';
 import { StyleMode } from '@/lib/core/constants';
 import { VideoFormatSelector } from './VideoFormatSelector';
 
@@ -11,6 +11,7 @@ interface UploadFormProps {
   isUploading: boolean;
   uploadStatus: string | null;
   accounts: Account[];
+  preferences: PlatformPreference[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
   platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
@@ -31,6 +32,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   isUploading,
   uploadStatus,
   accounts,
+  preferences,
   selectedAccountIds,
   successfulAccountIds,
   platformStatuses,
@@ -221,6 +223,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <PlatformSelection 
           accounts={accounts} 
+          preferences={preferences}
           selectedAccountIds={selectedAccountIds} 
           successfulAccountIds={successfulAccountIds}
           platformStatuses={platformStatuses}

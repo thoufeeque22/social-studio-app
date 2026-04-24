@@ -32,7 +32,7 @@ function DashboardContent() {
   }, [status, router]);
 
   const resumeHistoryId = searchParams.get('resume');
-  const { accounts, setAccounts } = useAccounts();
+  const { accounts, preferences, setAccounts } = useAccounts();
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -148,13 +148,21 @@ function DashboardContent() {
 
   // 2. Initial Sync (Backup if no saved sticky selection)
   useEffect(() => {
-    if (accounts.length > 0 && !isInitialSync) {
+    if (accounts.length > 0 && !isInitialSync && preferences.length > 0) {
       const initialSelection: string[] = [];
+      
+      const isPlatformEnabled = (platformId: string) => {
+        const pref = preferences.find(p => p.platformId === platformId);
+        return pref ? pref.isEnabled : false;
+      };
+
       accounts.forEach(a => {
-        if (a.isDistributionEnabled) {
+        const platform = a.provider === 'google' ? 'youtube' : a.provider;
+        
+        if (a.isDistributionEnabled && isPlatformEnabled(platform)) {
           if (a.provider === 'facebook') {
-            initialSelection.push(`facebook:${a.id}`);
-            initialSelection.push(`instagram:${a.id}`);
+            if (isPlatformEnabled('facebook')) initialSelection.push(`facebook:${a.id}`);
+            if (isPlatformEnabled('instagram')) initialSelection.push(`instagram:${a.id}`);
           } else {
             initialSelection.push(a.id);
           }
@@ -163,7 +171,7 @@ function DashboardContent() {
       setSelectedAccountIds(initialSelection);
       setIsInitialSync(true);
     }
-  }, [accounts, isInitialSync]);
+  }, [accounts, isInitialSync, preferences]);
 
   const handleToggleAccount = (id: string) => {
     setSelectedAccountIds(prev => 
@@ -524,6 +532,7 @@ function DashboardContent() {
             isUploading={isUploading}
             uploadStatus={uploadStatus}
             accounts={accounts}
+            preferences={preferences}
             selectedAccountIds={selectedAccountIds}
             successfulAccountIds={successfulAccountIds}
             platformStatuses={platformStatuses}

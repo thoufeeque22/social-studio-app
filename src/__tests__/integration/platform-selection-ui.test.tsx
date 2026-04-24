@@ -14,9 +14,16 @@ describe('PlatformSelection UI', () => {
       '1': 'uploading' as const
     };
 
+    const mockPreferences = [
+      { platformId: 'youtube', isEnabled: true },
+      { platformId: 'facebook', isEnabled: true },
+      { platformId: 'instagram', isEnabled: true }
+    ];
+
     render(
       <PlatformSelection
         accounts={mockAccounts as any}
+        preferences={mockPreferences as any}
         selectedAccountIds={['1']}
         successfulAccountIds={[]}
         platformStatuses={platformStatuses}
@@ -35,9 +42,16 @@ describe('PlatformSelection UI', () => {
       '1': 'success' as const
     };
 
+    const mockPreferences = [
+      { platformId: 'youtube', isEnabled: true },
+      { platformId: 'facebook', isEnabled: true },
+      { platformId: 'instagram', isEnabled: true }
+    ];
+
     render(
       <PlatformSelection
         accounts={mockAccounts as any}
+        preferences={mockPreferences as any}
         selectedAccountIds={['1']}
         successfulAccountIds={['1']}
         platformStatuses={platformStatuses}
@@ -54,9 +68,16 @@ describe('PlatformSelection UI', () => {
       '1': 'failed' as const
     };
 
+    const mockPreferences = [
+      { platformId: 'youtube', isEnabled: true },
+      { platformId: 'facebook', isEnabled: true },
+      { platformId: 'instagram', isEnabled: true }
+    ];
+
     render(
       <PlatformSelection
         accounts={mockAccounts as any}
+        preferences={mockPreferences as any}
         selectedAccountIds={['1']}
         successfulAccountIds={[]}
         platformStatuses={platformStatuses}
