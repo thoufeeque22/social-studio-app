@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     // IMPORTANT: Set this to your production URL to use the native shell
-    url: 'https://janet-composite-arbitrary-startup.trycloudflare.com',
+    url: 'https://social-studio-app.vercel.app',
     cleartext: true,
     allowNavigation: ['*']
   },
