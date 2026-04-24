@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 import path from "path";
 
-export const maxDuration = 7200; // 2 hours
+export const maxDuration = 300; // Vercel Hobby limit (5 minutes)
 
 /**
  * STAGING UPLOAD HANDLER
