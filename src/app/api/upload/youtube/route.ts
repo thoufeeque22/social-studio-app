@@ -12,7 +12,7 @@ export async function POST(req: any) {
     req,
     platform: "youtube",
     uploadLogic: async ({ userId, filePath, title, description, accountId, fields }) => {
-      return uploadToYouTube({
+      const result = await uploadToYouTube({
         userId,
         filePath,
         title,
@@ -21,6 +21,7 @@ export async function POST(req: any) {
         accountId,
         resumableUrl: fields.resumableUrl
       });
+      return result.data;
     }
   });
 }

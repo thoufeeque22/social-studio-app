@@ -44,7 +44,7 @@ export async function distributeSinglePlatform({
 
   if (platform === 'youtube') {
     const { uploadToYouTube } = await import('@/lib/platforms/youtube');
-    return await uploadToYouTube({
+    const result = await uploadToYouTube({
       userId,
       filePath,
       title,
@@ -53,6 +53,7 @@ export async function distributeSinglePlatform({
       accountId,
       resumableUrl: fields.resumableUrl
     });
+    return result.data;
   } 
   
   if (platform === 'facebook') {
