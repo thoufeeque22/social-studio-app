@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import styles from './Header.module.css';
 
-const Header = () => {
+const Header = ({ onToggleSidebar }: { onToggleSidebar: () => void }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -21,6 +21,10 @@ const Header = () => {
 
   return (
     <header className={styles.header}>
+      <button className={styles.menuBtn} onClick={onToggleSidebar}>
+        ☰
+      </button>
+
       <div className={styles.search}>
         <span className={styles.searchIcon}>🔍</span>
         <input 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import styles from './Sidebar.module.css';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { data: session } = useSession();
   const menuItems = [
     { name: 'Dashboard', icon: '📊', path: '/' },
@@ -17,15 +17,26 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.logo}>
-        <div className={styles.logoIcon}>✨</div>
-        <span className={styles.logoText}>SocialStudio</span>
-      </div>
+    <>
+      <div 
+        className={`${styles.overlay} ${isOpen ? styles.overlayVisible : ''}`} 
+        onClick={onClose}
+      />
+      <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
+        <div className={styles.logo}>
+          <div className={styles.logoIcon}>✨</div>
+          <span className={styles.logoText}>SocialStudio</span>
+          <button className={styles.closeButton} onClick={onClose}>✕</button>
+        </div>
 
       <nav className={styles.nav}>
         {menuItems.map((item) => (
-          <Link href={item.path} key={item.name} className={styles.navItem}>
+          <Link 
+            href={item.path} 
+            key={item.name} 
+            className={styles.navItem}
+            onClick={onClose}
+          >
             <span className={styles.icon}>{item.icon}</span>
             <span className={styles.name}>{item.name}</span>
           </Link>
@@ -45,7 +56,8 @@ const Sidebar = () => {
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   );
 };
 

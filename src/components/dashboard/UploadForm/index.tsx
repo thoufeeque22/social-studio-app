@@ -227,20 +227,38 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           onToggleAccount={onToggleAccount} 
         />
 
-        <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'hsla(var(--muted)/0.3)', border: '1px solid hsla(var(--border)/0.3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label style={{ fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>
+        <div style={{ 
+          padding: '1rem', 
+          borderRadius: '0.75rem', 
+          background: 'hsla(var(--muted)/0.3)', 
+          border: '1px solid hsla(var(--border)/0.3)' 
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <input 
                 type="checkbox" 
                 checked={isScheduled}
                 onChange={(e) => onSchedulingChange(e.target.checked, scheduledAt)}
-                style={{ marginRight: '0.5rem' }}
+                style={{ marginRight: '0.5rem', width: '1.1rem', height: '1.1rem' }}
               />
               Schedule for later
             </label>
             {isScheduled && (
               <div 
-                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                style={{ 
+                  position: 'relative', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  width: '100%',
+                  maxWidth: '300px'
+                }}
                 onClick={(e) => {
                   const input = e.currentTarget.querySelector('input');
                   if (input && 'showPicker' in input) (input as any).showPicker();
@@ -261,8 +279,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     color: 'white',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    width: 'auto',
-                    minWidth: '240px',
+                    width: '100%',
                     cursor: 'pointer'
                   }}
                 />
@@ -284,7 +301,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             cursor: isUploading ? 'not-allowed' : 'pointer',
             marginTop: '0.5rem',
             transition: 'all 0.2s',
-            boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)'
+            boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)',
+            fontSize: '1rem'
           }}
         >
           {isUploading 
@@ -299,7 +317,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           <button
             type="button"
             onClick={(e) => {
-              // Trigger a direct post by adding a hidden field or passing a flag
               const form = (e.currentTarget.closest('form') as HTMLFormElement);
               const hidden = document.createElement('input');
               hidden.type = 'hidden';
@@ -313,38 +330,11 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               background: 'transparent',
               border: '1px solid hsla(var(--border)/0.5)',
               color: 'hsl(var(--muted-foreground))',
-              padding: '0.5rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isScheduled ? '🚀 Skip Review & Schedule Directly' : '🚀 Skip Review & Post Directly'}
-          </button>
-        )}
-        
-        {contentMode !== 'Manual' && !isUploading && (
-          <button
-            type="button"
-            onClick={(e) => {
-              // Trigger a direct post by adding a hidden field or passing a flag
-              const form = (e.currentTarget.closest('form') as HTMLFormElement);
-              const hidden = document.createElement('input');
-              hidden.type = 'hidden';
-              hidden.name = 'skipReview';
-              hidden.value = 'true';
-              form.appendChild(hidden);
-              form.requestSubmit();
-              hidden.remove();
-            }}
-            style={{
-              background: 'transparent',
-              border: '1px solid hsla(var(--border)/0.5)',
-              color: 'hsl(var(--muted-foreground))',
-              padding: '0.5rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.8rem',
-              cursor: 'pointer'
+              padding: '0.75rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
             }}
           >
             {isScheduled ? '🚀 Skip Review & Schedule Directly' : '🚀 Skip Review & Post Directly'}

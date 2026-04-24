@@ -41,28 +41,6 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <GlassCard style={{ padding: '2rem' }}>
-        <Heading level={2}>Active Platforms</Heading>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-          {PLATFORMS.map((p) => {
-            const isEnabled = accounts.some(a => a.provider === p.provider && a.isDistributionEnabled);
-
-            return (
-              <div key={p.id} style={{ 
-                textAlign: 'center', 
-                padding: '0.75rem', 
-                background: isEnabled ? 'hsla(var(--primary) / 0.1)' : 'hsla(var(--muted) / 0.2)',
-                borderRadius: '0.75rem',
-                fontSize: '0.8rem',
-                opacity: isEnabled ? 1 : 0.5,
-                transition: 'all 0.2s ease'
-              }}>
-                {p.name.split(' ')[0]}
-              </div>
-            );
-          })}
-        </div>
-      </GlassCard>
 
       <GlassCard style={{ padding: '2rem', flex: 1 }}>
         <Heading level={2}>Upcoming Posts</Heading>
