@@ -1,10 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import { Account } from '@/lib/core/types';
+import { Account, PlatformPreference } from '@/lib/core/types';
 import { formatHandle } from '@/lib/utils/utils';
 
 interface PlatformSelectionProps {
   accounts: Account[];
+  preferences: PlatformPreference[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
   platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
@@ -13,11 +14,17 @@ interface PlatformSelectionProps {
 
 export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   accounts,
+  preferences,
   selectedAccountIds,
   successfulAccountIds,
   platformStatuses,
   onToggleAccount,
 }) => {
+  // Helper to check if a platform is enabled globally
+  const isPlatformEnabled = (platformId: string) => {
+    const pref = preferences.find(p => p.platformId === platformId);
+    return pref ? pref.isEnabled : false;
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -37,7 +44,9 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
               items.push({ id: account.id, platform, displayName: formatHandle(account.accountName, platform) });
             }
 
-            return items.map(item => {
+            return items
+              .filter(item => isPlatformEnabled(item.platform))
+              .map(item => {
               const isSelected = selectedAccountIds.includes(item.id);
               const isSuccess = successfulAccountIds.includes(item.id);
               const status = platformStatuses[item.id] || (isSuccess ? 'success' : 'pending');
