@@ -17,8 +17,14 @@
 /.next/
 /out/
 
-# production
-/build
+# Production
+.next
+out
+build
+
+# Deployment
+next-deploy.tar.gz
+next-build.tar.gz
 
 # misc
 .DS_Store
