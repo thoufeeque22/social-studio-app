@@ -54,3 +54,13 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Capacitor
+/ios/App/build
+/ios/App/Pods
+/android/build
+/android/app/build
+/android/.gradle
+/android/app/src/main/assets/public
+/ios/App/App/public
+/capacitor.config.json
