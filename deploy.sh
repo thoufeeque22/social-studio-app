@@ -15,7 +15,7 @@ npm run build
 # 2. Package the build
 echo "🎁 Packaging build files..."
 # We only include the essentials. node_modules is NOT included.
-tar -czf next-deploy.tar.gz .next public package.json next.config.ts sentry.server.config.ts sentry.client.config.ts sentry.edge.config.ts
+tar -czf next-deploy.tar.gz .next public package.json next.config.ts sentry.*.config.ts
 
 # 3. Upload to VPS
 echo "📤 Uploading to VPS ($VPS_IP)..."
