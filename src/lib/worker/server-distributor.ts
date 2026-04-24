@@ -1,6 +1,4 @@
-import "server-only";
 import { prisma } from '@/lib/core/prisma';
-import { upsertPlatformResultInternal } from '@/app/actions/history';
 import path from 'path';
 import { 
   extractPlatformPostId, 
@@ -67,19 +65,45 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         platformPostId: extractPlatformPostId(p.platform, rawData),
         permalink: generatePermalink(p.platform, rawData),
         status: 'success' as const,
-        videoId: rawData.videoId || rawData.id,
-        creationId: rawData.creationId
+        videoId: rawData?.videoId || rawData?.id,
+        creationId: rawData?.creationId
       };
 
-      await upsertPlatformResultInternal(userId, historyId, platformResult);
+      // In-lined database logic to avoid importing from Server Actions files
+      await prisma.postPlatformResult.upsert({
+        where: {
+          postHistoryId_platform: {
+            postHistoryId: historyId,
+            platform: p.platform
+          }
+        },
+        update: { ...platformResult, postHistoryId: historyId },
+        create: { ...platformResult, postHistoryId: historyId }
+      });
+
       results.push(platformResult);
 
     } catch (err: any) {
       console.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}:`, err.message);
-      await upsertPlatformResultInternal(userId, historyId, {
+      
+      const errorResult = {
         platform: p.platform,
-        status: 'failed',
-        errorMessage: err.message
+        status: 'failed' as const,
+        errorMessage: err.message,
+        resumableUrl: err.resumableUrl,
+        videoId: err.videoId,
+        creationId: err.creationId
+      };
+
+      await prisma.postPlatformResult.upsert({
+        where: {
+          postHistoryId_platform: {
+            postHistoryId: historyId,
+            platform: p.platform
+          }
+        },
+        update: { ...errorResult, postHistoryId: historyId },
+        create: { ...errorResult, postHistoryId: historyId }
       });
     }
   }
