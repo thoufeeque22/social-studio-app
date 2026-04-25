@@ -3,13 +3,22 @@
 import React, { useState } from 'react';
 import { signIn } from "next-auth/react";
 import styles from './Login.module.css';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 export default function LoginPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
 
-  const handleLoginClick = (provider: string) => {
-    // Google is primary and safe, let it proceed immediately
+  const handleLoginClick = async (provider: string) => {
+    // If we're on a native platform (iOS/Android), use the system browser for Google login
+    if (Capacitor.isNativePlatform() && provider === 'google') {
+      const authUrl = `${window.location.origin}/api/auth/signin/google?callbackUrl=${encodeURIComponent('/')}`;
+      await Browser.open({ url: authUrl });
+      return;
+    }
+
+    // Google is primary and safe on web, let it proceed immediately
     if (provider === 'google') {
       signIn('google', { callbackUrl: '/' });
       return;
