@@ -1,0 +1,17 @@
+# Ignore native mobile platforms
+android/**
+ios/**
+
+# Ignore massive local build artifacts
+next-build.tar.gz
+next-deploy.tar.gz
+.next/**
+out/**
+build/**
+node_modules/**
+
+# Ignore local database and tmp files
+*.db
+*.db-journal
+src/tmp/**
+.vercel/**

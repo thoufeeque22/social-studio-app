@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
     cleartext: true,
     allowNavigation: ['*']
   },
+  appendUserAgent: 'SocialStudioApp',
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

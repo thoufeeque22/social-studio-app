@@ -10,21 +10,34 @@ export default function LoginPage() {
   const [showWarning, setShowWarning] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
 
-  const handleLoginClick = async (provider: string) => {
-    // If we're on a native platform (iOS/Android), use the system browser for Google login
-    if (Capacitor.isNativePlatform() && provider === 'google') {
-      const authUrl = `${window.location.origin}/api/auth/signin/google?callbackUrl=${encodeURIComponent('/')}`;
-      await Browser.open({ url: authUrl });
-      return;
-    }
-
-    // Google is primary and safe on web, let it proceed immediately
-    if (provider === 'google') {
+  const startGoogleLogin = async () => {
+    const isNative = typeof window !== 'undefined' && 
+                     (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
+    
+    console.log("Starting Google Login. Native detected:", isNative);
+    
+    try {
+      if (isNative) {
+        const baseUrl = 'https://social-studio-app.vercel.app';
+        const authUrl = `${baseUrl}/api/auth/signin/google?callbackUrl=${encodeURIComponent('/')}`;
+        console.log("Opening browser with URL:", authUrl);
+        await Browser.open({ url: authUrl });
+      } else {
+        signIn('google', { callbackUrl: '/' });
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      // Fallback for unexpected issues
       signIn('google', { callbackUrl: '/' });
+    }
+  };
+
+  const handleLoginClick = async (provider: string) => {
+    if (provider === 'google') {
+      await startGoogleLogin();
       return;
     }
 
-    // Intercept Facebook and TikTok
     setPendingProvider(provider);
     setShowWarning(true);
   };
@@ -60,9 +73,9 @@ export default function LoginPage() {
             <div className={styles.modalActions}>
               <button 
                 className={styles.primaryAction}
-                onClick={() => {
+                onClick={async () => {
                   setShowWarning(false);
-                  signIn('google', { callbackUrl: '/' });
+                  await startGoogleLogin();
                 }}
               >
                 Back to Google (Recommended)

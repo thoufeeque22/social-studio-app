@@ -36,5 +36,6 @@ EOF
 
 # 5. Cleanup local
 rm -f next-deploy.tar.gz
+rm -f next-build.tar.gz
 
 echo "✅ Deployment complete! Social Studio is live."
