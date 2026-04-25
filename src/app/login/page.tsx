@@ -1,40 +1,56 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { signIn } from "next-auth/react";
 import styles from './Login.module.css';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginContent() {
   const [showWarning, setShowWarning] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
-  const startGoogleLogin = async () => {
-    const isNative = typeof window !== 'undefined' && 
-                     (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
-    
-    console.log("Starting Google Login. Native detected:", isNative);
-    
+  // Handle the "Native Bridge" trigger
+  useEffect(() => {
+    const provider = searchParams.get('provider');
+    const isBridge = searchParams.get('bridge') === 'true';
+
+    if (isBridge && provider) {
+      console.log(`[Auth] Bridge triggered for ${provider}`);
+      signIn(provider, { callbackUrl: '/' });
+    }
+  }, [searchParams]);
+
+  const startNativeLogin = async (provider: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://social-studio-app.vercel.app';
+
+    // Instead of hitting the API directly with a GET, we go to our own "bridge" page
+    // This page will load in the system browser and trigger a proper POST sign-in
+    const bridgeUrl = `${baseUrl}/login?bridge=true&provider=${provider}`;
+
+    console.log(`[Auth] Opening native bridge for ${provider}:`, bridgeUrl);
+
     try {
-      if (isNative) {
-        const baseUrl = 'https://social-studio-app.vercel.app';
-        const authUrl = `${baseUrl}/api/auth/signin/google?callbackUrl=${encodeURIComponent('/')}`;
-        console.log("Opening browser with URL:", authUrl);
-        await Browser.open({ url: authUrl });
-      } else {
-        signIn('google', { callbackUrl: '/' });
-      }
+      await Browser.open({ url: bridgeUrl });
     } catch (error) {
-      console.error("Login Error:", error);
-      // Fallback for unexpected issues
-      signIn('google', { callbackUrl: '/' });
+      console.error("[Auth] Failed to open native browser:", error);
+      signIn(provider, { callbackUrl: '/' });
     }
   };
 
   const handleLoginClick = async (provider: string) => {
+    const isNative = typeof window !== 'undefined' && 
+                     (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
+
+    if (isNative) {
+      await startNativeLogin(provider);
+      return;
+    }
+
     if (provider === 'google') {
-      await startGoogleLogin();
+      signIn('google', { callbackUrl: '/' });
       return;
     }
 
@@ -48,6 +64,19 @@ export default function LoginPage() {
     }
     setShowWarning(false);
   };
+
+  // If we are in bridge mode, show a loading state while we redirect to Google
+  if (searchParams.get('bridge') === 'true') {
+    return (
+      <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div className={styles.loadingWrapper}>
+          <div className={styles.logo}>🌌</div>
+          <h2 className={styles.title}>Connecting to {searchParams.get('provider')}...</h2>
+          <p className={styles.subtitle}>Please wait while we secure your session.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -74,8 +103,14 @@ export default function LoginPage() {
               <button 
                 className={styles.primaryAction}
                 onClick={async () => {
+                  const isNative = typeof window !== 'undefined' && 
+                                   (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
                   setShowWarning(false);
-                  await startGoogleLogin();
+                  if (isNative) {
+                    await startNativeLogin('google');
+                  } else {
+                    signIn('google', { callbackUrl: '/' });
+                  }
                 }}
               >
                 Back to Google (Recommended)
@@ -182,5 +217,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -3,53 +3,67 @@ import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import TikTok from "next-auth/providers/tiktok";
 
+// Debugging helper to see if environment variables are actually loading in production
+if (process.env.NODE_ENV === "production") {
+  console.log("[Auth-Config] Initializing with Host:", process.env.AUTH_URL || process.env.NEXTAUTH_URL);
+  if (!process.env.AUTH_SECRET) console.error("[Auth-Config] CRITICAL: AUTH_SECRET is missing!");
+}
+
 export default {
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
-          scope: "openid email profile https://www.googleapis.com/auth/youtube.upload",
+          prompt: "consent",
           access_type: "offline",
-          prompt: "select_account consent",
-        },
-      },
-      allowDangerousEmailAccountLinking: true,
+          response_type: "code"
+        }
+      }
     }),
-    Facebook({
-      clientId: process.env.AUTH_FACEBOOK_ID,
-      clientSecret: process.env.AUTH_FACEBOOK_SECRET,
-      authorization: {
-        params: {
-          scope: "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts",
-          auth_type: "reauthenticate",
+    ...(process.env.AUTH_FACEBOOK_ID && (process.env.AUTH_FACEBOOK_SECRET || process.env.FACEBOOK_APP_SECRET_BROKEN) ? [
+      Facebook({
+        clientId: process.env.AUTH_FACEBOOK_ID,
+        clientSecret: process.env.AUTH_FACEBOOK_SECRET || process.env.FACEBOOK_APP_SECRET_BROKEN,
+        authorization: {
+          params: {
+            scope: "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts",
+            auth_type: "reauthenticate",
+          },
         },
-      },
-      allowDangerousEmailAccountLinking: true,
-    }),
-    TikTok({
-      clientId: process.env.AUTH_TIKTOK_ID,
-      clientSecret: process.env.AUTH_TIKTOK_SECRET,
-      authorization: {
-        params: {
-          scope: "user.info.basic,video.upload,video.publish",
-          prompt: "select_account",
+        allowDangerousEmailAccountLinking: true,
+      })
+    ] : []),
+    ...(process.env.AUTH_TIKTOK_ID && process.env.AUTH_TIKTOK_SECRET ? [
+      TikTok({
+        clientId: process.env.AUTH_TIKTOK_ID,
+        clientSecret: process.env.AUTH_TIKTOK_SECRET,
+        authorization: {
+          params: {
+            scope: "user.info.basic,video.upload,video.publish",
+            prompt: "select_account",
+          },
         },
-      },
-      client: {
-        token_endpoint_auth_method: "client_secret_post",
-      },
-      token: {
-        url: process.env.AUTH_URL + "/api/tiktok-proxy",
-      },
-      userinfo: {
-        url: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name",
-      },
-      checks: ["state"],
-      allowDangerousEmailAccountLinking: true,
-    }),
+        client: {
+          token_endpoint_auth_method: "client_secret_post",
+        },
+        token: {
+          url: (process.env.AUTH_URL || process.env.NEXTAUTH_URL || "https://social-studio-app.vercel.app") + "/api/tiktok-proxy",
+        },
+        userinfo: {
+          url: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name",
+        },
+        checks: ["state"],
+        allowDangerousEmailAccountLinking: true,
+      })
+    ] : []),
   ],
+  // trustHost is critical for mobile apps using a system browser
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
+  debug: process.env.NODE_ENV !== "production",
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
