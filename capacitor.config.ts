@@ -11,6 +11,12 @@ const config: CapacitorConfig = {
     allowNavigation: ['*']
   },
   appendUserAgent: 'SocialStudioApp',
+  ios: {
+    scheme: 'socialstudio'
+  },
+  android: {
+    allowMixedContent: true
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

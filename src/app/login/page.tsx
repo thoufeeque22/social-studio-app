@@ -19,7 +19,8 @@ function LoginContent() {
 
     if (isBridge && provider) {
       console.log(`[Auth] Bridge triggered for ${provider}`);
-      signIn(provider, { callbackUrl: '/' });
+      // Use the dedicated success page for native flows
+      signIn(provider, { callbackUrl: '/auth/success' });
     }
   }, [searchParams]);
 
@@ -28,7 +29,7 @@ function LoginContent() {
 
     // Instead of hitting the API directly with a GET, we go to our own "bridge" page
     // This page will load in the system browser and trigger a proper POST sign-in
-    const bridgeUrl = `${baseUrl}/login?bridge=true&provider=${provider}`;
+    const bridgeUrl = `${baseUrl}/login?bridge=true&provider=${provider}&native=true`;
 
     console.log(`[Auth] Opening native bridge for ${provider}:`, bridgeUrl);
 
@@ -36,7 +37,7 @@ function LoginContent() {
       await Browser.open({ url: bridgeUrl });
     } catch (error) {
       console.error("[Auth] Failed to open native browser:", error);
-      signIn(provider, { callbackUrl: '/' });
+      signIn(provider, { callbackUrl: '/auth/success' });
     }
   };
 

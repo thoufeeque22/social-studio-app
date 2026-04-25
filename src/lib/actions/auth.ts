@@ -1,27 +1,29 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/core/prisma";
-import { v4 as uuidv4 } from "uuid";
 
 export async function createSyncSession() {
   const session = await auth();
 
-  if (!session?.user?.id) {
+  if (!session) {
+    console.error("[Auth-Sync] No session found in browser context");
     return { error: "Not authenticated" };
   }
 
-  // Create a new session record in the database for the app to use
-  const sessionToken = uuidv4();
-  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const cookieStore = await cookies();
 
-  await prisma.session.create({
-    data: {
-      sessionToken,
-      userId: session.user.id,
-      expires,
-    },
-  });
+  // Get the actual encrypted JWT token from the browser's cookies
+  // We check both the secure and non-secure versions
+  const token = cookieStore.get("__Secure-authjs.session-token")?.value ||
+                cookieStore.get("authjs.session-token")?.value ||
+                cookieStore.get("next-auth.session-token")?.value;
 
-  return { token: sessionToken };
+  if (!token) {
+    console.error("[Auth-Sync] Session exists but cookie token is missing");
+    return { error: "Token not found" };
+  }
+
+  console.log("[Auth-Sync] Successfully extracted JWT for sync");
+  return { token };
 }

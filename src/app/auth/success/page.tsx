@@ -1,25 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createSyncSession } from "@/lib/actions/auth";
 
 export default function AuthSuccessPage() {
-  const router = useRouter();
+  const [status, setStatus] = useState("Securing session...");
 
   useEffect(() => {
-    // 1. Try to open the app via custom scheme
-    // We pass a 'success' flag so the app knows to refresh
-    const deepLink = "socialstudio://login-success";
-    window.location.href = deepLink;
+    async function sync() {
+      try {
+        const result = await createSyncSession();
 
-    // 2. Fallback: If they stay in the browser for 3 seconds,
-    // show a manual button or redirect to home
-    const timeout = setTimeout(() => {
-      router.push("/");
-    }, 3000);
+        if (result.token) {
+          setStatus("Redirecting back to app...");
 
-    return () => clearTimeout(timeout);
-  }, [router]);
+          // Pass the token back to the app via deep link
+          const intentLink = `intent://login-success?token=${result.token}#Intent;scheme=socialstudio;package=com.thoufeeque.socialstudio;end`;
+          const schemeLink = `socialstudio://login-success?token=${result.token}`;
+
+          // Try to redirect
+          window.location.href = intentLink;
+
+          // Fallback
+          setTimeout(() => {
+            window.location.href = schemeLink;
+          }, 1500);
+        } else {
+          setStatus("Authentication failed. Please try again.");
+        }
+      } catch (err) {
+        console.error("Sync error:", err);
+        setStatus("An error occurred during sync.");
+      }
+    }
+
+    sync();
+  }, []);
 
   return (
     <div style={{
@@ -30,23 +46,17 @@ export default function AuthSuccessPage() {
       height: '100vh',
       backgroundColor: '#0F172A',
       color: 'white',
-      fontFamily: 'sans-serif'
+      fontFamily: 'sans-serif',
+      textAlign: 'center',
+      padding: '20px'
     }}>
-      <div style={{ fontSize: '40px' }}>🌌</div>
-      <h2 style={{ marginTop: '20px' }}>Login Successful!</h2>
-      <p style={{ opacity: 0.8 }}>Redirecting you back to the app...</p>
+      <div style={{ fontSize: '60px' }}>🌌</div>
+      <h1 style={{ marginTop: '20px', fontSize: '24px' }}>Welcome Back!</h1>
+      <p style={{ opacity: 0.8, marginBottom: '30px' }}>{status}</p>
 
-      <a href="socialstudio://login-success" style={{
-        marginTop: '30px',
-        padding: '12px 24px',
-        backgroundColor: '#3B82F6',
-        borderRadius: '8px',
-        color: 'white',
-        textDecoration: 'none',
-        fontWeight: 'bold'
-      }}>
-        Open Social Studio
-      </a>
+      <div style={{ fontSize: '14px', opacity: 0.5 }}>
+        Checking your identity and syncing with the app...
+      </div>
     </div>
   );
 }
