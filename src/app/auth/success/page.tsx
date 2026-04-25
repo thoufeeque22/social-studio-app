@@ -17,16 +17,26 @@ export default function AuthSuccessPage() {
           setStatus("Redirecting back to app...");
 
           const token = result.token;
-          const deepLink = `socialstudio://login-success?token=${token}`;
-          const intentLink = `intent://login-success?token=${token}#Intent;scheme=socialstudio;package=com.thoufeeque.socialstudio;end`;
 
-          // 1. Try the standard deep link first (most reliable for side-loaded apps)
+          // Strategy 1: Custom Scheme (Simple)
+          const deepLink = `socialstudio://login-success?token=${token}`;
+
+          // Strategy 2: Package-specific Scheme (Capacitor default style)
+          const packageLink = `com.thoufeeque.socialstudio://login-success?token=${token}`;
+
+          // Try both
           window.location.href = deepLink;
 
-          // 2. Fallback to Intent after 1 second
           setTimeout(() => {
+            window.location.href = packageLink;
+          }, 500);
+
+          // Strategy 3: Intent as absolute last resort
+          setTimeout(() => {
+            const intentLink = `intent://login-success?token=${token}#Intent;scheme=socialstudio;package=com.thoufeeque.socialstudio;S.browser_fallback_url=${encodeURIComponent(window.location.origin)};end`;
             window.location.href = intentLink;
-          }, 1000);
+          }, 1500);
+
         } else {
           setStatus("Authentication failed. Please try again.");
         }
@@ -38,6 +48,12 @@ export default function AuthSuccessPage() {
 
     sync();
   }, []);
+
+  const manualRedirect = () => {
+    if (debugToken) {
+       window.location.href = `socialstudio://login-success?token=${debugToken}`;
+    }
+  };
 
   return (
     <div style={{
@@ -57,21 +73,26 @@ export default function AuthSuccessPage() {
       <p style={{ opacity: 0.8, marginBottom: '30px' }}>{status}</p>
 
       {debugToken && (
-        <a href={`socialstudio://login-success?token=${debugToken}`} style={{
-          padding: '16px 32px',
-          backgroundColor: '#6366F1',
-          borderRadius: '12px',
-          color: 'white',
-          textDecoration: 'none',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)'
-        }}>
+        <button
+          onClick={manualRedirect}
+          style={{
+            padding: '16px 32px',
+            backgroundColor: '#6366F1',
+            borderRadius: '12px',
+            color: 'white',
+            border: 'none',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)'
+          }}
+        >
           Open Social Studio
-        </a>
+        </button>
       )}
 
       <div style={{ marginTop: '40px', fontSize: '12px', opacity: 0.4 }}>
-        If you are stuck, make sure the Social Studio app is installed on this device.
+        If the button doesn't work, ensure you are opening this page <br/> in Chrome or the system browser.
       </div>
     </div>
   );
