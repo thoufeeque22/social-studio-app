@@ -60,11 +60,22 @@ export default {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnLogin = nextUrl.pathname === "/login";
+      const isBridge = nextUrl.searchParams.get("bridge") === "true";
       const isOnDashboard = nextUrl.pathname === "/";
       const isOnSettings = nextUrl.pathname.startsWith("/settings");
       
       if (isOnLogin) {
-        if (isLoggedIn) return Response.redirect(new URL("/", nextUrl));
+        // If we are already logged in in the browser but the app wants a 'bridge'
+        // redirect them to the success page so it triggers the deep link back to the app
+        if (isLoggedIn && isBridge) {
+          return Response.redirect(new URL("/auth/success", nextUrl));
+        }
+
+        // Standard web login: redirect to dashboard if already logged in
+        if (isLoggedIn && !isBridge) {
+          return Response.redirect(new URL("/", nextUrl));
+        }
+
         return true;
       }
 
