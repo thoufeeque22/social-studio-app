@@ -3,12 +3,6 @@ import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import TikTok from "next-auth/providers/tiktok";
 
-// Debugging helper to see if environment variables are actually loading in production
-if (process.env.NODE_ENV === "production") {
-  console.log("[Auth-Config] Initializing with Host:", process.env.AUTH_URL || process.env.NEXTAUTH_URL);
-  if (!process.env.AUTH_SECRET) console.error("[Auth-Config] CRITICAL: AUTH_SECRET is missing!");
-}
-
 export default {
   providers: [
     Google({
@@ -60,10 +54,8 @@ export default {
       })
     ] : []),
   ],
-  // trustHost is critical for mobile apps using a system browser
   trustHost: true,
   secret: process.env.AUTH_SECRET,
-  debug: process.env.NODE_ENV !== "production",
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
