@@ -21,6 +21,13 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
 - [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok) during the manual publishing flow.
+- [ ] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths:
+    - **Manual**: Traditional user-input only.
+    - **Enrich**: AI polishes and optimizes user-provided drafts.
+    - **Generate**: AI creates metadata from scratch based on video context/metadata.
+- [ ] **AI Feature Highlighting**: Implement subtle UI "nudges" (e.g., a "Sparkle" icon or "Try AI Polish" badge) to suggest AI features without forcing them on users.
+- [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
+- [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
 
 ## Low Priority 🛠️
 - [ ] **Video Preview**: Integrated video player to review content before posting.
@@ -30,9 +37,15 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Policies**: Draft and implement Privacy Policy and other required documentation.
 - [ ] **Documentation**: Create user enablement and developer documentation.
 - [ ] **Legal Review**: General review to ensure the app abides by relevant laws and regulations.
+- [ ] **Technical SEO Foundation**:
+    - **Public Landing Page**: Design and implement a high-converting, SEO-optimized landing page (`/`).
+    - **Dynamic Metadata**: Implement `generateMetadata` for all routes to ensure unique titles/descriptions.
+    - **Schema Markup**: Add JSON-LD (SoftwareApplication) to the landing page for rich search results.
+    - **Sitemap & Robots.txt**: Generate automated SEO files.
 - [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
 - [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title.
 - [ ] **Notification Utility (Bell Icon)**: Investigate and implement functionality for the currently hardcoded bell icon (e.g., in-app notifications for upload success/failure).
+- [ ] **Mobile UX: Safe Areas**: Ensure the UI respects "Safe Areas" on modern smartphones to avoid overlapping with the notch, dynamic island, or home indicator.
 
 ---
 
