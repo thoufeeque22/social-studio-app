@@ -17,10 +17,10 @@ export default {
         }
       }
     }),
-    ...(process.env.AUTH_FACEBOOK_ID && (process.env.AUTH_FACEBOOK_SECRET || process.env.FACEBOOK_APP_SECRET_BROKEN) ? [
+    ...(process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET ? [
       Facebook({
         clientId: process.env.AUTH_FACEBOOK_ID,
-        clientSecret: process.env.AUTH_FACEBOOK_SECRET || process.env.FACEBOOK_APP_SECRET_BROKEN,
+        clientSecret: process.env.AUTH_FACEBOOK_SECRET,
         authorization: {
           params: {
             scope: "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts",
