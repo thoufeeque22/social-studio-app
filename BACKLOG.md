@@ -19,7 +19,6 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
 - [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
-- [ ] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
 - [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing.
 - [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
 - [ ] **Environment Validation**: Use `zod` to strictly validate all environment variables on application startup.
@@ -131,3 +130,4 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection.
 - [x] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally.
 - [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
+- [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.

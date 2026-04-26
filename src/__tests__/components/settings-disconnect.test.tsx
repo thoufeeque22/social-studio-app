@@ -50,6 +50,10 @@ describe('Settings Disconnect Functionality', () => {
     vi.stubGlobal('confirm', vi.fn(() => true));
     // Mock window.alert
     vi.stubGlobal('alert', vi.fn());
+
+    // Silence expected console errors/warns
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   it('renders disconnect buttons (X) for connected accounts when platforms are active', async () => {

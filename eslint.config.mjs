@@ -22,6 +22,12 @@ const eslintConfig = defineConfig([
         }]
       }]
     }
+  },
+  {
+    files: ["src/__tests__/**/*.ts", "src/__tests__/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": "off"
+    }
   }
 ]);
 

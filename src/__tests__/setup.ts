@@ -1,50 +1,51 @@
-import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import '@testing-library/jest-dom';
 
-// Mock Next.js router
+// Mock Next-Auth
+vi.mock('next-auth', () => ({
+  default: vi.fn(),
+  getServerSession: vi.fn(),
+}));
+
+// Mock Next-Auth React
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(() => ({
+    data: null,
+    status: 'unauthenticated',
+  })),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// Mock Next Navigation
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
+  useRouter: vi.fn(() => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
-    back: vi.fn(),
-  }),
-  usePathname: () => '',
-  useSearchParams: () => new URLSearchParams(),
+  })),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn(),
+  })),
+  usePathname: vi.fn(),
 }));
 
-// Mock NextAuth
-vi.mock('next-auth/react', () => ({
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-  useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
-}));
-
-// Mock server-side next-auth to prevent next/server resolution issues in JSDOM
-vi.mock('next-auth', () => ({
-  default: vi.fn(),
-  auth: vi.fn(),
-  handlers: { GET: vi.fn(), POST: vi.fn() },
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-}));
-
-// Mock Next.js Server (NextResponse, NextRequest)
-vi.mock('next/server', () => {
-  return {
-    NextResponse: {
-      json: vi.fn((data, init) => ({
-        status: init?.status || 200,
-        json: async () => data,
-      })),
-      redirect: vi.fn((url) => ({
-        status: 307,
-        headers: { get: () => url }
-      }))
+// Mock global fetch
+global.fetch = vi.fn((url) => {
+  return Promise.resolve({
+    ok: true,
+    json: () => {
+      if (url.toString().includes('/api/history/')) {
+        return Promise.resolve({
+          data: {
+            id: 'hist_123',
+            title: 'Resumed Post',
+            description: 'Description',
+            videoFormat: 'short',
+            platforms: [{ platform: 'youtube', accountId: 'acc_yt_1', accountName: 'YouTube Account' }]
+          }
+        });
+      }
+      return Promise.resolve({});
     },
-    NextRequest: vi.fn(),
-  };
+  } as Response);
 });
-
-// Mock server-only to prevent test crashes
-vi.mock('server-only', () => ({}));

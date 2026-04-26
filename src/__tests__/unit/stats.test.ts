@@ -13,6 +13,8 @@ import { prisma } from '../../lib/core/prisma';
 import { auth } from '@/auth';
 import * as youtube from '@/lib/platforms/youtube';
 import * as instagram from '@/lib/platforms/instagram';
+import type { Session } from 'next-auth';
+import { Account as PrismaAccount } from '@prisma/client';
 
 // Mocks
 vi.mock('@/auth', () => ({
@@ -37,18 +39,49 @@ vi.mock('@/lib/platforms/instagram', () => ({
 describe('Stats Server Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('calculates aggregate stats across multiple platforms', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as any);
+    vi.mocked(auth as unknown as () => Promise<Session | null>).mockResolvedValue({ user: { id: 'u1' } } as unknown as Session);
     vi.mocked(prisma.postHistory.count).mockResolvedValue(5);
     vi.mocked(prisma.account.findMany).mockResolvedValue([
-      { id: 'a1', provider: 'google' },
-      { id: 'a2', provider: 'facebook' },
-    ] as any);
+      { 
+        id: 'a1', 
+        provider: 'google', 
+        accountName: 'YT', 
+        isDistributionEnabled: true,
+        userId: 'u1',
+        type: 'oauth',
+        providerAccountId: 'pa1',
+        expires_at: null,
+        refresh_token: null,
+        access_token: null,
+        token_type: null,
+        scope: null,
+        id_token: null,
+        session_state: null
+      },
+      { 
+        id: 'a2', 
+        provider: 'facebook', 
+        accountName: 'IG', 
+        isDistributionEnabled: true,
+        userId: 'u1',
+        type: 'oauth',
+        providerAccountId: 'pa2',
+        expires_at: null,
+        refresh_token: null,
+        access_token: null,
+        token_type: null,
+        scope: null,
+        id_token: null,
+        session_state: null
+      },
+    ] as unknown as PrismaAccount[]);
 
-    vi.mocked(youtube.getYouTubeStats).mockResolvedValue({ views: 1000, subscribers: 50 });
-    vi.mocked(instagram.getInstagramStats).mockResolvedValue({ reach: 500, followers: 10 });
+    vi.mocked(youtube.getYouTubeStats).mockResolvedValue({ views: 1000, subscribers: 50, videos: 5 });
+    vi.mocked(instagram.getInstagramStats).mockResolvedValue({ reach: 500, followers: 10, media: 10, name: 'Test IG' });
 
     const stats = await getDashboardStats();
 
@@ -60,16 +93,29 @@ describe('Stats Server Actions', () => {
     
     // Community (50 + 10 = 60)
     expect(stats[2].value).toBe('60'); 
-    // Wait, let's check formatNumber again. 
-    // if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    // else return num.toString();
-    // So 60 should be "60"
   });
 
   it('gracefully handles platform failures', async () => {
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as any);
+    vi.mocked(auth as unknown as () => Promise<Session | null>).mockResolvedValue({ user: { id: 'u1' } } as unknown as Session);
     vi.mocked(prisma.postHistory.count).mockResolvedValue(1);
-    vi.mocked(prisma.account.findMany).mockResolvedValue([{ id: 'a1', provider: 'google' }] as any);
+    vi.mocked(prisma.account.findMany).mockResolvedValue([
+      { 
+        id: 'a1', 
+        provider: 'google', 
+        accountName: 'YT', 
+        isDistributionEnabled: true,
+        userId: 'u1',
+        type: 'oauth',
+        providerAccountId: 'pa1',
+        expires_at: null,
+        refresh_token: null,
+        access_token: null,
+        token_type: null,
+        scope: null,
+        id_token: null,
+        session_state: null
+      }
+    ] as unknown as PrismaAccount[]);
     
     vi.mocked(youtube.getYouTubeStats).mockRejectedValue(new Error('API Down'));
 
