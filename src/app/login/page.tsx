@@ -43,6 +43,7 @@ function LoginContent() {
 
   const handleLoginClick = async (provider: string) => {
     const isNative = typeof window !== 'undefined' && 
+                     Capacitor.getPlatform() !== 'web' &&
                      (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
 
     if (isNative) {
@@ -105,6 +106,7 @@ function LoginContent() {
                 className={styles.primaryAction}
                 onClick={async () => {
                   const isNative = typeof window !== 'undefined' && 
+                                   Capacitor.getPlatform() !== 'web' &&
                                    (Capacitor.isNativePlatform() || navigator.userAgent.includes('SocialStudioApp'));
                   setShowWarning(false);
                   if (isNative) {
