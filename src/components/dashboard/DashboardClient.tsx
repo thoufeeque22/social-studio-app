@@ -80,7 +80,8 @@ export default function DashboardClient({
       const loadResumptionData = async () => {
         setUploadStatus("🔍 Loading resumption data...");
         try {
-          const res = await fetch(`/api/history/${resumeHistoryId}`);
+          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+          const res = await fetch(`${baseUrl}/api/history/${resumeHistoryId}`);
           if (res.ok) {
             const { data } = await res.json();
             // 1. Update Title/Description in LocalStorage (for the form defaultValues)

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { PlatformSelection } from '@/components/dashboard/UploadForm/PlatformSelection';
-import { Account } from '@/lib/core/types';
+import { Account, PlatformPreference } from '@/lib/core/types';
 
 // Use a local interface instead of importing from next-auth to avoid server-side dependency issues
 interface MockSession {
@@ -57,7 +57,7 @@ const localStorageMock = (() => {
     clear: vi.fn(() => { store = {}; }),
   };
 })();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock });
 
 describe('Dashboard Default Connection Selection', () => {
   const mockSession: MockSession = { user: { name: 'Test User', id: 'user_1' }, expires: '' };
@@ -67,21 +67,13 @@ describe('Dashboard Default Connection Selection', () => {
       id: 'acc_yt_1', 
       provider: 'google', 
       accountName: 'YouTube Account', 
-      accessToken: 'token1',
       isDistributionEnabled: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userId: 'user1'
     },
     { 
       id: 'acc_tk_1', 
       provider: 'tiktok', 
       accountName: 'TikTok Account', 
-      accessToken: 'token2',
       isDistributionEnabled: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      userId: 'user1'
     },
   ];
 
@@ -112,7 +104,7 @@ describe('Dashboard Default Connection Selection', () => {
   });
 
   it('respects existing platform preferences over distribution status', async () => {
-    const preferences = [
+    const preferences: PlatformPreference[] = [
       { id: 'p1', userId: 'user_1', platformId: 'tiktok', isEnabled: true },
       { id: 'p2', userId: 'user_1', platformId: 'youtube', isEnabled: false },
     ];
@@ -121,7 +113,7 @@ describe('Dashboard Default Connection Selection', () => {
       <DashboardClient 
         session={mockSession}
         initialAccounts={mockAccounts}
-        initialPreferences={preferences as any}
+        initialPreferences={preferences}
         initialVideoFormat="short"
         initialAIStyle="Manual"
       />
@@ -148,7 +140,7 @@ describe('Dashboard Default Connection Selection', () => {
         initialAccounts={mockAccounts}
         initialPreferences={[]}
         initialAIStyle="Manual"
-        initialVideoFormat="reel"
+        initialVideoFormat="short"
       />
     );
 
@@ -162,11 +154,19 @@ describe('Dashboard Default Connection Selection', () => {
   });
 
   it('preserves resumed selections and prevents auto-selection from overwriting them', async () => {
-    // Mock the useSearchParams to simulate a resume=123 URL
     const { useSearchParams } = await import('next/navigation');
     vi.mocked(useSearchParams).mockReturnValue({
       get: vi.fn((key) => key === 'resume' ? 'hist_123' : null),
-    } as any);
+      size: 0,
+      forEach: vi.fn(),
+      has: vi.fn(),
+      getAll: vi.fn(),
+      keys: vi.fn(),
+      values: vi.fn(),
+      entries: vi.fn(),
+      [Symbol.iterator]: vi.fn(),
+      toString: vi.fn(),
+    } as unknown as ReturnType<typeof useSearchParams>);
 
     // Mock fetch or whatever loadResumptionData uses (it likely uses a server action or fetch)
     // Looking at DashboardClient, it seems to have a loadResumptionData internal function.
@@ -183,6 +183,11 @@ describe('Dashboard Default Connection Selection', () => {
 
     // This is a bit hard to test without fully mocking the resumption fetch, 
     // but the logic check I added (isInitialSync = true in resumption) ensures it.
+    // Verify that the UI reflects the resumed state
+    await waitFor(() => {
+      const ytBtn = screen.getByRole('button', { name: /YouTube Account/i });
+      expect(ytBtn).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 
   it('renders platform buttons correctly in isolation', async () => {

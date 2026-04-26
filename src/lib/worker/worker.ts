@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/core/prisma";
 import path from "path";
-import fs from "fs";
+import { readFileSync, existsSync } from "fs";
 
 /**
  * A simple polling worker that checks for scheduled posts and publishes them.
@@ -68,15 +68,15 @@ export async function startPublishingWorker() {
             }
 
             const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
-            if (!fs.existsSync(filePath)) {
+            if (!existsSync(filePath)) {
               throw new Error(`File purged or missing: ${filePath}`);
             }
 
             const metadataPath = path.join(process.cwd(), "src/tmp", `${stagedFileId}.metadata.json`);
             let reviewedContent = undefined;
-            if (fs.existsSync(metadataPath)) {
+            if (existsSync(metadataPath)) {
                try {
-                  reviewedContent = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+                  reviewedContent = JSON.parse(readFileSync(metadataPath, "utf8"));
                } catch (e) {
                   console.warn("⚠️ [WORKER] Failed to parse metadata sidecar", e);
                }

@@ -18,6 +18,10 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     
     // Clear mocks
     vi.resetAllMocks();
+    
+    // Silence expected console errors/warns to keep test output clean
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   it('should fall back safely if GEMINI returns an empty string', async () => {
