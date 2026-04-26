@@ -4,7 +4,6 @@ This document tracks future features and improvements for the Social Studio App.
 
 ## Critical 🚨
 - [/] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
-- [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection.
 
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
@@ -131,3 +130,4 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Bug**: AI sometimes generates more than 5 hashtags for Instagram (e.g., 7) despite the 5-hashtag restriction rule.
 - [x] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings.
 - [x] **Auth Redirect Performance**: Investigate and fix delays when navigating from the initial dashboard to the login page (unauthenticated) and from login back to the dashboard (authenticated). Aim for near-instantaneous transitions.
+- [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection.
