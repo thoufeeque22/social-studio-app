@@ -1,11 +1,65 @@
 import { PrismaClient } from "@prisma/client";
+import { encrypt, decrypt } from "./encryption";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export const prisma =
+const basePrisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ["query"],
+    log: ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+export const prisma = basePrisma.$extends({
+  query: {
+    account: {
+      async create({ args, query }) {
+        if (args.data.access_token) args.data.access_token = encrypt(args.data.access_token);
+        if (args.data.refresh_token) args.data.refresh_token = encrypt(args.data.refresh_token);
+        if (args.data.id_token) args.data.id_token = encrypt(args.data.id_token);
+        return query(args);
+      },
+      async update({ args, query }) {
+        const data = args.data as any;
+        if (data.access_token) data.access_token = encrypt(data.access_token);
+        if (data.refresh_token) data.refresh_token = encrypt(data.refresh_token);
+        if (data.id_token) data.id_token = encrypt(data.id_token);
+        return query(args);
+      },
+      async upsert({ args, query }) {
+        if (args.create.access_token) args.create.access_token = encrypt(args.create.access_token);
+        if (args.create.refresh_token) args.create.refresh_token = encrypt(args.create.refresh_token);
+        if (args.create.id_token) args.create.id_token = encrypt(args.create.id_token);
+        
+        if (args.update.access_token) args.update.access_token = encrypt(args.update.access_token as string);
+        if (args.update.refresh_token) args.update.refresh_token = encrypt(args.update.refresh_token as string);
+        if (args.update.id_token) args.update.id_token = encrypt(args.update.id_token as string);
+        
+        return query(args);
+      }
+    }
+  },
+  result: {
+    account: {
+      access_token: {
+        needs: { access_token: true },
+        compute(account) {
+          return account.access_token ? decrypt(account.access_token) : null;
+        }
+      },
+      refresh_token: {
+        needs: { refresh_token: true },
+        compute(account) {
+          return account.refresh_token ? decrypt(account.refresh_token) : null;
+        }
+      },
+      id_token: {
+        needs: { id_token: true },
+        compute(account) {
+          return account.id_token ? decrypt(account.id_token) : null;
+        }
+      }
+    }
+  }
+});
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = basePrisma;

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
     }
 
-    const chunkDir = path.join(process.cwd(), "src/tmp/chunks", uploadId);
+    const chunkDir = path.join(process.cwd(), "src/tmp/chunks", path.basename(uploadId));
     const tempDir = path.join(process.cwd(), "src/tmp");
     await fs.mkdir(tempDir, { recursive: true });
 
