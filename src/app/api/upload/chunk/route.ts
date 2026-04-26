@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing x-upload-id or x-chunk-index" }, { status: 400 });
     }
 
-    const chunkDir = path.join(process.cwd(), "src/tmp/chunks", uploadId);
+    const chunkDir = path.join(process.cwd(), "src/tmp/chunks", path.basename(uploadId));
     await fs.mkdir(chunkDir, { recursive: true });
 
     const chunkPath = path.join(chunkDir, `${chunkIndex.padStart(8, '0')}.part`);

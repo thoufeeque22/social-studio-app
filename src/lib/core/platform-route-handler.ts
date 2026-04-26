@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/core/prisma";
 import { generatePostContent, StyleMode } from "@/lib/utils/ai-writer";
 import { promises as fs } from "fs";
 import fsSync from "fs";
@@ -46,7 +47,9 @@ export async function handlePlatformUploadRequest({
     if (contentType.includes("application/json")) {
       const body = await req.json();
       if (body.stagedFileId) {
-        filePath = path.join(process.cwd(), "src/tmp", body.stagedFileId);
+        // Security check: ensure the file is strictly within src/tmp
+        const safeFileId = path.basename(body.stagedFileId);
+        filePath = path.join(process.cwd(), "src/tmp", safeFileId);
         fields = body;
         fileName = body.fileName;
       }
@@ -69,6 +72,19 @@ export async function handlePlatformUploadRequest({
     const contentMode = (fields.contentMode as StyleMode) || "Manual";
     const videoFormat = fields.videoFormat || "short";
     const accountId = fields.accountId;
+
+    // SECURITY: Verify account ownership before proceeding
+    if (accountId) {
+      const account = await prisma.account.findFirst({
+        where: { id: accountId, userId: session.user.id }
+      });
+      if (!account) {
+        return NextResponse.json({ 
+          error: "Unauthorized: Account not found or not owned by user" 
+        }, { status: 403 });
+      }
+      console.log(`🔐 [SECURITY] Account ownership verified for ${platform}: ${accountId}`);
+    }
 
     // 3. MOCK_UPLOAD Check
     if (process.env.MOCK_UPLOAD === "true") {
