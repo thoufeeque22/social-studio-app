@@ -3,7 +3,7 @@
 This document tracks future features and improvements for the Social Studio App.
 
 ## Critical 🚨
-- [ ] **Data Integrity Audit**: Ensure that video files and metadata are consistently handled across all platforms without corruption or loss.
+- [/] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 - [ ] **Security Review**: Perform a thorough review of session handling and API key storage to prevent unauthorized access.
 
 ## High Priority 🚀

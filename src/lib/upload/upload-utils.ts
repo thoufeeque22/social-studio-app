@@ -133,6 +133,7 @@ export async function stageVideoFile({
       uploadId,
       fileName: file.name,
       totalChunks,
+      totalSize: file.size,
       ...metadata,
       historyId
     }),
@@ -205,11 +206,32 @@ export async function distributeToPlatforms({
     if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading');
 
     try {
+      // PLATFORM INTEGRITY: Sanitize and Truncate Metadata
+      const sanitizeMetadata = (platform: string, title: string, desc: string) => {
+        let finalTitle = title;
+        let finalDesc = desc;
+
+        if (platform === 'youtube') {
+          // YouTube Shorts titles have a strict 100 char limit
+          finalTitle = title.slice(0, 100);
+        } else if (platform === 'tiktok') {
+          // TikTok "title" is actually the caption. Limit to ~150 to be safe
+          finalTitle = title.slice(0, 150);
+        } else if (platform === 'instagram') {
+          // Instagram captions are generous (2200), but we should ensure no weird characters
+          finalDesc = desc.slice(0, 2200);
+        }
+
+        return { title: finalTitle, description: finalDesc };
+      };
+
+      const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);
+
       const payload = {
         stagedFileId,
         fileName,
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
+        title: sanitized.title,
+        description: sanitized.description,
         videoFormat,
         accountId: realAccountId,
         contentMode,
@@ -290,10 +312,10 @@ export async function distributeToPlatforms({
 
   // Cleanup staged file after some time
   setTimeout(() => {
-    fetch('/api/upload/assemble', {
-      method: 'DELETE',
+    fetch('/api/upload/cleanup', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileId: stagedFileId })
+      body: JSON.stringify({ stagedFileId })
     }).catch(err => console.error("Secondary cleanup failed:", err));
   }, 24 * 60 * 60 * 1000); // 24h retention
 

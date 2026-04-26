@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   // ------------------------------
 
   try {
-    const { uploadId, fileName, totalChunks, title, description, videoFormat, historyId } = await req.json();
+    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId } = await req.json();
     
     if (!uploadId || !fileName || totalChunks === undefined) {
       return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
@@ -50,15 +50,13 @@ export async function POST(req: NextRequest) {
     const tempDir = path.join(process.cwd(), "src/tmp");
     await fs.mkdir(tempDir, { recursive: true });
 
-    // Use a unique file ID (basename) for the final staged file
-    const fileId = `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    // Use a unique file ID (UUID) for the final staged file to prevent collisions
+    const fileId = `${crypto.randomUUID()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const finalPath = path.join(tempDir, fileId);
 
     console.log(`🧩 [ASSEMBLE] Joining ${totalChunks} chunks into: ${finalPath}`);
 
-    // Create a write stream to combine chunks efficiently
-    const writeStream = fsSync.createWriteStream(finalPath);
-
+    // Verify all chunks exist before starting
     const chunkFiles = (await fs.readdir(chunkDir)).sort();
     
     if (chunkFiles.length !== totalChunks) {
@@ -67,18 +65,49 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
     }
 
-    for (const chunkFile of chunkFiles) {
-      const chunkPath = path.join(chunkDir, chunkFile);
-      const chunkBuffer = await fs.readFile(chunkPath);
-      writeStream.write(chunkBuffer);
-      // Clean up chunk immediately after reading it into the stream
-      await fs.unlink(chunkPath);
+    // Helper to write chunk and wait for drain if needed
+    const writeChunk = (stream: fsSync.WriteStream, buffer: Buffer) => {
+      return new Promise<void>((resolve, reject) => {
+        const canWrite = stream.write(buffer);
+        if (canWrite) {
+          resolve();
+        } else {
+          stream.once('drain', resolve);
+          stream.once('error', reject);
+        }
+      });
+    };
+
+    const writeStream = fsSync.createWriteStream(finalPath);
+
+    try {
+      for (const chunkFile of chunkFiles) {
+        const chunkPath = path.join(chunkDir, chunkFile);
+        const chunkBuffer = await fs.readFile(chunkPath);
+        await writeChunk(writeStream, chunkBuffer);
+        // Clean up chunk immediately after successful write
+        await fs.unlink(chunkPath);
+      }
+    } finally {
+      writeStream.end();
     }
 
-    writeStream.end();
+    // Wait for the stream to fully close
+    await new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
 
-    // Give it a moment to finish writing
-    await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
+    // INTEGRITY CHECK: Verify total size
+    if (totalSize) {
+      const stats = await fs.stat(finalPath);
+      if (stats.size !== totalSize) {
+        // Cleanup the corrupt file
+        await fs.unlink(finalPath);
+        throw new Error(`Integrity Check Failed: Expected ${totalSize} bytes, got ${stats.size} bytes.`);
+      }
+      console.log(`📏 [INTEGRITY] Size verified: ${stats.size} bytes`);
+    }
 
     // Cleanup the empty chunk directory
     await fs.rmdir(chunkDir);

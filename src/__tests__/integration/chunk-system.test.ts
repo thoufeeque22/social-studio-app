@@ -39,32 +39,34 @@ vi.mock('fs', () => {
     readdir: vi.fn().mockResolvedValue([]),
     unlink: vi.fn().mockResolvedValue(undefined),
     rmdir: vi.fn().mockResolvedValue(undefined),
-    stat: vi.fn().mockResolvedValue({ size: 1000 }),
+    stat: vi.fn().mockResolvedValue({ 
+      size: 1000, 
+      mtimeMs: Date.now(),
+      isFile: () => true 
+    }),
   };
+
+  const createMockStream = () => ({
+    write: vi.fn().mockReturnValue(true),
+    end: vi.fn(),
+    once: vi.fn((event, cb) => {
+      if (event === 'drain') cb();
+      return { once: vi.fn() };
+    }),
+    on: vi.fn((event, cb) => {
+      if (event === 'finish') cb();
+      return { on: vi.fn() };
+    }),
+  });
 
   return {
     promises,
-    createWriteStream: vi.fn(() => ({
-      write: vi.fn(),
-      end: vi.fn(),
-      on: vi.fn((event, cb) => {
-        if (event === 'finish') cb();
-        return { on: vi.fn() };
-      }),
-    })),
+    createWriteStream: vi.fn(createMockStream),
     existsSync: vi.fn().mockReturnValue(true),
-    // For aliases
     default: {
       promises,
       existsSync: vi.fn().mockReturnValue(true),
-      createWriteStream: vi.fn(() => ({
-        write: vi.fn(),
-        end: vi.fn(),
-        on: vi.fn((event, cb) => {
-          if (event === 'finish') cb();
-          return { on: vi.fn() };
-        }),
-      })),
+      createWriteStream: vi.fn(createMockStream),
     }
   };
 });
@@ -77,7 +79,11 @@ vi.mock('fs/promises', () => ({
   readdir: vi.fn().mockResolvedValue([]),
   unlink: vi.fn().mockResolvedValue(undefined),
   rmdir: vi.fn().mockResolvedValue(undefined),
-  stat: vi.fn().mockResolvedValue({ size: 1000 }),
+  stat: vi.fn().mockResolvedValue({ 
+    size: 1000, 
+    mtimeMs: Date.now(),
+    isFile: () => true 
+  }),
 }));
 
 describe('Chunked Upload System Integration', () => {
@@ -118,7 +124,8 @@ describe('Chunked Upload System Integration', () => {
         json: async () => ({
           uploadId: 'upload-123',
           fileName: 'test.mp4',
-          totalChunks: 2
+          totalChunks: 2,
+          totalSize: 1000
         })
       } as unknown as NextRequest;
 
@@ -137,7 +144,8 @@ describe('Chunked Upload System Integration', () => {
         json: async () => ({
           uploadId: 'upload-123',
           fileName: 'test.mp4',
-          totalChunks: 2
+          totalChunks: 2,
+          totalSize: 1000
         })
       } as unknown as NextRequest;
 
