@@ -2,8 +2,13 @@
 
 This document tracks future features and improvements for the Social Studio App.
 
+## Critical 🚨
+- [ ] **Data Integrity Audit**: Ensure that video files and metadata are consistently handled across all platforms without corruption or loss.
+- [ ] **Security Review**: Perform a thorough review of session handling and API key storage to prevent unauthorized access.
+
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
+- [ ] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally.
 - [ ] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 
 ## Medium Priority 📈
@@ -21,6 +26,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
 - [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video (free-to-use only).
 - [ ] **AI Feature Highlighting**: Implement subtle UI "nudges" (e.g., a "Sparkle" icon or "Try AI Polish" badge) to suggest AI features.
+- [ ] **What's New Notification**: Automatically notify users when new features or changes are deployed to the platform (e.g., a "What's New" badge or modal).
 - [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
 
 ## Low Priority 🛠️

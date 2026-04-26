@@ -1,3 +1,12 @@
+/**
+ * UPLOAD INTEGRATION TESTS
+ * Integration tests for the multi-platform distribution pipeline.
+ * Covers:
+ * - Instagram Reel publishing (container creation, status polling, and audio injection).
+ * - YouTube Shorts publishing (metadata injection and resumable session initialization).
+ * - Mocking of external platform APIs (Facebook Graph, Google APIs).
+ */
+
 import { describe, it, beforeEach, vi, expect, afterEach } from 'vitest';
 
 // 1. Mock Prisma BEFORE any other imports that might use it
@@ -20,12 +29,21 @@ import { uploadToYouTube } from '../../lib/platforms/youtube';
 import { publishInstagramReel } from '../../lib/platforms/instagram';
 
 // Mock fs for Instagram binary push
-vi.mock('fs', () => ({
-  promises: {
+vi.mock('fs', () => {
+  const promises = {
     stat: vi.fn().mockResolvedValue({ size: 1000 }),
     readFile: vi.fn().mockResolvedValue(Buffer.from('video data')),
-  }
-}));
+    createReadStream: vi.fn().mockReturnValue({}),
+  };
+  return {
+    promises,
+    createReadStream: vi.fn().mockReturnValue({}),
+    default: {
+      promises,
+      createReadStream: vi.fn().mockReturnValue({}),
+    },
+  };
+});
 
 describe('Upload Integrations', () => {
   beforeEach(() => {
@@ -99,6 +117,30 @@ describe('Upload Integrations', () => {
   });
 
   it('verifies metadata injection for YouTube payload', async () => {
-    expect(uploadToYouTube).toBeDefined();
+    // Mock the session initialization response
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'https://mock-upload-url.com' },
+    } as any);
+
+    // Mock the binary upload response
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 'yt_video_123' }),
+    } as any);
+
+    const result = await uploadToYouTube({
+      userId: 'test_user',
+      filePath: 'fake.mp4',
+      title: 'Short Title',
+      description: 'Engaging content',
+      privacy: 'public'
+    });
+
+    expect(result.data.id).toBe('yt_video_123');
+    const firstCall = vi.mocked(global.fetch).mock.calls[0];
+    const body = JSON.parse(firstCall[1]?.body as string);
+    expect(body.snippet.title).toBe('Short Title');
+    expect(body.status.privacyStatus).toBe('public');
   });
 });

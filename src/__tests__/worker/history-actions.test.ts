@@ -1,3 +1,12 @@
+/**
+ * POST HISTORY ACTIONS TESTS
+ * Tests the server actions used by the History page.
+ * Focuses on:
+ * - Fetching post history with cursor-based pagination.
+ * - Retry logic for failed distribution channels.
+ * - Stale post detection and resumed upload handling.
+ */
+
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { upsertPlatformResultInternal } from '../../app/actions/history';
 import { prisma } from '../../lib/core/prisma';

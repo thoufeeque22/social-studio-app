@@ -1,3 +1,11 @@
+/**
+ * LAYOUT WRAPPER TESTS
+ * Verifies the conditional rendering of the main application shell.
+ * Ensures that Sidebar and Header are:
+ * - Hidden on public/auth pages like /login.
+ * - Displayed on internal dashboard and settings pages.
+ */
+
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LayoutWrapper from '@/components/layout/LayoutWrapper';

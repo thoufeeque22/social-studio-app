@@ -1,3 +1,13 @@
+/**
+ * SETTINGS DISCONNECT TESTS
+ * Tests the account disconnection flow within the Settings page.
+ * Verifies:
+ * - Rendering of disconnect triggers (X buttons) for active accounts.
+ * - User confirmation dialog (window.confirm) integration.
+ * - Optimistic UI removal of disconnected accounts.
+ * - Error handling and alert notifications on failure.
+ */
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SettingsPage from '../../app/settings/page';

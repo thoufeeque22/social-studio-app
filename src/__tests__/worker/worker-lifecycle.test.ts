@@ -1,3 +1,12 @@
+/**
+ * WORKER LIFECYCLE TESTS
+ * Tests the background publishing worker's lifecycle and job processing.
+ * Verifies:
+ * - Successful processing of scheduled posts.
+ * - Accurate polling for due jobs.
+ * - Error handling and retry logic for worker-level failures.
+ */
+
 import { describe, it, beforeEach, afterEach, vi, expect } from 'vitest';
 import { startPublishingWorker } from '../../lib/worker/worker';
 import { prisma } from '../../lib/core/prisma';

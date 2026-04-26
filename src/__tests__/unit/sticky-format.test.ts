@@ -1,3 +1,9 @@
+/**
+ * STICKY FORMAT TESTS
+ * Verifies the persistence of user-selected video formats (Short vs Long).
+ * Ensures that once a user selects a format, it remains consistent across sessions.
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getVideoFormatPreference, updateVideoFormatPreference } from '../../app/actions/user';
 import { prisma } from '../../lib/core/prisma';

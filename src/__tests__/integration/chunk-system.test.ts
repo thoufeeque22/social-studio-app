@@ -1,3 +1,12 @@
+/**
+ * CHUNKED UPLOAD SYSTEM TESTS
+ * Tests the core zero-memory upload pipeline used to handle large video files.
+ * Verifies:
+ * - Binary chunk storage via the Chunk API.
+ * - Server-side file assembly via the Assemble API.
+ * - Resilience and error handling (e.g., missing chunks).
+ */
+
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { POST as chunkPOST } from '../../app/api/upload/chunk/route';
 import { POST as assemblePOST } from '../../app/api/upload/assemble/route';

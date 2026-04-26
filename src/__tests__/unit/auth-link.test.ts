@@ -1,3 +1,9 @@
+/**
+ * AUTH LINKING LOGIC TESTS
+ * Verifies the logic used during OAuth events to extract account identities.
+ * Ensures consistent account name generation for YouTube, TikTok, and Instagram.
+ */
+
 import { describe, it, expect } from 'vitest';
 import { extractAccountName } from '../../lib/utils/utils';
 

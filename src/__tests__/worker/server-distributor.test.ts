@@ -1,3 +1,13 @@
+/**
+ * SERVER DISTRIBUTOR TESTS
+ * Tests the server-side distribution logic used by the background worker.
+ * Verifies:
+ * - Correct routing to platform-specific SDKs (YouTube, Facebook, Instagram).
+ * - Proper handling of video formats (Short/Reel vs regular Video).
+ * - Database persistence of platform-specific upload results.
+ * - Robust error handling for API failures.
+ */
+
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { distributeToPlatformsServer } from '../../lib/worker/server-distributor';
 

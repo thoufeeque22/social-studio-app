@@ -1,3 +1,12 @@
+/**
+ * AI VIBE-WRITER TESTS
+ * Tests the generatePostContent utility which interfaces with the Gemini API.
+ * Verifies:
+ * - Correct handling of successful LLM responses and JSON parsing.
+ * - Robust error handling for malformed JSON or empty responses.
+ * - Proper environment variable checks (API key availability).
+ */
+
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { generatePostContent } from '../../lib/utils/ai-writer';
 
@@ -50,6 +59,27 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
 
     await expect(generatePostContent('Hook', 'Hello', 'World', 'instagram'))
       .rejects.toThrow('GEMINI_API_KEY is not configured for production use.');
+  });
+
+  it('should successfully return parsed content when LLM returns valid JSON', async () => {
+    const mockOutput = {
+      title: "Viral Title",
+      description: "Amazing description",
+      hashtags: ["#viral", "#test"]
+    };
+    
+    const mockResponse = {
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(mockOutput) }] } }]
+      })
+    };
+    global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+
+    const result = await generatePostContent('SEO', 'Input Title', 'Input Context', 'youtube');
+    
+    expect(result).toEqual(mockOutput);
+    expect(global.fetch).toHaveBeenCalled();
   });
 });
 

@@ -1,5 +1,23 @@
+/**
+ * USER SETTINGS SERVER ACTION TESTS
+ * Tests the server actions related to user configuration and account management.
+ * Covers:
+ * - Account fetching and distribution toggling.
+ * - Platform preferences (enabled/disabled platforms).
+ * - Sticky UI settings (video format and AI style persistence).
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getUserAccounts, toggleAccountDistribution } from '../../app/actions/user';
+import { 
+  getUserAccounts, 
+  toggleAccountDistribution,
+  getPlatformPreferences,
+  togglePlatformPreference,
+  getVideoFormatPreference,
+  updateVideoFormatPreference,
+  getAIStylePreference,
+  updateAIStylePreference
+} from '../../app/actions/user';
 import { prisma } from '../../lib/core/prisma';
 import { auth } from '@/auth';
 
@@ -15,6 +33,14 @@ vi.mock('../../lib/core/prisma', () => ({
       findMany: vi.fn(),
       update: vi.fn(),
     },
+    platformPreference: {
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    }
   },
 }));
 
@@ -79,6 +105,57 @@ describe('User Account Server Actions', () => {
         data: {
           isDistributionEnabled: false
         }
+      });
+    });
+  });
+
+  describe('Platform & Sticky Preferences', () => {
+    beforeEach(() => {
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
+    });
+
+    it('fetches platform preferences', async () => {
+      const mockPrefs = [{ platformId: 'yt', isEnabled: true }];
+      vi.mocked(prisma.platformPreference.findMany).mockResolvedValue(mockPrefs as any);
+      
+      const result = await getPlatformPreferences();
+      expect(result).toEqual(mockPrefs);
+    });
+
+    it('upserts platform preference', async () => {
+      vi.mocked(prisma.platformPreference.upsert).mockResolvedValue({} as any);
+      await togglePlatformPreference('tiktok', true);
+      
+      expect(prisma.platformPreference.upsert).toHaveBeenCalledWith({
+        where: { userId_platformId: { userId: 'user_1', platformId: 'tiktok' } },
+        update: { isEnabled: true },
+        create: { userId: 'user_1', platformId: 'tiktok', isEnabled: true }
+      });
+    });
+
+    it('manages video format preference', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredVideoFormat: 'long' } as any);
+      const format = await getVideoFormatPreference();
+      expect(format).toBe('long');
+
+      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+      await updateVideoFormatPreference('short');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user_1' },
+        data: { preferredVideoFormat: 'short' }
+      });
+    });
+
+    it('manages AI style preference', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredAIStyle: 'Enrich' } as any);
+      const style = await getAIStylePreference();
+      expect(style).toBe('Enrich');
+
+      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+      await updateAIStylePreference('Generate');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user_1' },
+        data: { preferredAIStyle: 'Generate' }
       });
     });
   });
