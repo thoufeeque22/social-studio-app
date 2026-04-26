@@ -22,6 +22,18 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
 - [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
+- [ ] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
+- [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing.
+- [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
+- [ ] **Environment Validation**: Use `zod` to strictly validate all environment variables on application startup.
+- [ ] **Error Monitoring (Sentry/Axiom)**: Integrate a centralized logging and monitoring service to alert on background worker failures.
+- [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta).
+- [ ] **AI Video Transcoding (FFmpeg)**: Automatically resize/compress videos that exceed platform bitrate or resolution limits.
+- [ ] **Calendar Content Planner**: A visual week/month view of all scheduled and published posts.
+- [ ] **Metadata Templates**: Save and reuse common snippets (e.g., "Link in Bio") across different posts.
+- [ ] **Visual Analytics Charts**: Graphs showing cross-platform follower growth and view trends.
+- [ ] **Team Collaboration**: Multi-user support to allow editors or managers to schedule posts on behalf of the creator.
+- [ ] **Best Time to Post AI**: Analyze historical performance to suggest optimal publishing windows per platform.
 - [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
 - [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video (free-to-use only).
