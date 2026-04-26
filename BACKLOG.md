@@ -10,42 +10,69 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 
 ## Medium Priority 📈
+- [ ] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
 - [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
-- [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram [parked for next phase]
-- [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video, only free to use audio. [parked for next phase]
-- [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
-- [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
-- [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise.
+- [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
 - [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
-- [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
-- [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
-- [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok) during the manual publishing flow.
-- [ ] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths:
-    - **Manual**: Traditional user-input only.
-    - **Enrich**: AI polishes and optimizes user-provided drafts.
-    - **Generate**: AI creates metadata from scratch based on video context/metadata.
-- [ ] **AI Feature Highlighting**: Implement subtle UI "nudges" (e.g., a "Sparkle" icon or "Try AI Polish" badge) to suggest AI features without forcing them on users.
+- [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok).
+- [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram [parked for next phase].
+- [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
 - [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
+- [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
+- [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
+- [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video (free-to-use only).
+- [ ] **AI Feature Highlighting**: Implement subtle UI "nudges" (e.g., a "Sparkle" icon or "Try AI Polish" badge) to suggest AI features.
+- [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
 
 ## Low Priority 🛠️
-- [ ] **Video Preview**: Integrated video player to review content before posting.
-- [ ] **Support Email**: Set up and display support contact information.
-- [ ] **Dark/Light Mode Toggle**: Professional theme switching.
-- [ ] **Terms and Conditions**: Draft and implement T&Cs for users.
-- [ ] **Policies**: Draft and implement Privacy Policy and other required documentation.
-- [ ] **Documentation**: Create user enablement and developer documentation.
-- [ ] **Legal Review**: General review to ensure the app abides by relevant laws and regulations.
-- [ ] **Technical SEO Foundation**:
-    - **Public Landing Page**: Design and implement a high-converting, SEO-optimized landing page (`/`).
-    - **Dynamic Metadata**: Implement `generateMetadata` for all routes to ensure unique titles/descriptions.
-    - **Schema Markup**: Add JSON-LD (SoftwareApplication) to the landing page for rich search results.
-    - **Sitemap & Robots.txt**: Generate automated SEO files.
+- [ ] **Technical SEO Foundation**: Implement landing page, dynamic metadata, and schema markup to improve search visibility.
 - [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
-- [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title.
-- [ ] **Notification Utility (Bell Icon)**: Investigate and implement functionality for the currently hardcoded bell icon (e.g., in-app notifications for upload success/failure).
-- [ ] **Mobile UX: Safe Areas**: Ensure the UI respects "Safe Areas" on modern smartphones to avoid overlapping with the notch, dynamic island, or home indicator.
+- [ ] **Mobile UX: Safe Areas**: Ensure the UI respects "Safe Areas" (notches, dynamic islands) for the native mobile wrapper.
+- [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title for SEO and UX.
+- [ ] **Video Preview**: Integrated video player to review content before posting.
+- [ ] **Notification Utility (Bell Icon)**: Implement functionality for the bell icon (e.g., in-app notifications for upload success/failure).
+- [ ] **Dark/Light Mode Toggle**: Professional theme switching.
+- [ ] **Legal & Compliance**:
+    - [ ] **Terms and Conditions**: Draft and implement T&Cs.
+    - [ ] **Policies**: Draft and implement Privacy Policy.
+    - [ ] **Legal Review**: General review for platform compliance.
+- [ ] **Support Email**: Set up and display support contact information.
+- [ ] **Documentation**: Create user enablement and developer documentation.
+
+## Platform Expansion 🌐
+
+### Tier 1: Open & Developer-Friendly ✅
+*Low friction, quick integration, no expensive fees.*
+- [ ] **Telegram Channels** (~1B MAU): Direct-to-audience broadcasting. **[EASY]** Uses Bot API.
+- [ ] **Discord Integration**: Essential for niche communities and creators. **[EASY]** Uses Webhooks/Bots.
+- [ ] **WordPress Integration**: Publish content directly to self-hosted blogs. **[EASY]** Uses REST API.
+- [ ] **Bluesky Integration** (~20M+ MAU): Emerging decentralized protocol. **[EASY]** Uses AT Protocol.
+- [ ] **Mastodon Integration** (~10M+ MAU): Federated social networking. **[EASY]** Uses Mastodon API.
+- [ ] **Truth Social Integration** (~6.3M MAU): Support for alternative social audiences. **[EASY]** Mastodon-based.
+
+### Tier 2: Audit & Review Required ⚠️
+*Official public APIs exist, but require app submission and manual audit.*
+- [ ] **Facebook Integration** (~3B+ MAU): **[MODERATE]** Requires Meta App Review & Business Verification.
+- [ ] **YouTube Integration** (~2.5B MAU): **[MODERATE]** Requires Google Cloud project audit.
+- [ ] **Instagram Integration** (~2B+ MAU): **[MODERATE]** Requires Instagram Content Publishing API review.
+- [ ] **TikTok Integration** (~1.5B MAU): **[MODERATE]** Requires ByteDance Production App audit.
+- [ ] **LinkedIn Integration** (~930M+ Reg.): **[MODERATE]** Requires Marketing Developer Program approval.
+- [ ] **Pinterest Integration** (~540M MAU): **[MODERATE]** Requires Content Publishing API review.
+- [ ] **Threads Integration** (~400M MAU): **[MODERATE]** Uses Threads API (Meta Review required).
+
+### Tier 3: Expensive or Highly Restricted 🛑
+*High monthly costs or restricted access policies.*
+- [ ] **X (Twitter) Integration** (~600M+ MAU): **[COSTLY]** Requires paid API tier ($100/mo - $5,000/mo).
+- [ ] **Snapchat (Spotlight)** (~850M MAU): **[RESTRICTED]** Creative Kit is limited; full posting API is gatekept.
+- [ ] **Google Business Profile (GBP)**: **[RESTRICTED]** API access involves a tedious review process.
+
+### Tier 4: Future / No Public API 🔒
+*Currently no official way to automate posting.*
+- [ ] **Lemon8 Integration**: **[CLOSED]** No public API yet; requires manual share intent workflow.
+
+---
 
 ---
 
