@@ -293,7 +293,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <button 
           type="submit" 
-          disabled={isUploading || (accounts.length > 0 && selectedAccountIds.length === 0)}
+          disabled={isUploading}
           style={{ 
             background: 'hsl(var(--primary))', 
             color: 'white', 

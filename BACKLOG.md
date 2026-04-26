@@ -4,7 +4,7 @@ This document tracks future features and improvements for the Social Studio App.
 
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
-- [ ] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings.
+- [x] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings.
 - [ ] **Auth Redirect Performance**: Investigate and fix delays when navigating from the initial dashboard to the login page (unauthenticated) and from login back to the dashboard (authenticated). Aim for near-instantaneous transitions.
 - [ ] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 
