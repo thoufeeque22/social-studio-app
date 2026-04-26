@@ -48,6 +48,50 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   scheduledAt,
   onSchedulingChange,
 }) => {
+  const [title, setTitle] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  
+  // Sync with localStorage on mount and when changed externally (Resume Flow)
+  React.useEffect(() => {
+    const savedTitle = localStorage.getItem('SS_DRAFT_TITLE') || '';
+    const savedDesc = localStorage.getItem('SS_DRAFT_DESC') || '';
+    setTitle(savedTitle);
+    setDescription(savedDesc);
+  }, []);
+
+  const [titleUndo, setTitleUndo] = React.useState<string | null>(null);
+  const [descUndo, setDescUndo] = React.useState<string | null>(null);
+
+  const handleClearTitle = () => {
+    setTitleUndo(title);
+    setTitle('');
+    localStorage.setItem('SS_DRAFT_TITLE', '');
+    setTimeout(() => setTitleUndo(null), 5000);
+  };
+
+  const handleUndoTitle = () => {
+    if (titleUndo) {
+      setTitle(titleUndo);
+      localStorage.setItem('SS_DRAFT_TITLE', titleUndo);
+      setTitleUndo(null);
+    }
+  };
+
+  const handleClearDesc = () => {
+    setDescUndo(description);
+    setDescription('');
+    localStorage.setItem('SS_DRAFT_DESC', '');
+    setTimeout(() => setDescUndo(null), 5000);
+  };
+
+  const handleUndoDesc = () => {
+    if (descUndo) {
+      setDescription(descUndo);
+      localStorage.setItem('SS_DRAFT_DESC', descUndo);
+      setDescUndo(null);
+    }
+  };
+
   const isComplete = uploadStatus?.includes('successfully');
 
   return (
@@ -153,45 +197,136 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
-          <input 
-            id="video-title"
-            type="text" 
-            name="title" 
-            placeholder="Enter a catchy title..."
-            defaultValue={typeof window !== 'undefined' ? localStorage.getItem('SS_DRAFT_TITLE') || '' : ''}
-            onChange={(e) => localStorage.setItem('SS_DRAFT_TITLE', e.target.value)}
-            required
-            style={{ 
-              background: 'hsla(var(--muted) / 0.3)', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '0.75rem', 
-              border: '1px solid hsla(var(--border) / 0.5)',
-              color: 'white',
-              outline: 'none'
-            }} 
-          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
+            {titleUndo && (
+              <button 
+                type="button" 
+                onClick={handleUndoTitle}
+                className="fade-in"
+                style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <span>↩️</span> Undo Clear
+              </button>
+            )}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input 
+              id="video-title"
+              type="text" 
+              name="title" 
+              placeholder="Enter a catchy title..."
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                localStorage.setItem('SS_DRAFT_TITLE', e.target.value);
+              }}
+              required
+              style={{ 
+                background: 'hsla(var(--muted) / 0.3)', 
+                padding: '0.75rem 2.5rem 0.75rem 1rem', 
+                borderRadius: '0.75rem', 
+                border: '1px solid hsla(var(--border) / 0.5)',
+                color: 'white',
+                outline: 'none',
+                width: '100%'
+              }} 
+            />
+            {title && (
+              <button 
+                type="button"
+                onClick={handleClearTitle}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'hsla(var(--foreground) / 0.1)',
+                  border: 'none',
+                  color: 'hsl(var(--muted-foreground))',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'hsla(var(--foreground) / 0.2)'; e.currentTarget.style.color = 'white'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'hsla(var(--foreground) / 0.1)'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
-          <textarea 
-            id="video-description"
-            name="description" 
-            placeholder="Tell your viewers about the video..."
-            defaultValue={typeof window !== 'undefined' ? localStorage.getItem('SS_DRAFT_DESC') || '' : ''}
-            onChange={(e) => localStorage.setItem('SS_DRAFT_DESC', e.target.value)}
-            rows={3}
-            style={{ 
-              background: 'hsla(var(--muted) / 0.3)', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '0.75rem', 
-              border: '1px solid hsla(var(--border) / 0.5)',
-              color: 'white',
-              outline: 'none',
-              resize: 'none'
-            }} 
-          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
+            {descUndo && (
+              <button 
+                type="button" 
+                onClick={handleUndoDesc}
+                className="fade-in"
+                style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <span>↩️</span> Undo Clear
+              </button>
+            )}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <textarea 
+              id="video-description"
+              name="description" 
+              placeholder="Tell your viewers about the video..."
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                localStorage.setItem('SS_DRAFT_DESC', e.target.value);
+              }}
+              rows={3}
+              style={{ 
+                background: 'hsla(var(--muted) / 0.3)', 
+                padding: '0.75rem 2.5rem 0.75rem 1rem', 
+                borderRadius: '0.75rem', 
+                border: '1px solid hsla(var(--border) / 0.5)',
+                color: 'white',
+                outline: 'none',
+                resize: 'none',
+                width: '100%'
+              }} 
+            />
+            {description && (
+              <button 
+                type="button"
+                onClick={handleClearDesc}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '0.75rem',
+                  background: 'hsla(var(--foreground) / 0.1)',
+                  border: 'none',
+                  color: 'hsl(var(--muted-foreground))',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'hsla(var(--foreground) / 0.2)'; e.currentTarget.style.color = 'white'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'hsla(var(--foreground) / 0.1)'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />
