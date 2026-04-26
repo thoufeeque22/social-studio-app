@@ -6,13 +6,15 @@ import { Account, PlatformPreference } from '@/lib/core/types';
  * Custom hook to fetch a list of user accounts and manage the state
  * of their distribution status with optimistic updates.
  */
-export const useAccounts = () => {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [preferences, setPreferences] = useState<PlatformPreference[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export const useAccounts = (initialAccounts?: Account[], initialPreferences?: PlatformPreference[]) => {
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts || []);
+  const [preferences, setPreferences] = useState<PlatformPreference[]>(initialPreferences || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialAccounts);
 
-  // Fetch accounts on mount
+  // Fetch accounts on mount only if not provided
   useEffect(() => {
+    if (initialAccounts && initialPreferences) return;
+    
     async function loadData() {
       try {
         setIsLoading(true);
