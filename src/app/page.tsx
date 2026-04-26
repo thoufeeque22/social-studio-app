@@ -203,6 +203,18 @@ function DashboardContent() {
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!session) return;
+    
+    // Platform Selection Validation
+    if (selectedAccountIds.length === 0) {
+      if (accounts.length === 0) {
+        if (confirm("You haven't connected any social platforms yet. Would you like to go to Settings to connect them now?")) {
+          router.push('/settings');
+        }
+      } else {
+        alert("Please select at least one distribution channel (e.g., YouTube, Instagram) before posting.");
+      }
+      return;
+    }
 
     const form = e.currentTarget;
     const fileInput = form.querySelector('input[type="file"]') as HTMLInputElement;
