@@ -3,6 +3,7 @@ import { POST } from '../../app/api/upload/facebook/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { publishFacebookVideo, publishFacebookReel } from '@/lib/platforms/facebook';
+import { prisma } from '../../lib/core/prisma';
 import fs from 'fs/promises';
 
 vi.mock('@/auth', () => ({
@@ -17,6 +18,14 @@ vi.mock('@/lib/platforms/facebook', () => ({
 vi.mock('fs', () => ({
   default: {
     existsSync: vi.fn().mockReturnValue(true),
+  },
+}));
+
+vi.mock('@/lib/core/prisma', () => ({
+  prisma: {
+    account: {
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -35,6 +44,7 @@ describe('Facebook Long-form vs Reel Branching', () => {
     vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as any);
     vi.mocked(publishFacebookVideo).mockResolvedValue({ success: true } as any);
     vi.mocked(publishFacebookReel).mockResolvedValue({ success: true } as any);
+    vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: 'acc1', userId: 'u1' } as any);
   });
 
   const createMockRequest = (body: any) => {

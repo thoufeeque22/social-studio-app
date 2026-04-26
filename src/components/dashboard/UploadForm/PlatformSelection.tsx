@@ -23,7 +23,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   // Helper to check if a platform is enabled globally
   const isPlatformEnabled = (platformId: string) => {
     const pref = preferences.find(p => p.platformId === platformId);
-    return pref ? pref.isEnabled : false;
+    return pref ? pref.isEnabled : true; // Default to true if not explicitly set
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
