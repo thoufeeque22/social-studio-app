@@ -20,6 +20,15 @@ vi.mock('next-auth/react', () => ({
   useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
 }));
 
+// Mock server-side next-auth to prevent next/server resolution issues in JSDOM
+vi.mock('next-auth', () => ({
+  default: vi.fn(),
+  auth: vi.fn(),
+  handlers: { GET: vi.fn(), POST: vi.fn() },
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+}));
+
 // Mock Next.js Server (NextResponse, NextRequest)
 vi.mock('next/server', () => {
   return {

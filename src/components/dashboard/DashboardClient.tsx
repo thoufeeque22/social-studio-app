@@ -12,7 +12,7 @@ import { StyleMode } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
 import { getVideoFormatPreference, updateVideoFormatPreference, getAIStylePreference, updateAIStylePreference } from '@/app/actions/user';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
-import { Session } from 'next-auth';
+import type { Session } from 'next-auth';
 import { Account, PlatformPreference } from '@/lib/core/types';
 
 interface DashboardClientProps {
@@ -34,7 +34,7 @@ export default function DashboardClient({
   const searchParams = useSearchParams();
 
   const resumeHistoryId = searchParams.get('resume');
-  const { accounts, preferences } = useAccounts(initialAccounts, initialPreferences);
+  const { accounts, setAccounts, isLoading, preferences, togglePlatform } = useAccounts(initialAccounts, initialPreferences);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export default function DashboardClient({
     scheduledAt?: string;
   } | null>(null);
 
-  const [isInitialSync, setIsInitialSync] = React.useState(false);
+  const [isInitialSync, setIsInitialSync] = useState(false);
   const [platformStatuses, setPlatformStatuses] = useState<Record<string, any>>({});
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
@@ -111,6 +111,7 @@ export default function DashboardClient({
               setSelectedAccountIds(matchingIds);
             }
             
+            setIsInitialSync(true); // Prevent auto-selection logic from overwriting this
             setUploadStatus(`✅ Ready to resume: "${data.title}"`);
           }
         } catch (err) {
@@ -122,51 +123,70 @@ export default function DashboardClient({
     }
   }, [resumeHistoryId, accounts]);
 
-  // 1. Persistence: Platform Selection Stickiness
+  // Unified selection initialization effect
   useEffect(() => {
-    const saved = localStorage.getItem('SS_SELECTED_PLATFORMS');
-    if (saved) {
+    if (isLoading || isInitialSync) return;
+
+    // 1. Check LocalStorage (Sticky Selection)
+    const stickySelection = localStorage.getItem('SS_SELECTED_PLATFORMS');
+    if (stickySelection) {
       try {
-        setSelectedAccountIds(JSON.parse(saved));
-        setIsInitialSync(true);
+        const parsed = JSON.parse(stickySelection);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSelectedAccountIds(parsed);
+          setIsInitialSync(true);
+          return;
+        }
       } catch (e) {
-        console.error("Failed to load platform labels");
+        console.error("Failed to parse sticky selection", e);
       }
     }
-  }, []);
+
+    // 2. Fallback: Auto-selection based on preferences and distribution status
+    if (accounts.length > 0) {
+      const isPlatformEnabled = (platformId: string) => {
+        const pref = preferences.find(p => p.platformId === platformId);
+        return pref ? pref.isEnabled : true;
+      };
+
+      const initialSelection: string[] = [];
+      
+      accounts.forEach(account => {
+        if (!account.isDistributionEnabled) return;
+
+        if (account.provider === 'facebook') {
+          if (isPlatformEnabled('facebook')) initialSelection.push(`facebook:${account.id}`);
+          if (isPlatformEnabled('instagram')) initialSelection.push(`instagram:${account.id}`);
+        } else {
+          const platform = account.provider === 'google' ? 'youtube' : account.provider;
+          if (isPlatformEnabled(platform)) {
+            initialSelection.push(account.id);
+          }
+        }
+      });
+
+      // FALLBACK: If nothing was selected via preferences, but we have accounts, pick the first distribution-enabled one
+      if (initialSelection.length === 0) {
+        const firstEnabled = accounts.find(a => a.isDistributionEnabled);
+        if (firstEnabled) {
+          if (firstEnabled.provider === 'facebook') {
+            initialSelection.push(`facebook:${firstEnabled.id}`);
+          } else {
+            initialSelection.push(firstEnabled.id);
+          }
+        }
+      }
+
+      setSelectedAccountIds(initialSelection);
+      setIsInitialSync(true);
+    }
+  }, [accounts, isInitialSync, preferences, isLoading]);
 
   useEffect(() => {
     if (isInitialSync) {
       localStorage.setItem('SS_SELECTED_PLATFORMS', JSON.stringify(selectedAccountIds));
     }
   }, [selectedAccountIds, isInitialSync]);
-
-  // 2. Initial Sync (Backup if no saved sticky selection)
-  useEffect(() => {
-    if (accounts.length > 0 && !isInitialSync && preferences.length > 0) {
-      const initialSelection: string[] = [];
-      
-      const isPlatformEnabled = (platformId: string) => {
-        const pref = preferences.find(p => p.platformId === platformId);
-        return pref ? pref.isEnabled : false;
-      };
-
-      accounts.forEach(a => {
-        const platform = a.provider === 'google' ? 'youtube' : a.provider;
-        
-        if (a.isDistributionEnabled && isPlatformEnabled(platform)) {
-          if (a.provider === 'facebook') {
-            if (isPlatformEnabled('facebook')) initialSelection.push(`facebook:${a.id}`);
-            if (isPlatformEnabled('instagram')) initialSelection.push(`instagram:${a.id}`);
-          } else {
-            initialSelection.push(a.id);
-          }
-        }
-      });
-      setSelectedAccountIds(initialSelection);
-      setIsInitialSync(true);
-    }
-  }, [accounts, isInitialSync, preferences]);
 
   const handleToggleAccount = (id: string) => {
     // If we're interacting after a previous upload, clear the old success/failure states
