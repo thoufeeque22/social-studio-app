@@ -10,7 +10,7 @@ import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { StyleMode, AITier } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
-import { getVideoFormatPreference, updateVideoFormatPreference, getAIStylePreference, updateAIStylePreference } from '@/app/actions/user';
+import { updateVideoFormatPreference, updateAIStylePreference } from '@/app/actions/user';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { extractVideoFrames } from '@/lib/utils/video-analysis';
 import type { Session } from 'next-auth';
@@ -32,12 +32,12 @@ export default function DashboardClient({
   initialVideoFormat,
   initialAIStyle,
   initialAITier
-}: DashboardClientProps) {
+}: Readonly<DashboardClientProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const resumeHistoryId = searchParams.get('resume');
-  const { accounts, setAccounts, isLoading, preferences, togglePlatform } = useAccounts(initialAccounts, initialPreferences);
+  const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -50,17 +50,9 @@ export default function DashboardClient({
   // AI Review States
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
-  const [stagedFlowData, setStagedFlowData] = useState<{ 
-    stagedFileId: string; 
-    fileName: string; 
-    historyId: string;
-    formData: FormData;
-    isScheduled?: boolean;
-    scheduledAt?: string;
-  } | null>(null);
 
   const [isInitialSync, setIsInitialSync] = useState(false);
-  const [platformStatuses, setPlatformStatuses] = useState<Record<string, any>>({});
+  const [platformStatuses, setPlatformStatuses] = useState<Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>>({});
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const draftFileRef = useRef<File | null>(null);
@@ -68,7 +60,7 @@ export default function DashboardClient({
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
 
-  const [reviewContext, setReviewContext] = useState<any>(null);
+  const [reviewContext, setReviewContext] = useState<Record<string, unknown> | null>(null);
 
   // Load persisted file from IndexedDB on mount
   useEffect(() => {
@@ -86,7 +78,7 @@ export default function DashboardClient({
       const loadResumptionData = async () => {
         setUploadStatus("🔍 Loading resumption data...");
         try {
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+          const baseUrl = globalThis.window === undefined ? '' : globalThis.window.location.origin;
           const res = await fetch(`${baseUrl}/api/history/${resumeHistoryId}`);
           if (res.ok) {
             const { data } = await res.json();
@@ -98,16 +90,15 @@ export default function DashboardClient({
             setVideoFormat(data.videoFormat as 'short' | 'long');
             
             // 3. Map platforms back to account IDs
-            const platformNames = data.platforms.map((p: any) => p.platform);
+            const platformNames = new Set(data.platforms.map((p: { platform: string }) => p.platform));
             const matchingIds: string[] = [];
             
             accounts.forEach(acc => {
               const pName = acc.provider === 'google' ? 'youtube' : acc.provider;
-              if (platformNames.includes(pName)) {
+              if (platformNames.has(pName)) {
                 if (acc.provider === 'facebook') {
                    // Special case for our platform names logic
-                   matchingIds.push(`facebook:${acc.id}`);
-                   matchingIds.push(`instagram:${acc.id}`);
+                   matchingIds.push(`facebook:${acc.id}`, `instagram:${acc.id}`);
                 } else {
                    matchingIds.push(acc.id);
                 }
@@ -151,39 +142,7 @@ export default function DashboardClient({
 
     // 2. Fallback: Auto-selection based on preferences and distribution status
     if (accounts.length > 0) {
-      const isPlatformEnabled = (platformId: string) => {
-        const pref = preferences.find(p => p.platformId === platformId);
-        return pref ? pref.isEnabled : true;
-      };
-
-      const initialSelection: string[] = [];
-      
-      accounts.forEach(account => {
-        if (!account.isDistributionEnabled) return;
-
-        if (account.provider === 'facebook') {
-          if (isPlatformEnabled('facebook')) initialSelection.push(`facebook:${account.id}`);
-          if (isPlatformEnabled('instagram')) initialSelection.push(`instagram:${account.id}`);
-        } else {
-          const platform = account.provider === 'google' ? 'youtube' : account.provider;
-          if (isPlatformEnabled(platform)) {
-            initialSelection.push(account.id);
-          }
-        }
-      });
-
-      // FALLBACK: If nothing was selected via preferences, but we have accounts, pick the first distribution-enabled one
-      if (initialSelection.length === 0) {
-        const firstEnabled = accounts.find(a => a.isDistributionEnabled);
-        if (firstEnabled) {
-          if (firstEnabled.provider === 'facebook') {
-            initialSelection.push(`facebook:${firstEnabled.id}`);
-          } else {
-            initialSelection.push(firstEnabled.id);
-          }
-        }
-      }
-
+      const initialSelection = calculateInitialSelection(accounts, preferences);
       setSelectedAccountIds(initialSelection);
       setIsInitialSync(true);
     }
@@ -194,6 +153,7 @@ export default function DashboardClient({
       localStorage.setItem('SS_SELECTED_PLATFORMS', JSON.stringify(selectedAccountIds));
     }
   }, [selectedAccountIds, isInitialSync]);
+
 
   const handleToggleAccount = (id: string) => {
     // If we're interacting after a previous upload, clear the old success/failure states
@@ -219,7 +179,134 @@ export default function DashboardClient({
     setPlatformStatuses({});
   };
 
-  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Helper: Client-side Aspect Ratio & Duration Validation
+  const validateVideoMetadata = async (
+    file: File, 
+    videoFormat: 'short' | 'long', 
+    accounts: Account[], 
+    selectedAccountIds: string[],
+    setUploadStatus: (s: string | null) => void
+  ): Promise<boolean> => {
+    if (file.size > 1.5 * 1024 * 1024 * 1024) {
+      setUploadStatus('🚀 Large file detected. Proceeding directly to streaming upload...');
+      return true; 
+    }
+
+    setUploadStatus('🔍 Analyzing Video Metadata...');
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+
+      const cleanup = () => {
+        video.onloadedmetadata = null;
+        video.onerror = null;
+        if (video.src) {
+          globalThis.URL.revokeObjectURL(video.src);
+          video.src = '';
+        }
+        video.remove();
+      };
+
+      video.onloadedmetadata = () => {
+        const isVertical = video.videoHeight > video.videoWidth;
+        const duration = video.duration;
+        cleanup();
+
+        if (videoFormat === 'short' && !isVertical) {
+          alert('❌ Short-form content must be Vertical (9:16).');
+          resolve(false);
+          return;
+        } 
+        
+        if (videoFormat === 'long' && isVertical) {
+          alert('❌ Long-form content should be Landscape (16:9).');
+          resolve(false);
+          return;
+        }
+
+        const platformSet = getSelectedPlatformSet(accounts, selectedAccountIds);
+
+        if (platformSet.has('youtube') && videoFormat === 'short' && duration >= 60) {
+          alert('❌ YouTube Shorts must be under 60 seconds.');
+          resolve(false);
+        } else if (platformSet.has('facebook') && videoFormat === 'short' && duration > 90) {
+          alert('❌ Reels via API are limited to 90 seconds.');
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+
+      video.onerror = () => { resolve(false); cleanup(); };
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const mapSelectedPlatforms = (ids: string[], accounts: Account[]) => {
+    return ids.map(sid => {
+      let platform: string;
+      let accountId: string;
+      
+      if (sid.includes(':')) {
+         const parts = sid.split(':');
+         platform = parts[0];
+         accountId = parts[1];
+      } else {
+         const account = accounts.find(a => a.id === sid);
+         if (!account) return null;
+         platform = account.provider === 'google' ? 'youtube' : account.provider;
+         accountId = account.id;
+      }
+      return { platform, accountId };
+    }).filter((p): p is { platform: string; accountId: string } => p !== null);
+  };
+
+  const handlePlatformPersistence = (historyId: string, result: unknown) => {
+    if (!historyId) return;
+    import('@/app/actions/history').then(({ upsertPlatformResult }) => {
+      upsertPlatformResult(historyId, result as import('@/app/actions/history').PlatformResultInput).catch(err => console.error("History persistence failed:", err));
+    });
+  };
+  const calculateInitialSelection = (accounts: Account[], preferences: PlatformPreference[]) => {
+    const isPlatformEnabled = (platformId: string) => {
+      const pref = preferences.find(p => p.platformId === platformId);
+      return pref ? pref.isEnabled : true;
+    };
+
+    const selection: string[] = [];
+    
+    accounts.forEach(account => {
+      if (!account.isDistributionEnabled) return;
+
+      if (account.provider === 'facebook') {
+        if (isPlatformEnabled('facebook')) selection.push(`facebook:${account.id}`);
+        if (isPlatformEnabled('instagram')) selection.push(`instagram:${account.id}`);
+      } else {
+        const platform = account.provider === 'google' ? 'youtube' : account.provider;
+        if (isPlatformEnabled(platform)) {
+          selection.push(account.id);
+        }
+      }
+    });
+
+    if (selection.length === 0) {
+      const firstEnabled = accounts.find(a => a.isDistributionEnabled);
+      if (firstEnabled) {
+        selection.push(firstEnabled.provider === 'facebook' ? `facebook:${firstEnabled.id}` : firstEnabled.id);
+      }
+    }
+    return selection;
+  };
+
+  const getSelectedPlatformSet = (accounts: Account[], ids: string[]) => {
+    return new Set(accounts
+      .filter(a => ids.includes(a.id))
+      .map(a => a.provider === 'google' ? 'youtube' : a.provider));
+  };
+
+  const handleUpload = async (e: { preventDefault: () => void; currentTarget: HTMLFormElement }) => {
     e.preventDefault();
     if (!session) return;
     
@@ -244,66 +331,7 @@ export default function DashboardClient({
       return;
     }
 
-    // Client-side Aspect Ratio & Duration Validation
-    const validateVideoMetadata = async (file: File): Promise<boolean> => {
-      // 0. Safety Threshold for Massive Files
-      if (file.size > 1.5 * 1024 * 1024 * 1024) {
-        console.warn('⚠️ Massive file detected (>1.5GB). Skipping client-side analysis.');
-        setUploadStatus('🚀 Large file detected. Proceeding directly to streaming upload...');
-        return true; 
-      }
-
-      setUploadStatus('🔍 Analyzing Video Metadata...');
-      return new Promise((resolve) => {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.muted = true;
-        video.playsInline = true;
-
-        const cleanup = () => {
-          video.onloadedmetadata = null;
-          video.onerror = null;
-          if (video.src) {
-            window.URL.revokeObjectURL(video.src);
-            video.src = '';
-          }
-          video.remove();
-        };
-
-        video.onloadedmetadata = () => {
-          const isVertical = video.videoHeight > video.videoWidth;
-          const duration = video.duration;
-          cleanup();
-
-          if (videoFormat === 'short' && !isVertical) {
-            alert('❌ Short-form content must be Vertical (9:16).');
-            resolve(false);
-          } else if (videoFormat === 'long' && isVertical) {
-            alert('❌ Long-form content should be Landscape (16:9).');
-            resolve(false);
-          } else {
-            const selectedPlatforms = accounts
-              .filter(a => selectedAccountIds.includes(a.id))
-              .map(a => a.provider === 'google' ? 'youtube' : a.provider);
-
-            if (selectedPlatforms.includes('youtube') && videoFormat === 'short' && duration >= 60) {
-              alert('❌ YouTube Shorts must be under 60 seconds.');
-              resolve(false);
-            } else if (selectedPlatforms.includes('facebook') && videoFormat === 'short' && duration > 90) {
-              alert('❌ Reels via API are limited to 90 seconds.');
-              resolve(false);
-            } else {
-              resolve(true);
-            }
-          }
-        };
-
-        video.onerror = () => { resolve(false); cleanup(); };
-        video.src = URL.createObjectURL(file);
-      });
-    };
-
-    const isValid = await validateVideoMetadata(file);
+    const isValid = await validateVideoMetadata(file, videoFormat, accounts, selectedAccountIds, setUploadStatus);
     if (!isValid) {
       setUploadStatus(null);
       return;
@@ -315,104 +343,103 @@ export default function DashboardClient({
       const data = new FormData(form);
       const skipReview = data.get('skipReview') === 'true';
       
-      // Ensure the file is in FormData (it may come from IndexedDB, not the input)
       if (!data.get('file') || (data.get('file') as File).size === 0) {
         data.set('file', file);
       }
       
-      // Phase 1: Initialize + Stage file
-      const title = (data.get('title') as string) || file.name || 'Untitled Post';
-      const description = (data.get('description') as string) || undefined;
-      
-      // Preserve both platform names and their specific account IDs
-      const platforms = selectedAccountIds.map(sid => {
-        let platform: string;
-        let accountId: string;
-        
-        if (sid.includes(':')) {
-           const parts = sid.split(':');
-           platform = parts[0];
-           accountId = parts[1];
-        } else {
-           const account = accounts.find(a => a.id === sid);
-           if (!account) return null;
-           platform = account.provider === 'google' ? 'youtube' : account.provider;
-           accountId = account.id;
-        }
-        return { platform, accountId };
-      }).filter(p => p !== null);
-
-      const { stagedFileId, fileName, historyId } = await stageVideoFile({
-        file,
-        onStatusUpdate: setUploadStatus,
-        metadata: { 
-          title, 
-          description, 
-          videoFormat,
-          scheduledAt: isScheduled ? scheduledAt : undefined,
-          isPublished: !isScheduled
-        } as any,
-        platforms: platforms as any,
-        resumeHistoryId: resumeHistoryId || undefined
-      });
+      const { stagedFileId, fileName, historyId, platforms, title, description } = await performStaging(file, data);
 
       if (aiTier !== 'Manual' && !skipReview) {
-        setIsUploading(true);
-        setUploadStatus('🧠 Brainstorming AI Strategies...');
-        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-        
-        try {
-          const previews = await getMultiPlatformAIPreviews(
-            title,
-            description || '',
-            aiTier,
-            contentMode,
-            platforms.map(p => p!.platform)
-          );
-          
-          setAiPreviews(previews);
-          setReviewContext({
-            stagedFileId,
-            historyId,
-            fileName,
-            formData: data,
-            platforms
-          });
-          setIsReviewing(true);
-          setIsUploading(false);
-          setUploadStatus(null);
-          return;
-        } catch (err: any) {
-           console.error(err);
-           alert("AI Generation failed. Check console and API key.");
-           setIsUploading(false);
-           setUploadStatus(null);
-           return;
-        }
+        const reviewHandled = await handleAIReview(stagedFileId, fileName, historyId, platforms, title, description, data);
+        if (reviewHandled) return;
       }
 
       if (isScheduled) {
         setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
         setIsUploading(false);
-        window.dispatchEvent(new CustomEvent('refresh-upcoming'));
-        clearDraftFile();
-        localStorage.removeItem('SS_DRAFT_TITLE');
-        localStorage.removeItem('SS_DRAFT_DESC');
-        setDraftFileName(null);
-        draftFileRef.current = null;
+        globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
+        cleanupDraft();
         return;
       }
 
-      // Manual Mode -> Distribute directly
       await executeDistribution(stagedFileId, fileName, historyId, data);
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Process error:', error);
-      setUploadStatus(`Error: ${error.message}`);
-      alert(error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      setUploadStatus(`Error: ${message}`);
+      alert(message);
       setIsUploading(false);
     }
   };
+
+  const cleanupDraft = () => {
+    clearDraftFile();
+    localStorage.removeItem('SS_DRAFT_TITLE');
+    localStorage.removeItem('SS_DRAFT_DESC');
+    setDraftFileName(null);
+    draftFileRef.current = null;
+  };
+
+  const performStaging = async (file: File, data: FormData) => {
+    const title = (data.get('title') as string) || file.name || 'Untitled Post';
+    const description = (data.get('description') as string) || undefined;
+    const platforms = mapSelectedPlatforms(selectedAccountIds, accounts);
+
+    const result = await stageVideoFile({
+      file,
+      onStatusUpdate: setUploadStatus,
+      metadata: { 
+        title, 
+        description, 
+        videoFormat,
+        scheduledAt: isScheduled ? scheduledAt : undefined,
+        isPublished: !isScheduled
+      } as unknown as Record<string, string>,
+      platforms: platforms as unknown as { platform: string; accountId: string }[],
+      resumeHistoryId: resumeHistoryId || undefined
+    });
+
+    return { ...result, platforms, title, description };
+  };
+
+  const handleAIReview = async (
+    stagedFileId: string, 
+    fileName: string, 
+    historyId: string, 
+    platforms: { platform: string; accountId: string }[], 
+    title: string, 
+    description: string | undefined, 
+    data: FormData
+  ) => {
+    setUploadStatus('🧠 Brainstorming AI Strategies...');
+    const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+    
+    try {
+      const previews = await getMultiPlatformAIPreviews(
+        title,
+        description || '',
+        aiTier,
+        contentMode,
+        platforms.map(p => p.platform)
+      );
+      
+      setAiPreviews(previews);
+      setReviewContext({ stagedFileId, historyId, fileName, formData: data, platforms });
+      setIsReviewing(true);
+      setIsUploading(false);
+      setUploadStatus(null);
+      return true;
+    } catch (err: unknown) {
+      console.error(err);
+      alert("AI Generation failed. Check console and API key.");
+      setIsUploading(false);
+      setUploadStatus(null);
+      return false;
+    }
+  };
+
+
+
 
   const executeDistribution = async (
     stagedFileId: string, 
@@ -440,15 +467,10 @@ export default function DashboardClient({
         },
         onAccountSuccess: (id, result) => {
           setSuccessfulAccountIds(prev => [...prev, id]);
-          // PERSISTENT UPDATE (Handled on caller side now)
-          if (historyId) {
-            import('@/app/actions/history').then(({ upsertPlatformResult }) => {
-              upsertPlatformResult(historyId, result).catch(err => console.error("History persistence failed:", err));
-            });
-          }
+          handlePlatformPersistence(historyId, result);
         },
         historyId,
-        reviewedContent: (reviewedContent as any)
+        reviewedContent: (reviewedContent as Record<string, import('@/lib/utils/ai-writer').AIWriteResult>)
       });
 
       const failures = distribution.platformResults.filter(r => r.status === 'failed');
@@ -464,12 +486,13 @@ export default function DashboardClient({
       draftFileRef.current = null;
       setDraftFileName(null);
       await clearDraftFile();
-    } catch (error: any) {
-      setUploadStatus(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      setUploadStatus(`Error: ${message}`);
     } finally {
       setIsUploading(false);
       setIsReviewing(false);
-      setStagedFlowData(null);
+
     }
   };
 
@@ -519,12 +542,12 @@ export default function DashboardClient({
     
     try {
       const { saveStagedMetadata } = await import('@/app/actions/history');
-      await saveStagedMetadata(reviewContext.stagedFileId, updatedPreviews);
+      await saveStagedMetadata(reviewContext.stagedFileId as string, updatedPreviews);
       
       if (isScheduled) {
         setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
         setIsUploading(false);
-        window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+        globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
         clearDraftFile();
         localStorage.removeItem('SS_DRAFT_TITLE');
         localStorage.removeItem('SS_DRAFT_DESC');
@@ -536,9 +559,9 @@ export default function DashboardClient({
       setPlatformStatuses(selectedAccountIds.reduce((acc, id) => ({ ...acc, [id]: 'pending' }), {}));
       
       const distribution = await distributeToPlatforms({
-        stagedFileId: reviewContext.stagedFileId,
-        fileName: reviewContext.fileName,
-        formData: reviewContext.formData,
+        stagedFileId: reviewContext.stagedFileId as string,
+        fileName: reviewContext.fileName as string,
+        formData: reviewContext.formData as FormData,
         accounts,
         selectedAccountIds,
         contentMode,
@@ -548,7 +571,7 @@ export default function DashboardClient({
           setPlatformStatuses(prev => ({ ...prev, [id]: status }));
         },
         onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
-        historyId: reviewContext.historyId,
+        historyId: reviewContext.historyId as string,
         reviewedContent: updatedPreviews
       });
       
@@ -564,10 +587,11 @@ export default function DashboardClient({
       draftFileRef.current = null;
       setDraftFileName(null);
       await clearDraftFile();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setUploadStatus(`Error: ${err.message}`);
-      alert(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`Error: ${message}`);
+      alert(message);
     } finally {
       setIsUploading(false);
     }

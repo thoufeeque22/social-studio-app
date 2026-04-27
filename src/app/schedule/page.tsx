@@ -10,6 +10,7 @@ import {
 } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
 import { AIContentReview } from '@/components/dashboard/AIContentReview';
+import { AIWriteResult } from '@/lib/utils/ai-writer';
 
 interface PlatformResult {
   id: string;
@@ -27,13 +28,20 @@ interface PostHistoryEntry {
   platforms: PlatformResult[];
 }
 
+const PLATFORM_ICONS: Record<string, string> = {
+  youtube: '📺',
+  instagram: '📸',
+  facebook: '👥',
+  tiktok: '🎵'
+};
+
 export default function SchedulePage() {
   const [posts, setPosts] = useState<PostHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<PostHistoryEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [aiPreviews, setAiPreviews] = useState<Record<string, any>>({});
+  const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
   const [isAILoading, setIsAILoading] = useState(false);
 
   // Helper to format date for datetime-local input in LOCAL time
@@ -75,10 +83,10 @@ export default function SchedulePage() {
     fetchSchedule();
     
     // Listen for the same refresh event used on the dashboard
-    window.addEventListener('refresh-upcoming', fetchSchedule);
+    globalThis.addEventListener('refresh-upcoming', fetchSchedule);
     
     return () => {
-      window.removeEventListener('refresh-upcoming', fetchSchedule);
+      globalThis.removeEventListener('refresh-upcoming', fetchSchedule);
     };
   }, [fetchSchedule]);
 
@@ -88,9 +96,10 @@ export default function SchedulePage() {
     try {
       await deleteScheduledPost(id);
       setPosts(prev => prev.filter(p => p.id !== id));
-      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
-    } catch (err: any) {
-      alert(`Failed to delete: ${err.message}`);
+      globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete: ${message}`);
     }
   };
 
@@ -102,20 +111,19 @@ export default function SchedulePage() {
       // It will move to history automatically when worker picks it up
       // For now, we just remove it from the list or refresh
       setPosts(prev => prev.filter(p => p.id !== id));
-      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+      globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
       alert('Post moved to publishing queue! Check History in a few moments.');
-    } catch (err: any) {
-      alert(`Failed to publish: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Failed to publish: ${message}`);
     }
   };
 
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleUpdate = async (formData: FormData) => {
     if (!editingPost) return;
 
     setIsSaving(true);
     try {
-      const formData = new FormData(e.currentTarget);
       await updateScheduledPost(editingPost.id, {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -123,9 +131,10 @@ export default function SchedulePage() {
       });
       setEditingPost(null);
       fetchSchedule();
-      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
-    } catch (err: any) {
-      alert(`Update failed: ${err.message}`);
+      globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`Update failed: ${message}`);
     } finally {
       setIsSaving(false);
     }
@@ -157,8 +166,8 @@ export default function SchedulePage() {
     }
   };
 
-  const handleConfirmReview = async (finalContent: Record<string, any>) => {
-    if (!editingPost || !editingPost.stagedFileId) {
+  const handleConfirmReview = async (finalContent: Record<string, AIWriteResult>) => {
+    if (!editingPost?.stagedFileId) {
        alert("Error: Missing file reference. Cannot save platform-specific metadata.");
        return;
     }
@@ -178,7 +187,7 @@ export default function SchedulePage() {
       setIsReviewing(false);
       setEditingPost(null);
       fetchSchedule();
-      window.dispatchEvent(new CustomEvent('refresh-upcoming'));
+      globalThis.dispatchEvent(new CustomEvent('refresh-upcoming'));
     } catch (err) {
       alert('Failed to save AI metadata sidecar');
       console.error(err);
@@ -247,7 +256,7 @@ export default function SchedulePage() {
                 <div className={styles.platformRow}>
                   {post.platforms.map(p => (
                     <span key={post.id + p.platform} className={styles.platformPill}>
-                      {p.platform === 'youtube' ? '📺' : p.platform === 'instagram' ? '📸' : p.platform === 'facebook' ? '👥' : '🎵'} {p.platform}
+                      {PLATFORM_ICONS[p.platform] || '🔗'} {p.platform}
                     </span>
                   ))}
                 </div>
@@ -297,7 +306,7 @@ export default function SchedulePage() {
         <div className={styles.modalOverlay}>
           <GlassCard className={styles.modalContent}>
             <h2 className={styles.modalTitle}>Edit Scheduled Post</h2>
-            <form onSubmit={handleUpdate}>
+            <form action={handleUpdate}>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                 <button
                   type="button"
@@ -323,8 +332,9 @@ export default function SchedulePage() {
                 </button>
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Title</label>
+                <label htmlFor="edit-title" className={styles.formLabel}>Title</label>
                 <input 
+                  id="edit-title"
                   name="title" 
                   defaultValue={editingPost.title} 
                   className={styles.formInput} 
@@ -332,8 +342,9 @@ export default function SchedulePage() {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Description</label>
+                <label htmlFor="edit-description" className={styles.formLabel}>Description</label>
                 <textarea 
+                  id="edit-description"
                   name="description" 
                   defaultValue={editingPost.description || ''} 
                   className={styles.formTextarea} 
@@ -341,23 +352,21 @@ export default function SchedulePage() {
                 />
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Scheduled Date & Time</label>
-                <div 
+                <label htmlFor="edit-scheduledAt" className={styles.formLabel}>Scheduled Date & Time</label>
+                <label 
+                  htmlFor="edit-scheduledAt"
                   className={styles.datePickerWrapper}
-                  onClick={(e) => {
-                    const input = e.currentTarget.querySelector('input');
-                    if (input && 'showPicker' in input) (input as any).showPicker();
-                  }}
                 >
                   <span className={styles.dateIcon}>📅</span>
                   <input 
+                    id="edit-scheduledAt"
                     type="datetime-local" 
                     name="scheduledAt" 
                     defaultValue={formatToLocalDatetime(editingPost.scheduledAt)} 
                     className={styles.formInputWithIcon} 
                     required 
                   />
-                </div>
+                </label>
               </div>
               
               <div className={styles.formActions}>

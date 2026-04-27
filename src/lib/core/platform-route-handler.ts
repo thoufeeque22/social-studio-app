@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
-import { generatePostContent } from "@/lib/utils/ai-writer";
 import { StyleMode } from "@/lib/core/constants";
-import { promises as fs } from "fs";
-import fsSync from "fs";
-import path from "path";
+import fsSync from "node:fs";
+import path from "node:path";
 import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 import { formatPlatformCaption } from "./distributor-utils";
 
@@ -20,7 +18,7 @@ interface PlatformHandlerParams {
     videoFormat: string;
     accountId?: string;
     fields: Record<string, string>;
-  }) => Promise<any>;
+  }) => Promise<unknown>;
 }
 
 /**
@@ -70,7 +68,6 @@ export async function handlePlatformUploadRequest({
     // 2. Extract Data
     const rawTitle = fields.title || fileName || "Untitled Video";
     const rawDescription = fields.description || "";
-    const contentMode = (fields.contentMode as StyleMode) || "Manual";
     const videoFormat = fields.videoFormat || "short";
     const accountId = fields.accountId;
 
@@ -100,13 +97,13 @@ export async function handlePlatformUploadRequest({
 
     // 4. Enrich through Intelligence Layer (AI)
     // BYPASS if already reviewed on client
-    let enrichedContent;
+    let enrichedContent: { title: string; description: string; hashtags: string[] };
     if (fields.reviewedContent) {
       console.log(`✨ [${platform}] Using user-reviewed AI content.`);
-      const rc = fields.reviewedContent as any;
+      const rc = JSON.parse(fields.reviewedContent) as import('@/lib/utils/ai-writer').AIWriteResult;
       enrichedContent = {
-        title: rc.title,
-        description: rc.description,
+        title: rc.title || '',
+        description: rc.description || '',
         hashtags: rc.hashtags || []
       };
     } else {
@@ -139,22 +136,24 @@ export async function handlePlatformUploadRequest({
       });
 
       return NextResponse.json({ success: true, data: result });
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       console.error(`❌ [${platform}] API Error:`, apiError);
+      const e = apiError as Record<string, unknown>;
       return NextResponse.json({ 
         success: false, 
-        error: apiError.message,
+        error: e.message || String(e),
         // Carry over resumable hints if available
-        resumableUrl: apiError.resumableUrl,
-        videoId: apiError.videoId,
-        creationId: apiError.creationId
-      }, { status: apiError.status === 'failed' ? 200 : 500 });
+        resumableUrl: e.resumableUrl,
+        videoId: e.videoId,
+        creationId: e.creationId
+      }, { status: e.status === 'failed' ? 200 : 500 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`❌ [${platform}] Route Error:`, error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
         success: false, 
-        error: error.message || `${platform} upload failed` 
+        error: message || `${platform} upload failed` 
     }, { status: 500 });
   }
 }
