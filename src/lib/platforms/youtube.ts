@@ -83,9 +83,14 @@ export const uploadToYouTube = async ({
     console.log("📺 [YT-RESUME] Initializing new resumable session...");
     
     const authObj = youtube.context._options.auth as any;
-    const authResult = typeof authObj?.getAccessToken === 'function' ? await authObj.getAccessToken() : authObj;
-    const token = typeof authResult === 'string' ? authResult : (authResult?.token || authObj?.credentials?.access_token);
-
+    let token = authObj?.credentials?.access_token;
+    
+    try {
+      const authResult = typeof authObj?.getAccessToken === 'function' ? await authObj.getAccessToken() : authObj;
+      token = typeof authResult === 'string' ? authResult : (authResult?.token || token);
+    } catch (tokenErr: any) {
+      console.warn("📺 [YT-RESUME] getAccessToken threw an error (likely no refresh token), falling back to raw access_token:", tokenErr.message);
+    }
     const metadataRes = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
       method: "POST",
       headers: {

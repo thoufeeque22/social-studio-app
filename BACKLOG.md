@@ -9,7 +9,7 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
 
 ## Medium Priority 📈
-- [ ] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
+- [ ] **Monetization & Public Scaling**: Execute the [Revenue & Scaling Strategy](REVENUE_STRATEGY.md) (Implement Upstash rate-limiting, background queues, and Freemium paywalls/Stripe integration) to prepare the app for public launch.
 - [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
 - [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
@@ -131,3 +131,4 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally.
 - [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 - [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
+- [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.

@@ -21,7 +21,9 @@ export const getMultiPlatformAIPreviews = async (
       throw new Error("Cannot generate previews in Manual mode.");
     }
 
-    const previewPromises = platforms.map(async (platform) => {
+    const results: { platform: string, result: AIWriteResult }[] = [];
+
+    for (const platform of platforms) {
       try {
         const result = await generatePostContent(
           tier,
@@ -31,21 +33,19 @@ export const getMultiPlatformAIPreviews = async (
           platform as any,
           visualData
         );
-        return { platform, result };
+        results.push({ platform, result });
       } catch (err: any) {
         console.error(`AI Preview Error for ${platform}:`, err);
-        return { 
+        results.push({ 
           platform, 
           result: { 
             title: title || "Strategy Placeholder", 
             description: `AI Error: ${err.message || 'Unknown error'}. Please try a manual prompt or a different video.`, 
             hashtags: [] 
           } as AIWriteResult 
-        };
+        });
       }
-    });
-
-    const results = await Promise.all(previewPromises);
+    }
     
     // Convert array to record
     return results.reduce((acc, curr) => {

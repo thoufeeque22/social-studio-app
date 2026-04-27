@@ -1,4 +1,4 @@
-import { AITier, StyleMode } from '../core/constants';
+import { AITier, StyleMode, GEMINI_FALLBACK_MODELS } from '../core/constants';
 
 export type Platform = 'youtube' | 'instagram' | 'tiktok';
 
@@ -6,6 +6,95 @@ export interface AIWriteResult {
   title: string;
   description: string;
   hashtags: string[];
+}
+
+interface Part {
+  text?: string;
+  inline_data?: {
+    mime_type: string;
+    data: string;
+  };
+}
+
+function buildSystemPrompt(platform: Platform, tier: AITier, mode: StyleMode, hasVisualData: boolean): string {
+  let prompt = `You are a social media copywriter expert. 
+Target Platform: ${(platform || "general").toUpperCase()}.
+AI Strategy: ${(tier || "generate").toUpperCase()} mode.
+Task: Write a title, description, and hashtags.
+Output must be ONLY valid JSON in this format:
+{
+  "title": "Your Title",
+  "description": "Your Description",
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
+}
+Always generate exactly 5 hashtags by default.`;
+
+  if (hasVisualData) {
+    prompt += `\nContext: You have been provided with frames from the video. Analyze the VISUAL content to generate the most accurate and engaging title and description.`;
+  }
+
+  if (tier === 'Enrich') {
+    prompt += `\nGoal: The user has provided a draft. Your job is to ENRICH it—make it more engaging, fix grammar, and optimize for ${platform} while keeping the original intent.`;
+  } else if (tier === 'Generate') {
+    prompt += `\nGoal: The user has provided a prompt or context. Your job is to GENERATE high-performing content from scratch for ${platform}.`;
+  }
+
+  const platformConstraints: Record<Platform, string> = {
+    youtube: `\nConstraints: The title MUST be under 60 characters for YouTube Shorts. The description should be engaging and SEO-rich.`,
+    tiktok: `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy. Maximum 5 hashtags allowed.`,
+    instagram: `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length. Maximum 5 hashtags allowed.`
+  };
+  
+  if (platformConstraints[platform]) {
+    prompt += platformConstraints[platform];
+  }
+
+  const styleConstraints: Record<StyleMode, string> = {
+    Hook: `\nStyle: High-adrenaline, click-inducing, FOMO-driven hook. Make it impossible not to click.`,
+    SEO: `\nStyle: Search-optimized, informative, keyword-dense but readable.`,
+    "Gen-Z": `\nStyle: Authentic, low-caps, gen-z slang, ironically detached but engaging. No cap.`
+  };
+
+  if (styleConstraints[mode]) {
+    prompt += styleConstraints[mode];
+  }
+
+  return prompt;
+}
+
+async function fetchWithFallback(apiKey: string, requestBody: string): Promise<Response> {
+  let response: Response | null = null;
+  let lastError: Error | null = null;
+
+  for (const model of GEMINI_FALLBACK_MODELS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
+
+      if (res.ok) {
+        response = res;
+        console.log(`Successfully generated content using model: ${model}`);
+        break;
+      } else if (res.status === 429) {
+        throw new Error("API Rate Limit Exceeded. Please wait a minute before trying again.");
+      } else {
+        console.warn(`Model ${model} failed with status: ${res.status}`);
+        lastError = new Error(`LLM API returned ${res.status} for model ${model}`);
+      }
+    } catch (err: unknown) {
+      console.warn(`Model ${model} encountered an error:`, err);
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+
+  if (!response) {
+    throw lastError || new Error("All LLM fallback models failed.");
+  }
+
+  return response;
 }
 
 /**
@@ -33,51 +122,14 @@ export async function generatePostContent(
     throw new Error("GEMINI_API_KEY is not configured for production use.");
   }
 
-  // System instructions tailored to the platform, tier, and mode
-  let systemPrompt = `You are a social media copywriter expert. 
-Target Platform: ${platform.toUpperCase()}.
-AI Strategy: ${tier.toUpperCase()} mode.
-Task: Write a title, description, and hashtags.
-Output must be ONLY valid JSON in this format:
-{
-  "title": "Your Title",
-  "description": "Your Description",
-  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
-}
-Always generate exactly 5 hashtags by default.`;
-
-  if (visualData && visualData.length > 0) {
-    systemPrompt += `\nContext: You have been provided with frames from the video. Analyze the VISUAL content to generate the most accurate and engaging title and description.`;
-  }
-
-  if (tier === 'Enrich') {
-    systemPrompt += `\nGoal: The user has provided a draft. Your job is to ENRICH it—make it more engaging, fix grammar, and optimize for ${platform} while keeping the original intent.`;
-  } else if (tier === 'Generate') {
-    systemPrompt += `\nGoal: The user has provided a prompt or context. Your job is to GENERATE high-performing content from scratch for ${platform}.`;
-  }
-
-  if (platform === 'youtube') {
-    systemPrompt += `\nConstraints: The title MUST be under 60 characters for YouTube Shorts. The description should be engaging and SEO-rich.`;
-  } else if (platform === 'tiktok') {
-    systemPrompt += `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy. Maximum 5 hashtags allowed.`;
-  } else if (platform === 'instagram') {
-    systemPrompt += `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length. Maximum 5 hashtags allowed.`;
-  }
-
-  if (mode === 'Hook') {
-    systemPrompt += `\nStyle: High-adrenaline, click-inducing, FOMO-driven hook. Make it impossible not to click.`;
-  } else if (mode === 'SEO') {
-    systemPrompt += `\nStyle: Search-optimized, informative, keyword-dense but readable.`;
-  } else if (mode === 'Gen-Z') {
-    systemPrompt += `\nStyle: Authentic, low-caps, gen-z slang, ironically detached but engaging. No cap.`;
-  }
+  const systemPrompt = buildSystemPrompt(platform, tier, mode, !!visualData && visualData.length > 0);
 
   const prompt = tier === 'Enrich' 
     ? `Draft Title: ${rawText}\nDraft Description: ${videoContext}`
     : `User Prompt: ${rawText}\nAdditional Context: ${videoContext}`;
 
   try {
-    const parts: any[] = [{ text: `${systemPrompt}\n\n${prompt}` }];
+    const parts: Part[] = [{ text: `${systemPrompt}\n\n${prompt}` }];
     
     if (visualData && visualData.length > 0) {
       visualData.forEach(base64 => {
@@ -95,22 +147,15 @@ Always generate exactly 5 hashtags by default.`;
       });
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.7,
-        }
-      }),
+    const requestBody = JSON.stringify({
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7,
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`LLM API returned ${response.status}`);
-    }
-
+    const response = await fetchWithFallback(apiKey, requestBody);
     const data = await response.json();
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     

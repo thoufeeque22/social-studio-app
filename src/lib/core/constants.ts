@@ -13,3 +13,11 @@ export type StyleMode = 'Hook' | 'SEO' | 'Gen-Z';
 export const AI_TIERS: AITier[] = ['Manual', 'Enrich', 'Generate'];
 export const STYLE_MODES: StyleMode[] = ['Hook', 'SEO', 'Gen-Z'];
 
+export const GEMINI_FALLBACK_MODELS = [
+  "gemini-3.1-pro-preview",
+  "gemini-3-pro-preview",
+  "gemini-2.5-pro",
+  "gemini-3.1-flash-preview",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash"
+];

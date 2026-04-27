@@ -367,7 +367,7 @@ export default function DashboardClient({
             description || '',
             aiTier,
             contentMode,
-            platforms.map(p => p.platformId)
+            platforms.map(p => p!.platform)
           );
           
           setAiPreviews(previews);
@@ -519,7 +519,7 @@ export default function DashboardClient({
     
     try {
       const { saveStagedMetadata } = await import('@/app/actions/history');
-      await saveStagedMetadata(reviewContext.stagedFileId, reviewedContent);
+      await saveStagedMetadata(reviewContext.stagedFileId, updatedPreviews);
       
       if (isScheduled) {
         setUploadStatus(`📅 Post scheduled for ${new Date(scheduledAt).toLocaleString()}!`);
@@ -549,7 +549,7 @@ export default function DashboardClient({
         },
         onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
         historyId: reviewContext.historyId,
-        reviewedContent
+        reviewedContent: updatedPreviews
       });
       
       const failures = distribution.platformResults.filter(r => r.status === 'failed');
