@@ -26,13 +26,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { 
   CheckCircle2, 
   Circle, 
-  LayoutDashboard, 
   Zap,
   Terminal,
   Loader2,
   GripVertical
 } from 'lucide-react';
-import Link from 'next/link';
 
 interface BacklogItem {
   id: string;
@@ -46,7 +44,7 @@ type BacklogData = Record<string, BacklogItem[]>;
 
 // --- Components ---
 
-function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: BacklogItem) => void }) {
+function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: number; onToggle: (item: BacklogItem) => void }) {
   const {
     attributes,
     listeners,
@@ -59,20 +57,25 @@ function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : (item.status === 'completed' ? 0.6 : 1),
+    opacity: isDragging ? 0.4 : 1,
     position: 'relative' as const,
     zIndex: isDragging ? 100 : 1,
+    borderBottom: '1px solid hsla(var(--border) / 0.3)',
+    background: isDragging ? 'hsla(var(--primary) / 0.1)' : 'transparent',
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="glass-card"
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem' }}>
-        <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'hsl(var(--muted-foreground))', marginTop: '0.2rem' }}>
-          <GripVertical size={18} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.4rem 0.75rem' }}>
+        <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', marginTop: '0.25rem' }}>
+          <GripVertical size={14} />
+        </div>
+
+        <div style={{ fontSize: '0.7rem', color: 'hsla(var(--muted-foreground) / 0.5)', fontWeight: 'bold', width: '1.2rem', marginTop: '0.25rem' }}>
+          {index + 1}.
         </div>
         
         <button 
@@ -83,26 +86,38 @@ function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: 
             padding: 0, 
             cursor: 'pointer',
             color: item.status === 'completed' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-            marginTop: '0.2rem'
+            display: 'flex',
+            alignItems: 'center',
+            marginTop: '0.25rem'
           }}
         >
-          {item.status === 'completed' ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+          {item.status === 'completed' ? <CheckCircle2 size={16} /> : <Circle size={16} />}
         </button>
 
-        <div style={{ flex: 1 }}>
-          <h3 style={{ 
-            margin: '0 0 0.5rem 0', 
-            fontSize: '1rem', 
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ 
+            fontSize: '0.9rem', 
             fontWeight: '600',
             textDecoration: item.status === 'completed' ? 'line-through' : 'none',
-            color: item.status === 'completed' ? 'hsl(var(--muted-foreground))' : 'inherit'
+            color: item.status === 'completed' ? 'hsl(var(--muted-foreground))' : 'inherit',
           }}>
             {item.title}
-          </h3>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+          </span>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            color: 'hsl(var(--muted-foreground))', 
+            lineHeight: '1.3', 
+            whiteSpace: 'pre-wrap'
+          }}>
             {item.description}
-          </p>
+          </div>
         </div>
+
+        {item.status === 'pending' && item.priority !== 'Completed' && (
+          <div style={{ marginTop: '0.25rem' }}>
+            <Zap size={12} style={{ color: 'hsla(var(--primary) / 0.5)' }} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -111,7 +126,7 @@ function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: 
 function DroppableSection({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} style={{ display: 'grid', gap: '0.75rem', minHeight: '80px', padding: '4px', borderRadius: 'var(--radius)' }}>
+    <div ref={setNodeRef} style={{ display: 'flex', flexDirection: 'column', minHeight: '30px', borderRadius: '4px', overflow: 'hidden', border: '1px solid hsla(var(--border) / 0.2)', background: 'hsla(var(--card) / 0.2)' }}>
       {children}
     </div>
   );
@@ -245,21 +260,11 @@ export default function RoadmapClient() {
   const sections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'Completed'];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <Terminal size={24} style={{ color: 'hsl(var(--primary))' }} />
-            <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>Project Roadmap</h1>
-          </div>
-          <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.9rem' }}>
-            Drag and drop tasks to prioritize. Changes sync automatically to BACKLOG.md
-          </p>
-        </div>
-        <Link href="/" className="glass-card" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>
-          <LayoutDashboard size={18} />
-          Back to Dashboard
-        </Link>
+    <div style={{ maxWidth: '1400px', margin: '-1rem auto 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', opacity: 0.8 }}>
+        <Terminal size={16} style={{ color: 'hsl(var(--primary))' }} />
+        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Roadmap Manager</span>
+        <div style={{ height: '1px', flex: 1, background: 'hsla(var(--border) / 0.2)' }} />
       </div>
 
       <DndContext
@@ -269,15 +274,12 @@ export default function RoadmapClient() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {sections.map((section) => (
-            <section key={section} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: section === 'Critical' ? 'hsl(var(--destructive))' : 'inherit' }}>
-                  {section}
-                </h2>
-                <div style={{ height: '1px', flex: 1, background: 'hsla(var(--border) / 0.3)' }} />
-              </div>
+            <section key={section} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '0.75rem', fontWeight: '800', color: section === 'Critical' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {section} ({backlog?.[section]?.length || 0})
+              </h2>
 
               <SortableContext
                 id={section}
@@ -285,12 +287,12 @@ export default function RoadmapClient() {
                 strategy={verticalListSortingStrategy}
               >
                 <DroppableSection id={section}>
-                  {backlog?.[section]?.map((item) => (
-                    <SortableItem key={item.id} item={item} onToggle={toggleStatus} />
+                  {backlog?.[section]?.map((item, idx) => (
+                    <SortableItem key={item.id} item={item} index={idx} onToggle={toggleStatus} />
                   ))}
                   {(!backlog?.[section] || backlog[section].length === 0) && (
-                    <div style={{ padding: '2rem', border: '1px dashed hsla(var(--border) / 0.3)', borderRadius: 'var(--radius)', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}>
-                      Drop items here
+                    <div style={{ padding: '0.5rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', opacity: 0.5 }}>
+                      No items
                     </div>
                   )}
                 </DroppableSection>
@@ -301,15 +303,23 @@ export default function RoadmapClient() {
 
         <DragOverlay dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
-            styles: { active: { opacity: '0.3' } }
+            styles: { active: { opacity: '0.4' } }
           })
         }}>
           {activeItem ? (
-            <div className="glass-card" style={{ padding: '1rem', width: '100%', cursor: 'grabbing', border: '1px solid hsl(var(--primary))', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <GripVertical size={18} style={{ color: 'hsl(var(--primary))' }} />
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>{activeItem.title}</h3>
-              </div>
+            <div style={{ 
+              padding: '0.4rem 0.75rem', 
+              width: '100%', 
+              cursor: 'grabbing', 
+              background: 'hsl(var(--popover))', 
+              border: '1px solid hsl(var(--primary))',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderRadius: '4px'
+            }}>
+              <GripVertical size={14} style={{ color: 'hsl(var(--primary))' }} />
+              <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{activeItem.title}</span>
             </div>
           ) : null}
         </DragOverlay>

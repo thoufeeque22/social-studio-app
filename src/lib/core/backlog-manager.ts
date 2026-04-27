@@ -43,9 +43,14 @@ export async function getBacklog() {
     if (itemMatch && currentSection) {
       const [_, checkbox, title, description] = itemMatch;
       const status = checkbox === 'x' ? 'completed' : checkbox === '/' ? 'in-progress' : 'pending';
-      
+      const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+      // Deduplicate: If an item with this ID already exists, skip it
+      const alreadyExists = Object.values(backlog).some(section => section.some(item => item.id === id));
+      if (alreadyExists) continue;
+
       currentItem = {
-        id: title.toLowerCase().replace(/\s+/g, '-'),
+        id,
         title,
         description,
         status,
@@ -74,14 +79,14 @@ export async function getBacklog() {
 /**
  * Moves an item to a new section or changes its status
  */
-export async function moveBacklogItem(title: string, newSection: string, newStatus?: 'pending' | 'completed' | 'in-progress') {
+export async function moveBacklogItem(id: string, newSection: string, newStatus?: 'pending' | 'completed' | 'in-progress', newIndex?: number) {
   const backlog = await getBacklog();
   
   let foundItem: BacklogItem | undefined;
   
   // Remove from all sections
   for (const section in backlog) {
-    const index = backlog[section].findIndex(i => i.title === title);
+    const index = backlog[section].findIndex(i => i.id === id);
     if (index !== -1) {
       [foundItem] = backlog[section].splice(index, 1);
       break;
@@ -92,16 +97,29 @@ export async function moveBacklogItem(title: string, newSection: string, newStat
 
   if (newStatus) foundItem.status = newStatus;
   
-  // Update priority metadata
-  if (newSection !== 'Completed') {
+  // Update priority metadata strictly based on the target section
+  const prioritySections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority'];
+  if (prioritySections.includes(newSection)) {
     foundItem.priority = newSection;
+  } else if (newSection === 'Completed') {
+    // Keep original priority for unchecking, but move to Completed list
   }
 
-  // Add to new section
+  // Add to new section at specific index
   if (backlog[newSection]) {
-    backlog[newSection].push(foundItem);
+    const targetList = backlog[newSection];
+    const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, targetList.length) : targetList.length;
+    targetList.splice(insertAt, 0, foundItem);
   } else {
-    backlog['Medium Priority'].push(foundItem);
+    // If it was completed and moved back, use its stored priority or default to High
+    const target = (foundItem.priority && backlog[foundItem.priority]) 
+      ? foundItem.priority 
+      : 'High Priority';
+    
+    foundItem.priority = target;
+    const targetList = backlog[target];
+    const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, targetList.length) : targetList.length;
+    targetList.splice(insertAt, 0, foundItem);
   }
 
   // Reconstruct file
