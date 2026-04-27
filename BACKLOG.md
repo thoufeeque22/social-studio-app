@@ -1,7 +1,3 @@
-# Social Studio Backlog
-
-This document tracks future features and improvements for the Social Studio App.
-
 ## Critical 🚨
 - [/] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 

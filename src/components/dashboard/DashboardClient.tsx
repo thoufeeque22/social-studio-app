@@ -495,7 +495,7 @@ export default function DashboardClient({
         file,
         title: '',
         description: '',
-        platforms: platforms.map(p => p.platform),
+        platforms: platforms.map(p => p.platformId),
         videoFormat,
         isScheduled: false,
         scheduledAt: '',

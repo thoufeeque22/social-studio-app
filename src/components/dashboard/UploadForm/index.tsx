@@ -255,7 +255,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     }
 
                     try {
-                      let targetFile = file;
+                      let targetFile: File | null | undefined = file;
                       if (!targetFile && draftFileName) {
                          const { getDraftFile } = await import('@/lib/upload/file-store');
                          targetFile = await getDraftFile();

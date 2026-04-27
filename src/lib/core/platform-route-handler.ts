@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
-import { generatePostContent, StyleMode } from "@/lib/utils/ai-writer";
+import { generatePostContent } from "@/lib/utils/ai-writer";
+import { StyleMode } from "@/lib/core/constants";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
