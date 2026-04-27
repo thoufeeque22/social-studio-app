@@ -122,7 +122,6 @@
 - [x] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially.
 - [x] **Full AI Generation Pipeline**: Implement AI generation to completely remove all hardcoded mock titles, descriptions, and hashtags from the app.
 - [x] **Header Navigation**: "Create Post" active scrolling.
-- [x] **Bug**: AI sometimes generates more than 5 hashtags for Instagram (e.g., 7) despite the 5-hashtag restriction rule.
 - [x] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings.
 - [x] **Auth Redirect Performance**: Investigate and fix delays when navigating from the initial dashboard to the login page (unauthenticated) and from login back to the dashboard (authenticated). Aim for near-instantaneous transitions.
 - [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection.

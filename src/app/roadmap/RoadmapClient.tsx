@@ -206,32 +206,53 @@ export default function RoadmapClient() {
     const overContainer = Object.keys(backlog).find(key => key === overId || backlog[key].some(i => i.id === overId));
 
     if (activeContainer && overContainer) {
-      const items = backlog[overContainer];
+      const items = [...backlog[overContainer]];
       const activeIndex = items.findIndex(i => i.id === activeId);
       const overIndex = items.findIndex(i => i.id === overId);
 
       if (activeIndex !== overIndex && overIndex !== -1) {
+        // Calculate the NEW items list immediately
+        const updatedItems = arrayMove(items, activeIndex, overIndex);
+        const finalIndex = updatedItems.findIndex(i => i.id === activeId);
+
         setBacklog(prev => {
           if (!prev) return prev;
-          return {
-            ...prev,
-            [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex)
-          };
+          return { ...prev, [overContainer]: updatedItems };
         });
-      }
 
-      // Sync with server
-      const item = items.find(i => i.id === activeId);
-      if (item) {
-        await fetch('/api/roadmap', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            title: item.title, 
-            section: overContainer,
-            status: item.status
-          })
-        });
+        // Sync with server using the calculated final index
+        const item = items.find(i => i.id === activeId);
+        if (item) {
+          await fetch('/api/roadmap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              id: item.id, 
+              section: overContainer,
+              status: item.status,
+              index: finalIndex
+            })
+          });
+          await fetchBacklog();
+        }
+      } else if (activeContainer !== overContainer) {
+        // Cross-container moves are handled by handleDragOver
+        const item = Object.values(backlog).flat().find(i => i.id === activeId);
+        const finalIndex = backlog[overContainer].findIndex(i => i.id === activeId);
+        
+        if (item) {
+          await fetch('/api/roadmap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              id: item.id, 
+              section: overContainer,
+              status: item.status,
+              index: finalIndex
+            })
+          });
+          await fetchBacklog();
+        }
       }
     }
   };
