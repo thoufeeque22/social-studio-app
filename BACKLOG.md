@@ -1,18 +1,22 @@
 ## Critical 🚨
 - [/] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
+- [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing. *Critical to prevent failed background jobs.*
+- [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta). *Mandatory for production approval.*
 
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
+- [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
+- [ ] **Error Monitoring (Sentry/Axiom)**: Integrate a centralized logging and monitoring service to alert on background worker failures.
+- [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
+- [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration to prevent platform rejection.
 
 ## Medium Priority 📈
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
 - [ ] **AI Review 'Forward' Navigation**: When a user clicks 'Back to Step 1' from the AI Review screen, preserve the generated AI previews and provide a 'Forward/Resume Review' button so they don't have to spend another API call to see them again.
+- [ ] **Multi-Provider AI Strategy (Groq/Vercel AI SDK)**: Refactor the AI layer to support multiple LLM providers (Gemini, Groq, Ollama) via environment variables.
+- [ ] **Social Studio MCP Server**: Build an official MCP server to allow other AI agents to interact with your studio and schedule posts.
+- [ ] **Ollama Local Development Fallback**: Integrate local Ollama (Gemma 4) as a secondary AI fallback for development and offline testing.
 - [ ] **Persist AI Strategy Selection**: Save the user's AI Tier selection (Manual, Enrich, Generate) in localStorage or the database so it persists across sessions.
-- [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
-- [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
-- [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing.
-- [ ] **Error Monitoring (Sentry/Axiom)**: Integrate a centralized logging and monitoring service to alert on background worker failures.
-- [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta).
 - [ ] **Monetization & Public Scaling**: Execute the [Revenue & Scaling Strategy](REVENUE_STRATEGY.md) (Implement Upstash rate-limiting, background queues, and Freemium paywalls/Stripe integration) to prepare the app for public launch.
 - [ ] **Brand Identity & Logo Design**: Design and implement a professional logo and unified brand identity (colors, typography) for the public launch.
     - *Vibe:* Needs to feel "AI-Native" but trustworthy for agencies (Neon/Cyber or Minimalist Pro).
@@ -139,3 +143,5 @@
 - [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 - [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
 - [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
+- [x] **Zero-Any TypeScript Overhaul**: 100% type safety achieved across the core dashboard, eliminating technical debt and build blockers.
+- [x] **A11y Compliance Audit**: Semantic HTML, ARIA labels, and keyboard navigation implementation across the Dashboard and Schedule pages.
