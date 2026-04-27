@@ -85,5 +85,24 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     expect(result).toEqual(mockOutput);
     expect(global.fetch).toHaveBeenCalled();
   });
+
+  it('should fallback to the next model if the first one fails', async () => {
+    const mockOutput = { title: "Fallback Title", description: "Worked", hashtags: [] };
+    
+    // First call fails, second succeeds
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: JSON.stringify(mockOutput) }] } }]
+        })
+      } as any);
+
+    const result = await generatePostContent('SEO', 'Input Title', 'Input Context', 'youtube');
+    
+    expect(result.title).toBe("Fallback Title");
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
 });
 
