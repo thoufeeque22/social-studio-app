@@ -15,7 +15,7 @@ vi.mock('@/lib/platforms/facebook', () => ({
   publishFacebookReel: vi.fn(),
 }));
 
-vi.mock('fs', () => ({
+vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn().mockReturnValue(true),
   },

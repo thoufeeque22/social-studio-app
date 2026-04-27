@@ -24,10 +24,10 @@ vi.mock('../../lib/upload/streaming-parser', () => ({
   }),
 }));
 
-vi.mock('fs', () => ({
+vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn().mockReturnValue(true),
-  }
+  },
 }));
 
 describe('handlePlatformUploadRequest Security', () => {
