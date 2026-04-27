@@ -29,7 +29,8 @@ import {
   Zap,
   Terminal,
   Loader2,
-  GripVertical
+  GripVertical,
+  Timer
 } from 'lucide-react';
 
 interface BacklogItem {
@@ -85,13 +86,17 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
             border: 'none', 
             padding: 0, 
             cursor: 'pointer',
-            color: item.status === 'completed' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+            color: item.status === 'completed' ? 'hsl(var(--primary))' : 
+                   item.status === 'in-progress' ? 'hsl(var(--primary))' : 
+                   'hsl(var(--muted-foreground))',
             display: 'flex',
             alignItems: 'center',
             marginTop: '0.25rem'
           }}
         >
-          {item.status === 'completed' ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+          {item.status === 'completed' ? <CheckCircle2 size={16} /> : 
+           item.status === 'in-progress' ? <Timer size={16} /> : 
+           <Circle size={16} />}
         </button>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -99,7 +104,8 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
             fontSize: '0.9rem', 
             fontWeight: '600',
             textDecoration: item.status === 'completed' ? 'line-through' : 'none',
-            color: item.status === 'completed' ? 'hsl(var(--muted-foreground))' : 'inherit',
+            color: item.status === 'completed' ? 'hsl(var(--muted-foreground))' : 
+                   item.status === 'in-progress' ? 'hsl(var(--primary))' : 'inherit',
           }}>
             {item.title}
           </span>
@@ -258,13 +264,23 @@ export default function RoadmapClient() {
   };
 
   const toggleStatus = async (item: BacklogItem) => {
-    const newStatus = item.status === 'completed' ? 'pending' : 'completed';
+    // Cycle: pending -> in-progress -> completed -> pending
+    let newStatus: 'pending' | 'in-progress' | 'completed';
+    if (item.status === 'pending') newStatus = 'in-progress';
+    else if (item.status === 'in-progress') newStatus = 'completed';
+    else newStatus = 'pending';
+
     const newSection = newStatus === 'completed' ? 'Completed' : (item.priority || 'High Priority');
     
     await fetch('/api/roadmap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: item.title, section: newSection, status: newStatus })
+      body: JSON.stringify({ 
+        id: item.id, 
+        section: newSection, 
+        status: newStatus, 
+        index: newStatus === 'completed' ? -1 : 0 // Bottom for completed, top for restored
+      })
     });
     await fetchBacklog();
   };

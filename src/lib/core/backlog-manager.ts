@@ -41,11 +41,19 @@ export async function getBacklog() {
     // 2. Detect New Task Items
     const itemMatch = line.match(/^- \[( |x|\/)\] \*\*(.*?)\*\*: (.*)/);
     if (itemMatch && currentSection) {
-      const [_, checkbox, title, description] = itemMatch;
+      const [_, checkbox, title, rawDescription] = itemMatch;
       const status = checkbox === 'x' ? 'completed' : checkbox === '/' ? 'in-progress' : 'pending';
-      const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      
+      // Extract hidden priority if it exists (e.g., "description <!-- p:Critical -->")
+      let priority = currentSection;
+      let description = rawDescription;
+      const priorityMatch = rawDescription.match(/(.*)<!-- p:(.*?) -->/);
+      if (priorityMatch) {
+        description = priorityMatch[1].trim();
+        priority = priorityMatch[2].trim();
+      }
 
-      // Deduplicate: If an item with this ID already exists, skip it
+      const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const alreadyExists = Object.values(backlog).some(section => section.some(item => item.id === id));
       if (alreadyExists) continue;
 
@@ -54,7 +62,7 @@ export async function getBacklog() {
         title,
         description,
         status,
-        priority: currentSection
+        priority
       };
 
       if (status === 'completed') {
@@ -142,7 +150,8 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
 
   newContent += `## Completed ✅\n`;
   for (const item of backlog['Completed']) {
-    newContent += `- [x] **${item.title}**: ${item.description}\n`;
+    // Save original priority in hidden comment
+    newContent += `- [x] **${item.title}**: ${item.description} <!-- p:${item.priority} -->\n`;
   }
 
   fs.writeFileSync(BACKLOG_PATH, newContent.trim() + '\n');

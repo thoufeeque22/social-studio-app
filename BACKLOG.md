@@ -85,48 +85,48 @@
 ---
 
 ## Completed ✅
-- [x] **Initial Project Structure**: Next.js + Tailwind (v4) setup.
-- [x] **Project Modularization**: Refactored monolithic pages into reusable components and shared hooks for better maintainability.
-- [x] **YouTube Direct Upload**: OAuth2 integration for Shorts/Videos.
-- [x] **Instagram Reels Native Integration**: Direct API connection for cross-posting Reels & Graph API Orchestration.
-- [x] **Remove FFmpeg Muxing engine**: Completely stripped the Muxing/Audio-Burn feature to return to a stable, native-audio-only upload system.
-- [x] **Main App Authentication & Authorization (A&A)**: Secure the application with robust user accounts and roles.
-- [x] **Scheduling Worker Relocation**: Moved the background worker initialization to a standalone script (`scripts/worker.ts`) managed by PM2, ensuring stability and avoiding Next.js runtime issues.
-- [x] **Mobile Responsiveness Pass**: Audit and improve the mobile UI/UX across all pages, ensuring the dashboard, history, and settings are fully responsive.
-- [x] **Bug**: YouTube distribution channel appears enabled by default in the post creation UI even when disabled in settings.
-- [x] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database.
-- [x] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post.
-- [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles.
-- [x] **Account Flexibility**: Should be able to connect to multiple accounts in single platform.
-- [x] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections.
-- [x] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform.
-- [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow.
-- [x] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution.
-- [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line).
-- [x] **Long Format Video Support**: Support for uploading and managing long-form content.
-- [x] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads.
-- [x] **Fault-Tolerant Dispatching**: Update the sequential upload loop so that a failure on one platform (e.g., Facebook) does not stop the distribution to others.
-- [x] **Sticky Platform Selection**: Persist the user's platform selection preferences so they don't have to re-select their favorite channels for every new post.
-- [x] **Sticky Video Format**: Persist the user's target video format choice (Short/Long) across sessions.
-- [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
-- [x] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload.
-- [x] **Sticky AI Polish (Content Mode)**: Persist the user's target AI content style preference across sessions.
-- [x] **Real-time Error Monitoring**: Integrated Sentry across the entire stack, including Next.js API routes and the standalone background publishing worker (`scripts/worker.ts`), for instant crash and job-failure notifications.
-- [x] **Mobile App Wrapper (Capacitor)**: Turn Social Studio into a native iOS/Android app by wrapping the responsive web dashboard in a native shell.
-- [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
-- [x] **Form State Persistence**: Automatically save the title, description, and attached video file in the upload form, ensuring they don't lose progress if they switch tabs or accidentally refresh. Video files persisted via IndexedDB.
-- [x] **Scheduling & Calendar Queue**: Plan out posts across platforms and replace the "Upcoming Posts" wireframe on the main view with actual data.
-- [x] **Background Publishing Worker**: Implement a cron job or worker service to automatically publish scheduled posts when their time arrives.
-- [x] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting.
-- [x] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially.
-- [x] **Full AI Generation Pipeline**: Implement AI generation to completely remove all hardcoded mock titles, descriptions, and hashtags from the app.
-- [x] **Header Navigation**: "Create Post" active scrolling.
-- [x] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings.
-- [x] **Auth Redirect Performance**: Investigate and fix delays when navigating from the initial dashboard to the login page (unauthenticated) and from login back to the dashboard (authenticated). Aim for near-instantaneous transitions.
-- [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection.
-- [x] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally.
-- [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
-- [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
-- [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
-- [x] **Zero-Any TypeScript Overhaul**: 100% type safety achieved across the core dashboard, eliminating technical debt and build blockers.
-- [x] **A11y Compliance Audit**: Semantic HTML, ARIA labels, and keyboard navigation implementation across the Dashboard and Schedule pages.
+- [x] **Initial Project Structure**: Next.js + Tailwind (v4) setup. <!-- p:Completed -->
+- [x] **Project Modularization**: Refactored monolithic pages into reusable components and shared hooks for better maintainability. <!-- p:Completed -->
+- [x] **YouTube Direct Upload**: OAuth2 integration for Shorts/Videos. <!-- p:Completed -->
+- [x] **Instagram Reels Native Integration**: Direct API connection for cross-posting Reels & Graph API Orchestration. <!-- p:Completed -->
+- [x] **Remove FFmpeg Muxing engine**: Completely stripped the Muxing/Audio-Burn feature to return to a stable, native-audio-only upload system. <!-- p:Completed -->
+- [x] **Main App Authentication & Authorization (A&A)**: Secure the application with robust user accounts and roles. <!-- p:Completed -->
+- [x] **Scheduling Worker Relocation**: Moved the background worker initialization to a standalone script (`scripts/worker.ts`) managed by PM2, ensuring stability and avoiding Next.js runtime issues. <!-- p:Completed -->
+- [x] **Mobile Responsiveness Pass**: Audit and improve the mobile UI/UX across all pages, ensuring the dashboard, history, and settings are fully responsive. <!-- p:Completed -->
+- [x] **Bug**: YouTube distribution channel appears enabled by default in the post creation UI even when disabled in settings. <!-- p:Completed -->
+- [x] **Database-Backed Configs**: Move enabled platform states and configuration from `localStorage` to the database. <!-- p:Completed -->
+- [x] **Per-Post Platform Checklist**: Add a checklist UI during the creation/upload flow to manually select/deselect which connected platforms should receive the current post. <!-- p:Completed -->
+- [x] **Facebook Native Integration**: Direct API connection for cross-posting to Facebook Pages/Profiles. <!-- p:Completed -->
+- [x] **Account Flexibility**: Should be able to connect to multiple accounts in single platform. <!-- p:Completed -->
+- [x] **Settings: Disconnect Dashboard**: Add a "Disconnect" button to all platform connections. <!-- p:Completed -->
+- [x] **Settings: Account Identity**: Display exactly which account (name/email) is currently connected for each platform. <!-- p:Completed -->
+- [x] **Testing Infrastructure**: Configured Vitest and implemented comprehensive unit tests for AI-writer, Instagram integration, and the Authentication/Login flow. <!-- p:Completed -->
+- [x] **Settings: Active Connections Only**: In the settings, display the option to connect/disconnect only for apps that are toggled "Enabled" in distribution. <!-- p:Completed -->
+- [x] **Settings: Connection Cards**: Redesign connection rows into responsive small cards (grid layout, 1+ per line). <!-- p:Completed -->
+- [x] **Long Format Video Support**: Support for uploading and managing long-form content. <!-- p:Completed -->
+- [x] **Post Success Visuals**: Add visual check marks to platform pills in the distribution checklist after successful individual uploads. <!-- p:Completed -->
+- [x] **Fault-Tolerant Dispatching**: Update the sequential upload loop so that a failure on one platform (e.g., Facebook) does not stop the distribution to others. <!-- p:Completed -->
+- [x] **Sticky Platform Selection**: Persist the user's platform selection preferences so they don't have to re-select their favorite channels for every new post. <!-- p:Completed -->
+- [x] **Sticky Video Format**: Persist the user's target video format choice (Short/Long) across sessions. <!-- p:Completed -->
+- [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling. <!-- p:Completed -->
+- [x] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload. <!-- p:Completed -->
+- [x] **Sticky AI Polish (Content Mode)**: Persist the user's target AI content style preference across sessions. <!-- p:Completed -->
+- [x] **Real-time Error Monitoring**: Integrated Sentry across the entire stack, including Next.js API routes and the standalone background publishing worker (`scripts/worker.ts`), for instant crash and job-failure notifications. <!-- p:Completed -->
+- [x] **Mobile App Wrapper (Capacitor)**: Turn Social Studio into a native iOS/Android app by wrapping the responsive web dashboard in a native shell. <!-- p:Completed -->
+- [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook. <!-- p:Completed -->
+- [x] **Form State Persistence**: Automatically save the title, description, and attached video file in the upload form, ensuring they don't lose progress if they switch tabs or accidentally refresh. Video files persisted via IndexedDB. <!-- p:Completed -->
+- [x] **Scheduling & Calendar Queue**: Plan out posts across platforms and replace the "Upcoming Posts" wireframe on the main view with actual data. <!-- p:Completed -->
+- [x] **Background Publishing Worker**: Implement a cron job or worker service to automatically publish scheduled posts when their time arrives. <!-- p:Completed -->
+- [x] **AI Gen Content Review**: Add review step and disclaimer to verify AI generated content before posting. <!-- p:Completed -->
+- [x] **Parallel Multi-Platform Posting**: Optimize the upload flow by triggering platform fetches in parallel (Promise.all) instead of sequentially. <!-- p:Completed -->
+- [x] **Full AI Generation Pipeline**: Implement AI generation to completely remove all hardcoded mock titles, descriptions, and hashtags from the app. <!-- p:Completed -->
+- [x] **Header Navigation**: "Create Post" active scrolling. <!-- p:Completed -->
+- [x] **Platform Selection Validation**: When no distribution channel is selected and the user clicks "Post", prompt them to select one or enable platforms in Settings. <!-- p:Completed -->
+- [x] **Auth Redirect Performance**: Investigate and fix delays when navigating from the initial dashboard to the login page (unauthenticated) and from login back to the dashboard (authenticated). Aim for near-instantaneous transitions. <!-- p:Completed -->
+- [x] **Security Review**: Thorough audit complete. Implemented AES-256 token encryption, account ownership validation, and path traversal protection. <!-- p:Completed -->
+- [x] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally. <!-- p:Completed -->
+- [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks. <!-- p:Completed -->
+- [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time. <!-- p:Completed -->
+- [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features. <!-- p:Completed -->
+- [x] **Zero-Any TypeScript Overhaul**: 100% type safety achieved across the core dashboard, eliminating technical debt and build blockers. <!-- p:Completed -->
+- [x] **A11y Compliance Audit**: Semantic HTML, ARIA labels, and keyboard navigation implementation across the Dashboard and Schedule pages. <!-- p:Completed -->
