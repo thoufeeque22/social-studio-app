@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   DndContext, 
-  closestCenter,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -12,7 +12,8 @@ import {
   defaultDropAnimationSideEffects,
   DragEndEvent,
   DragOverEvent,
-  DragStartEvent
+  DragStartEvent,
+  useDroppable
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -22,7 +23,6 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, 
   Circle, 
@@ -59,8 +59,9 @@ function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : (item.status === 'completed' ? 0.6 : 1),
-    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.3 : (item.status === 'completed' ? 0.6 : 1),
+    position: 'relative' as const,
+    zIndex: isDragging ? 100 : 1,
   };
 
   return (
@@ -107,13 +108,22 @@ function SortableItem({ item, onToggle }: { item: BacklogItem; onToggle: (item: 
   );
 }
 
+function DroppableSection({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id });
+  return (
+    <div ref={setNodeRef} style={{ display: 'grid', gap: '0.75rem', minHeight: '80px', padding: '4px', borderRadius: 'var(--radius)' }}>
+      {children}
+    </div>
+  );
+}
+
 export default function RoadmapClient() {
   const [backlog, setBacklog] = useState<BacklogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeItem, setActiveItem] = useState<BacklogItem | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -146,7 +156,6 @@ export default function RoadmapClient() {
     const activeId = active.id;
     const overId = over.id;
 
-    // Find containers
     const activeContainer = Object.keys(backlog).find(key => backlog[key].some(i => i.id === activeId));
     const overContainer = Object.keys(backlog).find(key => key === overId || backlog[key].some(i => i.id === overId));
 
@@ -159,20 +168,14 @@ export default function RoadmapClient() {
       const activeIndex = activeItems.findIndex(i => i.id === activeId);
       const [movedItem] = activeItems.splice(activeIndex, 1);
       
-      // Update item metadata optimistically
       movedItem.priority = overContainer;
-      if (overContainer === 'Completed') movedItem.status = 'completed';
-      else if (activeContainer === 'Completed') movedItem.status = 'pending';
+      movedItem.status = overContainer === 'Completed' ? 'completed' : 'pending';
 
       const overIndex = prev[overContainer].findIndex(i => i.id === overId);
       const newIndex = overIndex >= 0 ? overIndex : overItems.length;
       overItems.splice(newIndex, 0, movedItem);
 
-      return {
-        ...prev,
-        [activeContainer]: activeItems,
-        [overContainer]: overItems
-      };
+      return { ...prev, [activeContainer]: activeItems, [overContainer]: overItems };
     });
   };
 
@@ -181,22 +184,39 @@ export default function RoadmapClient() {
     setActiveItem(null);
     if (!over || !backlog) return;
 
+    const activeId = active.id;
     const overId = over.id;
-    const container = Object.keys(backlog).find(key => key === overId || backlog[key].some(i => i.id === overId));
-    
-    if (container) {
-      const item = Object.values(backlog).flat().find(i => i.id === active.id);
+
+    const activeContainer = Object.keys(backlog).find(key => backlog[key].some(i => i.id === activeId));
+    const overContainer = Object.keys(backlog).find(key => key === overId || backlog[key].some(i => i.id === overId));
+
+    if (activeContainer && overContainer) {
+      const items = backlog[overContainer];
+      const activeIndex = items.findIndex(i => i.id === activeId);
+      const overIndex = items.findIndex(i => i.id === overId);
+
+      if (activeIndex !== overIndex && overIndex !== -1) {
+        setBacklog(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex)
+          };
+        });
+      }
+
+      // Sync with server
+      const item = items.find(i => i.id === activeId);
       if (item) {
         await fetch('/api/roadmap', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             title: item.title, 
-            section: container,
-            status: container === 'Completed' ? 'completed' : 'pending'
+            section: overContainer,
+            status: item.status
           })
         });
-        await fetchBacklog();
       }
     }
   };
@@ -233,7 +253,7 @@ export default function RoadmapClient() {
             <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: 0 }}>Project Roadmap</h1>
           </div>
           <p style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.9rem' }}>
-            Drag and drop tasks to prioritize.
+            Drag and drop tasks to prioritize. Changes sync automatically to BACKLOG.md
           </p>
         </div>
         <Link href="/" className="glass-card" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>
@@ -244,7 +264,7 @@ export default function RoadmapClient() {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -264,16 +284,16 @@ export default function RoadmapClient() {
                 items={backlog?.[section]?.map(i => i.id) || []}
                 strategy={verticalListSortingStrategy}
               >
-                <div style={{ display: 'grid', gap: '0.75rem', minHeight: '50px' }}>
+                <DroppableSection id={section}>
                   {backlog?.[section]?.map((item) => (
                     <SortableItem key={item.id} item={item} onToggle={toggleStatus} />
                   ))}
                   {(!backlog?.[section] || backlog[section].length === 0) && (
-                    <div style={{ padding: '1.5rem', border: '1px dashed hsla(var(--border) / 0.3)', borderRadius: 'var(--radius)', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}>
+                    <div style={{ padding: '2rem', border: '1px dashed hsla(var(--border) / 0.3)', borderRadius: 'var(--radius)', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.8rem' }}>
                       Drop items here
                     </div>
                   )}
-                </div>
+                </DroppableSection>
               </SortableContext>
             </section>
           ))}
@@ -281,11 +301,11 @@ export default function RoadmapClient() {
 
         <DragOverlay dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
-            styles: { active: { opacity: '0.5' } }
+            styles: { active: { opacity: '0.3' } }
           })
         }}>
           {activeItem ? (
-            <div className="glass-card" style={{ padding: '1rem', width: '100%', cursor: 'grabbing', border: '1px solid hsl(var(--primary))' }}>
+            <div className="glass-card" style={{ padding: '1rem', width: '100%', cursor: 'grabbing', border: '1px solid hsl(var(--primary))', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                 <GripVertical size={18} style={{ color: 'hsl(var(--primary))' }} />
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>{activeItem.title}</h3>
