@@ -11,7 +11,7 @@
 
 ## Medium Priority 📈
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
-another API call to see them again.
+- [ ] **AI Review 'Forward' Navigation**: When a user clicks 'Back to Step 1' from the AI Review screen, preserve the generated AI previews and provide a 'Forward/Resume Review' button so they don't have to spend another API call to see them again.
 - [ ] **Multi-Provider AI Strategy (Groq/Vercel AI SDK)**: Refactor the AI layer to support multiple LLM providers (Gemini, Groq, Ollama) via environment variables.
 - [ ] **Social Studio MCP Server**: Build an official MCP server to allow other AI agents to interact with your studio and schedule posts.
 - [ ] **Ollama Local Development Fallback**: Integrate local Ollama (Gemma 4) as a secondary AI fallback for development and offline testing.
@@ -144,4 +144,3 @@ another API call to see them again.
 - [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
 - [x] **Zero-Any TypeScript Overhaul**: 100% type safety achieved across the core dashboard, eliminating technical debt and build blockers.
 - [x] **A11y Compliance Audit**: Semantic HTML, ARIA labels, and keyboard navigation implementation across the Dashboard and Schedule pages.
-- [x] **AI Review 'Forward' Navigation**: When a user clicks 'Back to Step 1' from the AI Review screen, preserve the generated AI previews and provide a 'Forward/Resume Review' button so they don't have to spend 
