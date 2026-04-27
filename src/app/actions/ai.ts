@@ -1,7 +1,8 @@
 "use server";
 
 import { protectedAction } from "@/lib/core/action-utils";
-import { generatePostContent, StyleMode, AIWriteResult } from "@/lib/utils/ai-writer";
+import { generatePostContent, AIWriteResult } from "@/lib/utils/ai-writer";
+import { AITier, StyleMode } from "@/lib/core/constants";
 
 /**
  * GENERATES PREVIEWS FOR ALL SELECTED PLATFORMS.
@@ -10,30 +11,34 @@ import { generatePostContent, StyleMode, AIWriteResult } from "@/lib/utils/ai-wr
 export const getMultiPlatformAIPreviews = async (
   title: string,
   description: string,
+  tier: AITier,
   mode: StyleMode,
-  platforms: string[]
+  platforms: string[],
+  visualData?: string[]
 ) => {
   return protectedAction(async () => {
-    if (mode === 'Manual') {
+    if (tier === 'Manual') {
       throw new Error("Cannot generate previews in Manual mode.");
     }
 
     const previewPromises = platforms.map(async (platform) => {
       try {
         const result = await generatePostContent(
+          tier,
           mode,
           title,
           description,
-          platform as any
+          platform as any,
+          visualData
         );
         return { platform, result };
-      } catch (err) {
+      } catch (err: any) {
         console.error(`AI Preview Error for ${platform}:`, err);
         return { 
           platform, 
           result: { 
             title: title || "Strategy Placeholder", 
-            description: "Failed to generate strategy. Resetting to manual.", 
+            description: `AI Error: ${err.message || 'Unknown error'}. Please try a manual prompt or a different video.`, 
             hashtags: [] 
           } as AIWriteResult 
         };

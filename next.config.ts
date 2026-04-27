@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "khalilah-spritelike-flossily.ngrok-free.dev",
     "*.trycloudflare.com",
-    "social-studio.duckdns.org"
+    "social-studio.duckdns.org",
+    "roohis-mac.tail8a2e7d.ts.net"
   ],
   experimental: {
     serverActions: {

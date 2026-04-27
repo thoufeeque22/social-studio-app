@@ -8,10 +8,11 @@ import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
-import { StyleMode } from '@/lib/core/constants';
+import { StyleMode, AITier } from '@/lib/core/constants';
 import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
 import { getVideoFormatPreference, updateVideoFormatPreference, getAIStylePreference, updateAIStylePreference } from '@/app/actions/user';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
+import { extractVideoFrames } from '@/lib/utils/video-analysis';
 import type { Session } from 'next-auth';
 import { Account, PlatformPreference } from '@/lib/core/types';
 
@@ -21,6 +22,7 @@ interface DashboardClientProps {
   initialPreferences: PlatformPreference[];
   initialVideoFormat: 'short' | 'long';
   initialAIStyle: StyleMode;
+  initialAITier: AITier;
 }
 
 export default function DashboardClient({ 
@@ -28,7 +30,8 @@ export default function DashboardClient({
   initialAccounts, 
   initialPreferences,
   initialVideoFormat,
-  initialAIStyle
+  initialAIStyle,
+  initialAITier
 }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,7 +41,10 @@ export default function DashboardClient({
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [contentMode, setContentMode] = useState<StyleMode>(initialAIStyle);
+  const [aiTier, setAiTier] = useState<AITier>(initialAITier || 'Manual');
+  const [contentMode, setContentMode] = useState<StyleMode>(
+    (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Hook'
+  );
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>(initialVideoFormat);
 
   // AI Review States
@@ -350,7 +356,7 @@ export default function DashboardClient({
         resumeHistoryId: resumeHistoryId || undefined
       });
 
-      if (contentMode !== 'Manual' && !skipReview) {
+      if (aiTier !== 'Manual' && !skipReview) {
         setIsUploading(true);
         setUploadStatus('🧠 Brainstorming AI Strategies...');
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
@@ -359,8 +365,9 @@ export default function DashboardClient({
           const previews = await getMultiPlatformAIPreviews(
             title,
             description || '',
+            aiTier,
             contentMode,
-            platforms.map(p => p.platform)
+            platforms.map(p => p.platformId)
           );
           
           setAiPreviews(previews);
@@ -466,7 +473,45 @@ export default function DashboardClient({
     }
   };
 
-  const handleConfirmReview = async (reviewedContent: Record<string, any>) => {
+  const handleVisualScan = async (file: File) => {
+    try {
+      setIsUploading(true);
+      setUploadStatus('🪄 Scanning video content with AI...');
+      
+      const frames = await extractVideoFrames(file);
+      const platforms = initialPreferences.filter(p => p.isEnabled);
+      
+      const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+      const previews = await getMultiPlatformAIPreviews(
+        '', // No user title
+        '', // No user description
+        'Generate',
+        contentMode,
+        platforms.map(p => p.platformId),
+        frames
+      );
+
+      setReviewContext({
+        file,
+        title: '',
+        description: '',
+        platforms: platforms.map(p => p.platform),
+        videoFormat,
+        isScheduled: false,
+        scheduledAt: '',
+      });
+      setAiPreviews(previews);
+      setIsReviewing(true);
+      setUploadStatus(null);
+    } catch (err) {
+      console.error("Visual Scan Error:", err);
+      setUploadStatus("❌ Failed to scan video. Try a manual prompt.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleConfirmReview = async (updatedPreviews: Record<string, AIWriteResult>) => {
     if (!reviewContext) return;
     setIsReviewing(false);
     setIsUploading(true);
@@ -569,8 +614,14 @@ export default function DashboardClient({
             successfulAccountIds={successfulAccountIds}
             platformStatuses={platformStatuses}
             contentMode={contentMode}
+            aiTier={aiTier}
             videoFormat={videoFormat}
             draftFileName={draftFileName}
+            onVisualScan={handleVisualScan}
+            onTierChange={(tier) => {
+              setAiTier(tier);
+              // We could add updateAITierPreference(tier) here later
+            }}
             onModeChange={(mode) => {
               setContentMode(mode);
               updateAIStylePreference(mode).catch(err => console.error("Failed to save style preference", err));

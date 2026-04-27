@@ -7,6 +7,9 @@ export const PLATFORMS = [
   { id: 'twitter', provider: 'twitter', name: 'Twitter/X', icon: '𝕏', color: 'white' },
 ];
 
-export type StyleMode = 'Hook' | 'SEO' | 'Gen-Z' | 'Manual';
+export type AITier = 'Manual' | 'Enrich' | 'Generate';
+export type StyleMode = 'Hook' | 'SEO' | 'Gen-Z';
 
-export const STYLE_MODES: StyleMode[] = ['Manual', 'Hook', 'SEO', 'Gen-Z'];
+export const AI_TIERS: AITier[] = ['Manual', 'Enrich', 'Generate'];
+export const STYLE_MODES: StyleMode[] = ['Hook', 'SEO', 'Gen-Z'];
+
