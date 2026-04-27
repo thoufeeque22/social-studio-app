@@ -1,7 +1,7 @@
 ## Critical 🚨
+- [ ] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 - [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing. *Critical to prevent failed background jobs.*
 - [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta). *Mandatory for production approval.*
-- [ ] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
@@ -26,7 +26,6 @@
 - *The Double-Sided Reward:* "Give a month of Pro, Get a month of Pro."
 - *Lifetime Gamification:* "Refer 5 friends who link at least 2 social accounts, and unlock the Pro Tier forever."
 - *Technical:* Add `referralCode` to User model, log `referredById` on sign up, and use Stripe to automatically issue account credits.
-- [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
 - [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok).
 - [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
 - [ ] **AI Video Transcoding (FFmpeg)**: Automatically resize/compress videos that exceed platform bitrate or resolution limits.
