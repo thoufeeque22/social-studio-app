@@ -101,14 +101,13 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
     } catch (err: any) {
       console.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}:`, err.message);
       
-      const errorResult = {
+      const errorPayload = {
         platform: p.platform,
         status: 'failed' as const,
         errorMessage: err.message,
         resumableUrl: err.resumableUrl,
         videoId: err.videoId,
         creationId: err.creationId,
-        retryCount: { increment: 1 },
         lastRetryAt: new Date()
       };
 
@@ -119,8 +118,15 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
             platform: p.platform
           }
         },
-        update: { ...errorResult, postHistoryId: historyId },
-        create: { ...errorResult, postHistoryId: historyId }
+        update: { 
+          ...errorPayload, 
+          retryCount: { increment: 1 } 
+        },
+        create: { 
+          ...errorPayload, 
+          postHistoryId: historyId,
+          retryCount: 1
+        }
       });
     }
   }
