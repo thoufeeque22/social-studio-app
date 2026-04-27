@@ -240,7 +240,7 @@ export default function DashboardClient({
       };
 
       video.onerror = () => { resolve(false); cleanup(); };
-      video.src = URL.createObjectURL(file);
+      video.src = globalThis.URL.createObjectURL(file);
     });
   };
 
@@ -309,29 +309,31 @@ export default function DashboardClient({
   const handleUpload = async (e: { preventDefault: () => void; currentTarget: HTMLFormElement }) => {
     e.preventDefault();
     if (!session) return;
-    
-    // Platform Selection Validation
-    if (selectedAccountIds.length === 0) {
-      if (accounts.length === 0) {
-        if (confirm("You haven't connected any social platforms yet. Would you like to go to Settings to connect them now?")) {
-          router.push('/settings');
-        }
-      } else {
-        alert("Please select at least one distribution channel (e.g., YouTube, Instagram) before posting.");
-      }
-      return;
-    }
-
     const form = e.currentTarget;
     const fileInput = form.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fileInput.files?.[0] || draftFileRef.current;
     
-    if (!file || file.size === 0) {
-      alert('Please select a video file.');
-      return;
-    }
+    const validateUploadForm = (fileToValidate: File | null) => {
+      if (selectedAccountIds.length === 0) {
+        if (accounts.length === 0) {
+          if (confirm("You haven't connected any social platforms yet. Would you like to go to Settings to connect them now?")) {
+            router.push('/settings');
+          }
+        } else {
+          alert("Please select at least one distribution channel (e.g., YouTube, Instagram) before posting.");
+        }
+        return false;
+      }
+      if (!fileToValidate || fileToValidate.size === 0) {
+        alert('Please select a video file.');
+        return false;
+      }
+      return true;
+    };
 
-    const isValid = await validateVideoMetadata(file, videoFormat, accounts, selectedAccountIds, setUploadStatus);
+    if (!validateUploadForm(file)) return;
+
+    const isValid = await validateVideoMetadata(file as File, videoFormat, accounts, selectedAccountIds, setUploadStatus);
     if (!isValid) {
       setUploadStatus(null);
       return;
@@ -344,10 +346,10 @@ export default function DashboardClient({
       const skipReview = data.get('skipReview') === 'true';
       
       if (!data.get('file') || (data.get('file') as File).size === 0) {
-        data.set('file', file);
+        data.set('file', file as File);
       }
       
-      const { stagedFileId, fileName, historyId, platforms, title, description } = await performStaging(file, data);
+      const { stagedFileId, fileName, historyId, platforms, title, description } = await performStaging(file as File, data);
 
       if (aiTier !== 'Manual' && !skipReview) {
         const reviewHandled = await handleAIReview(stagedFileId, fileName, historyId, platforms, title, description, data);
@@ -394,8 +396,8 @@ export default function DashboardClient({
         videoFormat,
         scheduledAt: isScheduled ? scheduledAt : undefined,
         isPublished: !isScheduled
-      } as unknown as Record<string, string>,
-      platforms: platforms as unknown as { platform: string; accountId: string }[],
+      },
+      platforms,
       resumeHistoryId: resumeHistoryId || undefined
     });
 
@@ -470,7 +472,7 @@ export default function DashboardClient({
           handlePlatformPersistence(historyId, result);
         },
         historyId,
-        reviewedContent: (reviewedContent as Record<string, import('@/lib/utils/ai-writer').AIWriteResult>)
+        reviewedContent: reviewedContent
       });
 
       const failures = distribution.platformResults.filter(r => r.status === 'failed');
