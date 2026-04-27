@@ -6,7 +6,6 @@
 ## High Priority 🚀
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
 - [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
-- [ ] **Error Monitoring (Sentry/Axiom)**: Integrate a centralized logging and monitoring service to alert on background worker failures.
 - [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
 - [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration to prevent platform rejection.
 
@@ -125,7 +124,7 @@
 - [x] **Cloudflared Implementation**: Transition from Ngrok to Cloudflare Tunnels for more stable local development and webhook handling.
 - [x] **Platform Persistence Fix**: Fix the issue where platforms cannot be checked/unchecked for a new post after a successful upload without a full page reload.
 - [x] **Sticky AI Polish (Content Mode)**: Persist the user's target AI content style preference across sessions.
-- [x] **Real-time Error Monitoring**: Integrate Sentry or a similar service to receive instant notifications (Email/Slack) when users encounter runtime crashes.
+- [x] **Real-time Error Monitoring**: Integrated Sentry across the entire stack, including Next.js API routes and the standalone background publishing worker (`scripts/worker.ts`), for instant crash and job-failure notifications.
 - [x] **Mobile App Wrapper (Capacitor)**: Turn Social Studio into a native iOS/Android app by wrapping the responsive web dashboard in a native shell.
 - [x] **Post History & Social Links**: Create a "History" section that stores successfully published posts, including direct links to the uploaded videos on YouTube/Instagram/Facebook.
 - [x] **Form State Persistence**: Automatically save the title, description, and attached video file in the upload form, ensuring they don't lose progress if they switch tabs or accidentally refresh. Video files persisted via IndexedDB.
