@@ -103,3 +103,16 @@ model PostPlatformResult {
 
   @@unique([postHistoryId, platform])
 }
+
+model RoadmapTask {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  status      String   @default("pending") // pending, in-progress, completed
+  priority    String   @default("High Priority") // Critical, High Priority, etc.
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([priority, status])
+}
