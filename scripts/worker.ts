@@ -1,4 +1,11 @@
+import * as Sentry from "@sentry/nextjs";
 import { startPublishingWorker } from "../src/lib/worker/worker";
+
+// Initialize Sentry for the standalone worker process
+Sentry.init({
+  dsn: "https://9800045c43fe08784a055fb53ceeb7f9@o4511273668182016.ingest.de.sentry.io/4511273675456592",
+  tracesSampleRate: 1.0,
+});
 
 /**
  * STANDALONE WORKER SCRIPT

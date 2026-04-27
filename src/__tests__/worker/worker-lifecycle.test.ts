@@ -29,8 +29,10 @@ vi.mock('../../lib/worker/server-distributor', () => ({
 // Mock FS
 vi.mock('fs', () => ({
   existsSync: vi.fn().mockReturnValue(true),
+  readFileSync: vi.fn().mockReturnValue(JSON.stringify({ title: "Mock", description: "Mock" })),
   default: {
     existsSync: vi.fn().mockReturnValue(true),
+    readFileSync: vi.fn().mockReturnValue(JSON.stringify({ title: "Mock", description: "Mock" })),
   }
 }));
 

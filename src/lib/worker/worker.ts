@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/core/prisma";
+import * as Sentry from "@sentry/nextjs";
 import path from "path";
 import { readFileSync, existsSync } from "fs";
 
@@ -103,6 +104,9 @@ export async function startPublishingWorker() {
             console.log(`✅ [WORKER] Published successfully: ${post.title}`);
           } catch (err: any) {
             console.error(`❌ [WORKER] Failed to publish ${post.title}:`, err.message);
+            Sentry.captureException(err, {
+              extra: { postId: post.id, title: post.title }
+            });
             // We mark it as published/processed so it doesn't keep looping
             await prisma.postHistory.update({
               where: { id: post.id },
@@ -113,6 +117,7 @@ export async function startPublishingWorker() {
       }
     } catch (err) {
       console.error("👷 [WORKER] Polling failed:", err);
+      Sentry.captureException(err);
     }
   }, 10000); // Check every 10 seconds
 
