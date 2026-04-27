@@ -37,6 +37,16 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
   for (const p of platforms) {
     try {
+      // 1. Fetch existing result to see if we have a resumable session
+      const existingResult = await prisma.postPlatformResult.findUnique({
+        where: {
+          postHistoryId_platform: {
+            postHistoryId: historyId,
+            platform: p.platform
+          }
+        }
+      });
+
       let finalTitle = title;
       let finalDesc = description;
       
@@ -47,7 +57,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         finalDesc = (custom.description || description) + hashText;
       }
 
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId})`);
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
       
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
@@ -56,7 +66,12 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         title: finalTitle,
         description: finalDesc,
         videoFormat,
-        accountId: p.accountId
+        accountId: p.accountId,
+        fields: {
+          resumableUrl: existingResult?.resumableUrl,
+          videoId: existingResult?.videoId,
+          creationId: existingResult?.creationId
+        }
       });
 
       const platformResult = {
@@ -92,7 +107,9 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         errorMessage: err.message,
         resumableUrl: err.resumableUrl,
         videoId: err.videoId,
-        creationId: err.creationId
+        creationId: err.creationId,
+        retryCount: { increment: 1 },
+        lastRetryAt: new Date()
       };
 
       await prisma.postPlatformResult.upsert({

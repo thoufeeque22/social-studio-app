@@ -1,5 +1,4 @@
 ## Critical 🚨
-- [/] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 - [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing. *Critical to prevent failed background jobs.*
 - [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta). *Mandatory for production approval.*
 
@@ -8,6 +7,7 @@
 - [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
 - [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
 - [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration to prevent platform rejection.
+- [ ] **Data Integrity Audit**: Initial deep-dive complete (checksums, UUIDs, sanitization implemented). Should remain as a recurring task for new platforms.
 
 ## Medium Priority 📈
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
@@ -18,14 +18,14 @@
 - [ ] **Persist AI Strategy Selection**: Save the user's AI Tier selection (Manual, Enrich, Generate) in localStorage or the database so it persists across sessions.
 - [ ] **Monetization & Public Scaling**: Execute the [Revenue & Scaling Strategy](REVENUE_STRATEGY.md) (Implement Upstash rate-limiting, background queues, and Freemium paywalls/Stripe integration) to prepare the app for public launch.
 - [ ] **Brand Identity & Logo Design**: Design and implement a professional logo and unified brand identity (colors, typography) for the public launch.
-    - *Vibe:* Needs to feel "AI-Native" but trustworthy for agencies (Neon/Cyber or Minimalist Pro).
-    - *Idea 1 (Distribution Node):* A geometric shape (like an 'S') made of interconnected nodes representing cross-posting.
-    - *Idea 2 (AI Sparkle):* A sleek video "Play" button with a glowing 4-point star (✨) merged into the corner.
-    - *Idea 3 (Infinity Wave):* A continuous glowing neon line looping like an infinity symbol that morphs into a camera.
+- *Vibe:* Needs to feel "AI-Native" but trustworthy for agencies (Neon/Cyber or Minimalist Pro).
+- *Idea 1 (Distribution Node):* A geometric shape (like an 'S') made of interconnected nodes representing cross-posting.
+- *Idea 2 (AI Sparkle):* A sleek video "Play" button with a glowing 4-point star (✨) merged into the corner.
+- *Idea 3 (Infinity Wave):* A continuous glowing neon line looping like an infinity symbol that morphs into a camera.
 - [ ] **Referral Bonus Program**: Build a growth loop with unique invite links (`socialstudio.app/r/thoufeeque`) and Prisma/Stripe integration to incentivize user acquisition.
-    - *The Double-Sided Reward:* "Give a month of Pro, Get a month of Pro."
-    - *Lifetime Gamification:* "Refer 5 friends who link at least 2 social accounts, and unlock the Pro Tier forever."
-    - *Technical:* Add `referralCode` to User model, log `referredById` on sign up, and use Stripe to automatically issue account credits.
+- *The Double-Sided Reward:* "Give a month of Pro, Get a month of Pro."
+- *Lifetime Gamification:* "Refer 5 friends who link at least 2 social accounts, and unlock the Pro Tier forever."
+- *Technical:* Add `referralCode` to User model, log `referredById` on sign up, and use Stripe to automatically issue account credits.
 - [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
 - [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok).
 - [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
@@ -47,7 +47,7 @@
 - [ ] **What's New Notification**: Automatically notify users when new features or changes are deployed to the platform (e.g., a "What's New" badge or modal).
 - [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
 
-## Low Priority 🛠️
+## Low Priority 📉
 - [ ] **Mobile UX: Safe Areas**: Ensure the UI respects "Safe Areas" (notches, dynamic islands) for the native mobile wrapper.
 - [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title for SEO and UX.
 - [ ] **Video Preview**: Integrated video player to review content before posting.
@@ -57,14 +57,10 @@
 - [ ] **Technical SEO Foundation**: Implement landing page, dynamic metadata, and schema markup to improve search visibility.
 - [ ] **Documentation**: Create user enablement and developer documentation.
 - [ ] **Legal & Compliance**:
-    - [ ] **Terms and Conditions**: Draft and implement T&Cs.
-    - [ ] **Policies**: Draft and implement Privacy Policy.
-    - [ ] **Legal Review**: General review for platform compliance.
+- [ ] **Terms and Conditions**: Draft and implement T&Cs.
+- [ ] **Policies**: Draft and implement Privacy Policy.
+- [ ] **Legal Review**: General review for platform compliance.
 - [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
-
-## Platform Expansion 🌐
-
-### Tier 1: Open & Developer-Friendly ✅
 *Low friction, quick integration, no expensive fees.*
 - [ ] **Telegram Channels** (~1B MAU): Direct-to-audience broadcasting. **[EASY]** Uses Bot API.
 - [ ] **Discord Integration**: Essential for niche communities and creators. **[EASY]** Uses Webhooks/Bots.
@@ -72,8 +68,6 @@
 - [ ] **Bluesky Integration** (~20M+ MAU): Emerging decentralized protocol. **[EASY]** Uses AT Protocol.
 - [ ] **Mastodon Integration** (~10M+ MAU): Federated social networking. **[EASY]** Uses Mastodon API.
 - [ ] **Truth Social Integration** (~6.3M MAU): Support for alternative social audiences. **[EASY]** Mastodon-based.
-
-### Tier 2: Audit & Review Required ⚠️
 *Official public APIs exist, but require app submission and manual audit.*
 - [ ] **Facebook Integration** (~3B+ MAU): **[MODERATE]** Requires Meta App Review & Business Verification.
 - [ ] **YouTube Integration** (~2.5B MAU): **[MODERATE]** Requires Google Cloud project audit.
@@ -82,19 +76,13 @@
 - [ ] **LinkedIn Integration** (~930M+ Reg.): **[MODERATE]** Requires Marketing Developer Program approval.
 - [ ] **Pinterest Integration** (~540M MAU): **[MODERATE]** Requires Content Publishing API review.
 - [ ] **Threads Integration** (~400M MAU): **[MODERATE]** Uses Threads API (Meta Review required).
-
-### Tier 3: Expensive or Highly Restricted 🛑
 *High monthly costs or restricted access policies.*
 - [ ] **X (Twitter) Integration** (~600M+ MAU): **[COSTLY]** Requires paid API tier ($100/mo - $5,000/mo).
 - [ ] **Snapchat (Spotlight)** (~850M MAU): **[RESTRICTED]** Creative Kit is limited; full posting API is gatekept.
 - [ ] **Google Business Profile (GBP)**: **[RESTRICTED]** API access involves a tedious review process.
-
-### Tier 4: Future / No Public API 🔒
 *Currently no official way to automate posting.*
 - [ ] **Lemon8 Integration**: **[CLOSED]** No public API yet; requires manual share intent workflow.
-
 ---
-
 ---
 
 ## Completed ✅

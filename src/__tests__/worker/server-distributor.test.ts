@@ -13,10 +13,12 @@ import { distributeToPlatformsServer } from '../../lib/worker/server-distributor
 
 // Mock Dependencies
 const mockUpsert = vi.fn().mockResolvedValue({ id: 'res-1' });
+const mockFindUnique = vi.fn().mockResolvedValue(null);
 vi.mock('../../lib/core/prisma', () => ({
   prisma: {
     postPlatformResult: {
       upsert: (...args: any[]) => mockUpsert(...args),
+      findUnique: (...args: any[]) => mockFindUnique(...args),
     },
     postHistory: {
       update: vi.fn().mockResolvedValue({}),
@@ -124,6 +126,22 @@ describe('Server Distributor', () => {
         status: 'failed',
         errorMessage: 'YT API Down'
       })
+    }));
+  });
+
+  it('resumes from an existing resumableUrl if found in DB', async () => {
+    mockFindUnique.mockResolvedValueOnce({
+      platform: 'youtube',
+      resumableUrl: 'https://youtube.com/resume-me'
+    });
+
+    await distributeToPlatformsServer({
+      ...baseParams,
+      platforms: [{ platform: 'youtube', accountId: 'acc-yt', accountName: 'YT' }]
+    });
+
+    expect(mockUploadToYouTube).toHaveBeenCalledWith(expect.objectContaining({
+      resumableUrl: 'https://youtube.com/resume-me'
     }));
   });
 });
