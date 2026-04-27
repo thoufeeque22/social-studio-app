@@ -4,8 +4,9 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
 import { Account, VideoFormat, PlatformPreference } from '@/lib/core/types';
-import { StyleMode } from '@/lib/core/constants';
+import { StyleMode, AITier, AI_TIERS } from '@/lib/core/constants';
 import { VideoFormatSelector } from './VideoFormatSelector';
+import { extractVideoFrames } from '@/lib/utils/video-analysis';
 
 interface UploadFormProps {
   isUploading: boolean;
@@ -16,8 +17,11 @@ interface UploadFormProps {
   successfulAccountIds: string[];
   platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
   contentMode: StyleMode;
+  aiTier: AITier;
   videoFormat: VideoFormat;
   draftFileName: string | null;
+  onVisualScan: (file: File) => Promise<void>;
+  onTierChange: (tier: AITier) => void;
   onModeChange: (mode: StyleMode) => void;
   onFormatChange: (format: VideoFormat) => void;
   onToggleAccount: (id: string) => void;
@@ -37,8 +41,11 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   successfulAccountIds,
   platformStatuses,
   contentMode,
+  aiTier,
   videoFormat,
   draftFileName,
+  onVisualScan,
+  onTierChange,
   onModeChange,
   onFormatChange,
   onToggleAccount,
@@ -50,6 +57,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 }) => {
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [isScanning, setIsScanning] = React.useState(false);
   
   // Sync with localStorage on mount and when changed externally (Resume Flow)
   React.useEffect(() => {
@@ -196,9 +204,93 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           />
         </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>AI Strategy</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {AI_TIERS.map(tier => (
+              <button
+                key={tier}
+                type="button"
+                onClick={() => onTierChange(tier)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '0.75rem',
+                  border: `2px solid ${aiTier === tier ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
+                  background: aiTier === tier ? 'hsla(var(--primary) / 0.2)' : 'hsla(var(--muted) / 0.3)',
+                  color: aiTier === tier ? 'white' : 'hsl(var(--muted-foreground))',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  fontWeight: aiTier === tier ? 700 : 500,
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: aiTier === tier ? '0 0 15px hsla(var(--primary) / 0.3)' : 'none'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>{tier === 'Manual' ? '✍️' : tier === 'Enrich' ? '🪄' : '🤖'}</span>
+                {tier}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Video Title</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                {aiTier === 'Generate' ? 'Video Prompt' : 'Video Title'}
+              </label>
+              {aiTier === 'Generate' && !isUploading && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                    const file = fileInput?.files?.[0];
+                    if (!file && !draftFileName) {
+                      alert("Please select a video file first to scan.");
+                      return;
+                    }
+
+                    try {
+                      let targetFile = file;
+                      if (!targetFile && draftFileName) {
+                         const { getDraftFile } = await import('@/lib/upload/file-store');
+                         targetFile = await getDraftFile();
+                      }
+                      
+                      if (!targetFile) throw new Error("Video file not found. Please re-select the file.");
+                      await onVisualScan(targetFile);
+                    } catch (err: any) {
+                      console.error("Visual Scan failed:", err);
+                      alert(err.message || "Failed to scan video.");
+                    }
+                  }}
+                  style={{
+                    background: 'hsla(var(--primary) / 0.1)',
+                    border: '1px solid hsla(var(--primary) / 0.3)',
+                    color: 'hsl(var(--primary))',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>🪄</span> Auto-Scan Video
+                </button>
+              )}
+              {isUploading && uploadStatus?.includes('Scanning') && (
+                <span style={{ fontSize: '0.7rem', color: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="animate-pulse">✨</span> Scanning Content...
+                </span>
+              )}
+            </div>
             {titleUndo && (
               <button 
                 type="button" 
@@ -215,7 +307,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               id="video-title"
               type="text" 
               name="title" 
-              placeholder="Enter a catchy title..."
+              placeholder={aiTier === 'Generate' ? "Describe what you want the video to be about..." : "Enter a catchy title..."}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -265,7 +357,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Description</label>
+            <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+              {aiTier === 'Generate' ? 'Additional Context' : 'Description'}
+            </label>
             {descUndo && (
               <button 
                 type="button" 
@@ -281,7 +375,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             <textarea 
               id="video-description"
               name="description" 
-              placeholder="Tell your viewers about the video..."
+              placeholder={aiTier === 'Generate' ? "Add any specific keywords, links, or context..." : "Tell your viewers about the video..."}
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -329,9 +423,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           </div>
         </div>
 
-        <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />
+        {aiTier !== 'Manual' && <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />}
         
-        {contentMode !== 'Manual' && (
+        {aiTier !== 'Manual' && (
           <div style={{ 
             padding: '0.75rem', 
             borderRadius: '0.75rem', 
@@ -341,7 +435,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           }}>
             <p style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span>✨</span>
-              <span><strong>AI Disclaimer:</strong> AI-generated content can be inaccurate. You will be prompted to <strong>Review Strategy</strong> before we post to your platforms.</span>
+              <span><strong>AI Strategy:</strong> We will {aiTier === 'Enrich' ? 'refine your draft' : 'generate content'} using the <strong>{contentMode}</strong> style. You will be prompted to <strong>Review Strategy</strong> before we post.</span>
             </p>
           </div>
         )}
@@ -445,13 +539,13 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         >
           {isUploading 
             ? '📤 Processing...' 
-            : contentMode !== 'Manual' 
+            : aiTier !== 'Manual' 
               ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
               : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
           }
         </button>
 
-        {contentMode !== 'Manual' && !isUploading && (
+        {aiTier !== 'Manual' && !isUploading && (
           <button
             type="button"
             onClick={(e) => {

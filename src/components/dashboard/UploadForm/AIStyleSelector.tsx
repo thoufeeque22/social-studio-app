@@ -9,7 +9,7 @@ interface AIStyleSelectorProps {
 export const AIStyleSelector: React.FC<AIStyleSelectorProps> = ({ contentMode, onModeChange }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-      <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>AI Polish (Content Mode)</label>
+      <label style={{ fontSize: '0.9rem', fontWeight: 500 }}>Writing Style (Vibe)</label>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         {STYLE_MODES.map(mode => (
           <button

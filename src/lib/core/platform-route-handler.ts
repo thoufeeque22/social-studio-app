@@ -101,7 +101,7 @@ export async function handlePlatformUploadRequest({
     // BYPASS if already reviewed on client
     let enrichedContent;
     if (fields.reviewedContent) {
-      console.log(`✨ [${platform}] Using user-reviewed content.`);
+      console.log(`✨ [${platform}] Using user-reviewed AI content.`);
       const rc = fields.reviewedContent as any;
       enrichedContent = {
         title: rc.title,
@@ -109,12 +109,12 @@ export async function handlePlatformUploadRequest({
         hashtags: rc.hashtags || []
       };
     } else {
-      enrichedContent = await generatePostContent(
-        contentMode,
-        rawTitle,
-        rawDescription,
-        platform as any
-      );
+      console.log(`📝 [${platform}] Using Manual content.`);
+      enrichedContent = {
+        title: rawTitle,
+        description: rawDescription,
+        hashtags: []
+      };
     }
 
     // Standard formatting for Caption/Description

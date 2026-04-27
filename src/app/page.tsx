@@ -38,7 +38,8 @@ export default async function Home() {
         initialAccounts={accounts}
         initialPreferences={preferences}
         initialVideoFormat={videoFormat as 'short' | 'long'}
-        initialAIStyle={aiStyle}
+        initialAIStyle={aiStyle as any}
+        initialAITier="Manual"
       />
     </Suspense>
   );

@@ -9,28 +9,39 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **TikTok Production Rollout**: Submit Developer App for audit to remove Sandbox mode restrictions and fully unlock public posting capability.
 
 ## Medium Priority 📈
-- [ ] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
-- [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
 - [ ] **Stop/Abort Posting**: Add a button to stop or abort the uploads platform wise for better user control and safety.
-- [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
-- [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
-- [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok).
-- [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram [parked for next phase].
-- [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
-- [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
-- [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
-- [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing.
+- [ ] **AI Review 'Forward' Navigation**: When a user clicks 'Back to Step 1' from the AI Review screen, preserve the generated AI previews and provide a 'Forward/Resume Review' button so they don't have to spend another API call to see them again.
+- [ ] **Persist AI Strategy Selection**: Save the user's AI Tier selection (Manual, Enrich, Generate) in localStorage or the database so it persists across sessions.
 - [ ] **API Rate Limiting**: Add middleware to protect API routes from abuse and ensure compliance with platform quotas.
-- [ ] **Environment Validation**: Use `zod` to strictly validate all environment variables on application startup.
+- [ ] **Upload Resume Capability**: Leverage Meta/YouTube resumable sessions to allow "re-trying" a failed upload without re-sending the entire video file.
+- [ ] **Automated Token Refresh**: Implement background logic to automatically refresh OAuth tokens using `refresh_token` before scheduled publishing.
 - [ ] **Error Monitoring (Sentry/Axiom)**: Integrate a centralized logging and monitoring service to alert on background worker failures.
 - [ ] **Privacy Policy & Terms of Service**: Create public-facing legal pages required for final OAuth app audits (Google/TikTok/Meta).
+- [ ] **Monetization & Public Scaling**: Execute the [Revenue & Scaling Strategy](REVENUE_STRATEGY.md) (Implement Upstash rate-limiting, background queues, and Freemium paywalls/Stripe integration) to prepare the app for public launch.
+- [ ] **Brand Identity & Logo Design**: Design and implement a professional logo and unified brand identity (colors, typography) for the public launch.
+    - *Vibe:* Needs to feel "AI-Native" but trustworthy for agencies (Neon/Cyber or Minimalist Pro).
+    - *Idea 1 (Distribution Node):* A geometric shape (like an 'S') made of interconnected nodes representing cross-posting.
+    - *Idea 2 (AI Sparkle):* A sleek video "Play" button with a glowing 4-point star (✨) merged into the corner.
+    - *Idea 3 (Infinity Wave):* A continuous glowing neon line looping like an infinity symbol that morphs into a camera.
+- [ ] **Referral Bonus Program**: Build a growth loop with unique invite links (`socialstudio.app/r/thoufeeque`) and Prisma/Stripe integration to incentivize user acquisition.
+    - *The Double-Sided Reward:* "Give a month of Pro, Get a month of Pro."
+    - *Lifetime Gamification:* "Refer 5 friends who link at least 2 social accounts, and unlock the Pro Tier forever."
+    - *Technical:* Add `referralCode` to User model, log `referredById` on sign up, and use Stripe to automatically issue account credits.
+- [ ] **Dynamic Format Detection**: Dynamically fetch/detect whether an uploaded video should be a Short or Long format based on aspect ratio/duration.
+- [ ] **Platform-Specific Metadata**: Allow users to provide different titles and descriptions for different platforms (e.g., a formal title for YouTube and a casual one for TikTok).
+- [ ] **Scheduled Video Lifecycle**: Investigate where scheduled videos are stored, implement storage limits, and add an **expiry/cleanup policy** to manage disk space automatically.
 - [ ] **AI Video Transcoding (FFmpeg)**: Automatically resize/compress videos that exceed platform bitrate or resolution limits.
-- [ ] **Calendar Content Planner**: A visual week/month view of all scheduled and published posts.
-- [ ] **Metadata Templates**: Save and reuse common snippets (e.g., "Link in Bio") across different posts.
-- [ ] **Visual Analytics Charts**: Graphs showing cross-platform follower growth and view trends.
-- [ ] **Team Collaboration**: Multi-user support to allow editors or managers to schedule posts on behalf of the creator.
+- [ ] **Global Search Field**: Implement a search bar (specifically in History and Media Gallery) to allow users to quickly find past posts or uploaded videos by title/keyword.
+- [ ] **Platform-Specific AI Intelligence**: Train/Prompt AI to specifically tailor content for each platform's culture (YT Search vs TikTok Hooks).
+- [ ] **AI Thumbnail Suggestions**: Extract key frames from uploaded videos to suggest high-click-through-rate thumbnails.
 - [ ] **Best Time to Post AI**: Analyze historical performance to suggest optimal publishing windows per platform.
+- [ ] **Calendar Content Planner**: A visual week/month view of all scheduled and published posts.
+- [ ] **Visual Analytics Charts**: Graphs showing cross-platform follower growth and view trends.
+- [ ] **Dashboard Stats Integration**: Replace the hardcoded MVP stats grid with real performance metrics from YouTube/Instagram [parked for next phase].
+- [ ] **Upcoming Posts Navigation**: Add a link from the "Upcoming Posts" sidebar items to the full Schedule/Calendar view to allow easier management and rescheduling.
 - [ ] **Media Gallery**: A centralized view to manage local and uploaded video files.
+- [ ] **Metadata Templates**: Save and reuse common snippets (e.g., "Link in Bio") across different posts.
+- [ ] **Team Collaboration**: Multi-user support to allow editors or managers to schedule posts on behalf of the creator.
 - [ ] **AI Chatbot**: Intelligent assistant to help upload, schedule, and manage content.
 - [ ] **Music Trending Engine**: Suggest trending audio for native app selection or AI beat-sync suggestions to append to the video (free-to-use only).
 - [ ] **AI Feature Highlighting**: Implement subtle UI "nudges" (e.g., a "Sparkle" icon or "Try AI Polish" badge) to suggest AI features.
@@ -38,19 +49,19 @@ This document tracks future features and improvements for the Social Studio App.
 - [ ] **Developer Analytics**: Implement platform usage statistics for the admin/developer to see how users are interacting with the tool.
 
 ## Low Priority 🛠️
-- [ ] **Technical SEO Foundation**: Implement landing page, dynamic metadata, and schema markup to improve search visibility.
-- [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
 - [ ] **Mobile UX: Safe Areas**: Ensure the UI respects "Safe Areas" (notches, dynamic islands) for the native mobile wrapper.
 - [ ] **Unique Page Titles**: Ensure every tab (Dashboard, History, Schedule, Settings) has its own unique HTML page title for SEO and UX.
 - [ ] **Video Preview**: Integrated video player to review content before posting.
 - [ ] **Notification Utility (Bell Icon)**: Implement functionality for the bell icon (e.g., in-app notifications for upload success/failure).
+- [ ] **Support Email**: Set up and display support contact information.
 - [ ] **Dark/Light Mode Toggle**: Professional theme switching.
+- [ ] **Technical SEO Foundation**: Implement landing page, dynamic metadata, and schema markup to improve search visibility.
+- [ ] **Documentation**: Create user enablement and developer documentation.
 - [ ] **Legal & Compliance**:
     - [ ] **Terms and Conditions**: Draft and implement T&Cs.
     - [ ] **Policies**: Draft and implement Privacy Policy.
     - [ ] **Legal Review**: General review for platform compliance.
-- [ ] **Support Email**: Set up and display support contact information.
-- [ ] **Documentation**: Create user enablement and developer documentation.
+- [ ] **AI Studio Billing Check**: Routine check of prepaid billing / credits in AI studio to avoid unexpected stoppage.
 
 ## Platform Expansion 🌐
 
@@ -131,3 +142,4 @@ This document tracks future features and improvements for the Social Studio App.
 - [x] **Clear Form with Undo**: Add a "Clear" (X) button to the title and description fields with the capability to undo the action if clicked accidentally.
 - [x] **Default Connection Selection**: Automatically enable the first connected account by default in the post-creation UI to reduce manual clicks.
 - [x] **SonarLint Integration**: Install and configure SonarLint for VS Code to catch security and quality issues in real-time.
+- [x] **AI 3-Tier Strategy Implementation**: Refactor the AI content pipeline into three distinct user paths (Manual, Enrich, Generate) to establish the architectural foundation for all future AI features.
