@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getBacklog, moveBacklogItem } from '@/lib/core/backlog-manager';
+import { auth } from '@/auth';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const data = await getBacklog();
     return NextResponse.json(data);
@@ -11,6 +19,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { id, status, section, index } = await request.json();
     
@@ -23,11 +38,16 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { title, description, section } = await request.json();
     
-    // Using import dynamically to avoid rewriting the whole file structure here
-    // or just assume createRoadmapTask is exported from backlog-manager
     const { createRoadmapTask } = await import('@/lib/core/backlog-manager');
     const newTask = await createRoadmapTask(title, description, section);
     
@@ -38,6 +58,13 @@ export async function PUT(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { id, title, description } = await request.json();
     const { updateRoadmapTask } = await import('@/lib/core/backlog-manager');

@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getLaunchTasks, moveLaunchItem } from '@/lib/core/backlog-manager';
+import { auth } from '@/auth';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const data = await getLaunchTasks();
     return NextResponse.json(data);
@@ -12,6 +20,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { id, status, section, index } = await request.json();
     
@@ -24,6 +39,13 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { title, description, section } = await request.json();
     
@@ -37,6 +59,13 @@ export async function PUT(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const { id, title, description } = await request.json();
     const { updateLaunchTask } = await import('@/lib/core/backlog-manager');
