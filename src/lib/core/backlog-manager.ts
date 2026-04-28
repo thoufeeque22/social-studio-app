@@ -92,3 +92,82 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
     })
   ));
 }
+
+export interface LaunchItem {
+  id: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'completed' | 'in-progress';
+  category: string;
+}
+
+export async function getLaunchTasks() {
+  const tasks = await prisma.launchTask.findMany({
+    orderBy: { order: 'asc' }
+  });
+
+  const backlog: Record<string, LaunchItem[]> = {
+    'App Store': [],
+    'Marketing': [],
+    'Legal': [],
+    'Completed': []
+  };
+
+  tasks.forEach(task => {
+    const item: LaunchItem = {
+      id: task.id,
+      title: task.title,
+      description: task.description || '',
+      status: task.status as any,
+      category: task.category
+    };
+
+    if (task.status === 'completed') {
+      backlog['Completed'].push(item);
+    } else if (backlog[task.category]) {
+      backlog[task.category].push(item);
+    } else {
+      backlog['Marketing'].push(item);
+    }
+  });
+
+  return backlog;
+}
+
+export async function moveLaunchItem(id: string, newSection: string, newStatus?: string, newIndex?: number) {
+  const task = await prisma.launchTask.findUnique({ where: { id } });
+  if (!task) throw new Error('Task not found');
+
+  const updateData: any = {};
+  if (newStatus) updateData.status = newStatus;
+  
+  const categorySections = ['App Store', 'Marketing', 'Legal'];
+  if (categorySections.includes(newSection)) {
+    updateData.category = newSection;
+  }
+
+  const targetCategory = updateData.category || task.category;
+  const targetStatus = updateData.status || task.status;
+
+  const siblingTasks = await prisma.launchTask.findMany({
+    where: { 
+      category: targetCategory,
+      status: targetStatus,
+      NOT: { id: id }
+    },
+    orderBy: { order: 'asc' }
+  });
+
+  const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, siblingTasks.length) : siblingTasks.length;
+  siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as any);
+
+  await Promise.all(siblingTasks.map((t, idx) => 
+    prisma.launchTask.update({
+      where: { id: t.id },
+      data: { 
+        ... (t.id === id ? updateData : {}),
+        order: idx 
+      }
+    })
+  ));
+}

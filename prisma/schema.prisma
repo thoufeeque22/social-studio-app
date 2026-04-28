@@ -116,3 +116,16 @@ model RoadmapTask {
 
   @@index([priority, status])
 }
+
+model LaunchTask {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  status      String   @default("pending") // pending, in-progress, completed
+  category    String   @default("Marketing") // App Store, Marketing, Legal
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, status])
+}

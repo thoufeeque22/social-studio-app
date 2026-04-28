@@ -38,7 +38,8 @@ interface BacklogItem {
   title: string;
   description: string;
   status: 'pending' | 'completed' | 'in-progress';
-  priority: string;
+  category?: string;
+  priority?: string;
 }
 
 type BacklogData = Record<string, BacklogItem[]>;
@@ -119,7 +120,7 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
           </div>
         </div>
 
-        {item.status === 'pending' && item.priority !== 'Completed' && (
+        {item.status === 'pending' && item.category !== 'Completed' && item.priority !== 'Completed' && (
           <div style={{ marginTop: '0.25rem' }}>
             <Zap size={12} style={{ color: 'hsla(var(--primary) / 0.5)' }} />
           </div>
@@ -138,7 +139,7 @@ function DroppableSection({ id, children }: { id: string; children: React.ReactN
   );
 }
 
-export default function RoadmapClient() {
+export default function LaunchClient() {
   const [backlog, setBacklog] = useState<BacklogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeItem, setActiveItem] = useState<BacklogItem | null>(null);
@@ -154,7 +155,7 @@ export default function RoadmapClient() {
 
   const fetchBacklog = async () => {
     try {
-      const res = await fetch('/api/roadmap');
+      const res = await fetch('/api/launch');
       const data = await res.json();
       setBacklog(data);
     } catch (err) {
@@ -189,7 +190,7 @@ export default function RoadmapClient() {
       const activeIndex = activeItems.findIndex(i => i.id === activeId);
       const [movedItem] = activeItems.splice(activeIndex, 1);
       
-      movedItem.priority = overContainer;
+      movedItem.category = overContainer;
       movedItem.status = overContainer === 'Completed' ? 'completed' : 'pending';
 
       const overIndex = prev[overContainer].findIndex(i => i.id === overId);
@@ -229,7 +230,7 @@ export default function RoadmapClient() {
         // Sync with server using the calculated final index
         const item = items.find(i => i.id === activeId);
         if (item) {
-          await fetch('/api/roadmap', {
+          await fetch('/api/launch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -247,7 +248,7 @@ export default function RoadmapClient() {
         const finalIndex = backlog[overContainer].findIndex(i => i.id === activeId);
         
         if (item) {
-          await fetch('/api/roadmap', {
+          await fetch('/api/launch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -270,9 +271,9 @@ export default function RoadmapClient() {
     else if (item.status === 'in-progress') newStatus = 'completed';
     else newStatus = 'pending';
 
-    const newSection = newStatus === 'completed' ? 'Completed' : (item.priority || 'High Priority');
+    const newSection = newStatus === 'completed' ? 'Completed' : (item.category || 'Marketing');
     
-    await fetch('/api/roadmap', {
+    await fetch('/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -294,17 +295,17 @@ export default function RoadmapClient() {
     );
   }
 
-  const sections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'Completed'];
+  const sections = ['App Store', 'Marketing', 'Legal', 'Completed'];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '-1rem auto 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', opacity: 0.8 }}>
         <Terminal size={16} style={{ color: 'hsl(var(--primary))' }} />
-        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Roadmap Manager</span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Launch Checklist</span>
         <div style={{ height: '1px', flex: 1, background: 'hsla(var(--border) / 0.2)' }} />
       </div>
       <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', marginBottom: '2rem', lineHeight: '1.5' }}>
-        Track technical tasks, SEO improvements, and upcoming features. Drag and drop items to re-prioritize or mark them as completed.
+        Track and manage all the marketing, App Store, and legal requirements needed before making the application public. Drag and drop items to update their status.
       </p>
 
       <DndContext
