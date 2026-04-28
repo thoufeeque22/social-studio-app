@@ -32,7 +32,8 @@ import {
   GripVertical,
   Timer,
   Plus,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 
 interface BacklogItem {
@@ -47,7 +48,7 @@ type BacklogData = Record<string, BacklogItem[]>;
 
 // --- Components ---
 
-function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: number; onToggle: (item: BacklogItem) => void }) {
+function SortableItem({ item, index, onToggle, onSaveEdit }: { item: BacklogItem; index: number; onToggle: (item: BacklogItem) => void; onSaveEdit: (item: BacklogItem, title: string, desc: string) => Promise<void> }) {
   const {
     attributes,
     listeners,
@@ -56,6 +57,11 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
     transition,
     isDragging
   } = useSortable({ id: item.id });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.title);
+  const [editDesc, setEditDesc] = useState(item.description);
+  const [isSaving, setIsSaving] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -66,6 +72,47 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
     borderBottom: '1px solid hsla(var(--border) / 0.3)',
     background: isDragging ? 'hsla(var(--primary) / 0.1)' : 'transparent',
   };
+
+  if (isEditing) {
+    return (
+      <div ref={setNodeRef} style={style}>
+        <div style={{ padding: '0.75rem', background: 'hsla(var(--primary) / 0.05)' }}>
+          <input 
+            type="text" 
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid hsla(var(--border) / 0.5)', background: 'hsl(var(--background))', color: 'inherit' }}
+            autoFocus
+          />
+          <textarea 
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.target.value)}
+            style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid hsla(var(--border) / 0.5)', background: 'hsl(var(--background))', color: 'inherit', minHeight: '60px', resize: 'vertical' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <button 
+              onClick={() => { setIsEditing(false); setEditTitle(item.title); setEditDesc(item.description); }}
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', background: 'none', border: '1px solid hsla(var(--border) / 0.5)', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={async () => {
+                setIsSaving(true);
+                await onSaveEdit(item, editTitle, editDesc);
+                setIsSaving(false);
+                setIsEditing(false);
+              }}
+              disabled={isSaving || !editTitle.trim()}
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))', cursor: editTitle.trim() ? 'pointer' : 'not-allowed', opacity: editTitle.trim() ? 1 : 0.5 }}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -121,11 +168,18 @@ function SortableItem({ item, index, onToggle }: { item: BacklogItem; index: num
           </div>
         </div>
 
-        {item.status === 'pending' && item.priority !== 'Completed' && (
-          <div style={{ marginTop: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+          {item.status === 'pending' && item.priority !== 'Completed' && (
             <Zap size={12} style={{ color: 'hsla(var(--primary) / 0.5)' }} />
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => setIsEditing(true)}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'hsl(var(--muted-foreground))', display: 'flex' }}
+            title="Edit task"
+          >
+            <Pencil size={12} style={{ opacity: 0.6 }} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -315,6 +369,23 @@ export default function RoadmapClient() {
     }
   };
 
+  const handleEditTask = async (item: BacklogItem, newTitle: string, newDesc: string) => {
+    try {
+      await fetch('/api/roadmap', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: item.id,
+          title: newTitle, 
+          description: newDesc
+        })
+      });
+      await fetchBacklog();
+    } catch (error) {
+      console.error('Failed to edit task', error);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -368,7 +439,7 @@ export default function RoadmapClient() {
               >
                 <DroppableSection id={section}>
                   {backlog?.[section]?.map((item, idx) => (
-                    <SortableItem key={item.id} item={item} index={idx} onToggle={toggleStatus} />
+                    <SortableItem key={item.id} item={item} index={idx} onToggle={toggleStatus} onSaveEdit={handleEditTask} />
                   ))}
                   {(!backlog?.[section] || backlog[section].length === 0) && addingTaskTo !== section && (
                     <div style={{ padding: '0.5rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', opacity: 0.5 }}>

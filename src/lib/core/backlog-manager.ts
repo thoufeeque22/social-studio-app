@@ -93,6 +93,13 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
   ));
 }
 
+export async function updateRoadmapTask(id: string, title: string, description: string) {
+  return prisma.roadmapTask.update({
+    where: { id },
+    data: { title, description }
+  });
+}
+
 export async function createRoadmapTask(title: string, description: string, priority: string) {
   // Find the max order in the current priority
   const maxOrderTask = await prisma.roadmapTask.findFirst({
@@ -190,6 +197,13 @@ export async function moveLaunchItem(id: string, newSection: string, newStatus?:
       }
     })
   ));
+}
+
+export async function updateLaunchTask(id: string, title: string, description: string) {
+  return prisma.launchTask.update({
+    where: { id },
+    data: { title, description }
+  });
 }
 
 export async function createLaunchTask(title: string, description: string, category: string) {

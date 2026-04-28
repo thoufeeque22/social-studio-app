@@ -36,3 +36,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to create roadmap task' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, title, description } = await request.json();
+    const { updateRoadmapTask } = await import('@/lib/core/backlog-manager');
+    await updateRoadmapTask(id, title, description);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update roadmap task text' }, { status: 500 });
+  }
+}

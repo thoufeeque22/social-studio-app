@@ -35,3 +35,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to create launch task' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, title, description } = await request.json();
+    const { updateLaunchTask } = await import('@/lib/core/backlog-manager');
+    await updateLaunchTask(id, title, description);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update launch task text' }, { status: 500 });
+  }
+}
