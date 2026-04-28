@@ -143,4 +143,55 @@ describe('Upload Integrations', () => {
     expect(body.snippet.title).toBe('Short Title');
     expect(body.status.privacyStatus).toBe('public');
   });
+  it('verifies Meta resumable upload logic fetches offset and resumes', async () => {
+    vi.mocked(global.fetch).mockImplementation(async (url: string, options: any) => {
+      // Mock for Facebook Get Account Pages
+      if (typeof url === 'string' && url.includes('/me/accounts')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ instagram_business_account: { id: "ig_test_123" }, access_token: "page_token" }]
+          })
+        } as any;
+      }
+      // Mock the GET request to fetch offset
+      if (url.includes('rupload.facebook.com') && options?.method === 'GET') {
+        return {
+          ok: true,
+          headers: { get: () => '500' }
+        } as any;
+      }
+      // Mock the POST request for binary push
+      if (url.includes('rupload.facebook.com') && options?.method === 'POST') {
+        expect(options.headers['Offset']).toBe('500'); // Validates it resumed from 500
+        return { ok: true, json: async () => ({ success: true }) } as any;
+      }
+      // Mock for Facebook Polling
+      if (typeof url === 'string' && url.includes('status_code')) {
+        return {
+           ok: true,
+           json: async () => ({ status_code: 'FINISHED' })
+        } as any;
+      }
+      // Mock for Facebook Publish
+      if (typeof url === 'string' && url.includes('/media_publish')) {
+        return {
+           ok: true,
+           json: async () => ({ id: 'mock_published_id' })
+        } as any;
+      }
+      return { ok: false } as any;
+    });
+
+    const publishPromise = publishInstagramReel({
+      userId: 'test_user',
+      filePath: 'fake.mp4',
+      caption: 'Resuming Upload',
+      creationId: 'existing_creation_id_123'
+    });
+
+    // Advance timers for polling
+    await vi.advanceTimersByTimeAsync(10000);
+    await publishPromise;
+  });
 });

@@ -54,6 +54,11 @@ export const publishInstagramReel = async ({
   console.log(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
 
   try {
+    let offset = 0;
+    const { promises: fsPromises, createReadStream } = await import('fs');
+    const fileStats = await fsPromises.stat(filePath);
+    const fileSize = fileStats.size;
+
     if (!creationId) {
       // STEP 1: Create Media Container (Resumable)
       const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
@@ -84,33 +89,56 @@ export const publishInstagramReel = async ({
       }
 
       creationId = containerData.id;
-      console.log(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Pushing binary data...`);
+      console.log(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Proceeding to binary push...`);
+    } else {
+      console.log(`🚀 [IG-REEL-RESUME] Checking offset for existing Creation ID: ${creationId}`);
+      
+      const offsetRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `OAuth ${userAccessToken}`
+        }
+      });
+      
+      if (offsetRes.ok) {
+        const offsetHeader = offsetRes.headers.get("Offset");
+        if (offsetHeader) {
+          offset = parseInt(offsetHeader, 10);
+          console.log(`🚀 [IG-REEL-RESUME] Resuming from offset: ${offset} / ${fileSize}`);
+        }
+      } else {
+        console.warn(`🚀 [IG-REEL-RESUME] Failed to get offset, starting from 0. Status: ${offsetRes.status}`);
+      }
+    }
 
+    if (offset < fileSize) {
       // STEP 2: Binary Push to rupload
-      const { promises: fs } = await import('fs');
-      const fileStats = await fs.stat(filePath);
-      const fileBuffer = await fs.readFile(filePath);
-
+      console.log(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
+      
+      const fileStream = createReadStream(filePath, { start: offset });
+      
       const uploadRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
         method: "POST",
         headers: {
           "Authorization": `OAuth ${userAccessToken}`,
-          "Offset": "0",
-          "X-Entity-Length": fileStats.size.toString(),
+          "Offset": offset.toString(),
+          "X-Entity-Length": fileSize.toString(),
           "X-Entity-Name": `video_${Date.now()}.mp4`,
           "X-Entity-Type": "video/mp4",
         },
-        body: fileBuffer,
+        body: fileStream as any,
+        // @ts-ignore
+        duplex: 'half'
       });
 
-      const uploadData = await uploadRes.json();
-      if (!uploadData || uploadData.success === false || uploadData.error) {
-        console.error("❌ Instagram Step 2 (Binary Push) Failed:", JSON.stringify(uploadData, null, 2));
-        throw new Error(`Instagram Step 2 Failed: ${uploadData.error?.message || JSON.stringify(uploadData)}`);
+      if (!uploadRes.ok) {
+        const uploadData = await uploadRes.json().catch(() => null);
+        console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadData, null, 2) || uploadRes.statusText);
+        throw new Error(`Instagram Binary Push Failed: ${uploadData?.error?.message || uploadRes.statusText}`);
       }
       console.log(`🚀 [IG-REEL-PUSH] Binary push complete for ${creationId}. Waiting for processing...`);
     } else {
-      console.log(`Resuming Instagram upload with existing Creation ID: ${creationId}`);
+      console.log(`🚀 [IG-REEL-PUSH] File already fully uploaded. Proceeding to processing check...`);
     }
 
   // STEP 2: Poll for Processing Status
