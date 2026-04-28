@@ -22,3 +22,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to update launch tasks' }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const { title, description, section } = await request.json();
+    
+    const { createLaunchTask } = await import('@/lib/core/backlog-manager');
+    const newTask = await createLaunchTask(title, description, section);
+    
+    return NextResponse.json({ success: true, task: newTask });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create launch task' }, { status: 500 });
+  }
+}

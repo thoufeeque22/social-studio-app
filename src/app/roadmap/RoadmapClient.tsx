@@ -30,7 +30,9 @@ import {
   Terminal,
   Loader2,
   GripVertical,
-  Timer
+  Timer,
+  Plus,
+  X
 } from 'lucide-react';
 
 interface BacklogItem {
@@ -142,6 +144,10 @@ export default function RoadmapClient() {
   const [backlog, setBacklog] = useState<BacklogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeItem, setActiveItem] = useState<BacklogItem | null>(null);
+  const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -285,6 +291,30 @@ export default function RoadmapClient() {
     await fetchBacklog();
   };
 
+  const handleCreateTask = async (section: string) => {
+    if (!newTaskTitle.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await fetch('/api/roadmap', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: newTaskTitle, 
+          description: newTaskDesc, 
+          section 
+        })
+      });
+      setNewTaskTitle('');
+      setNewTaskDesc('');
+      setAddingTaskTo(null);
+      await fetchBacklog();
+    } catch (error) {
+      console.error('Failed to create task', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -317,9 +347,19 @@ export default function RoadmapClient() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {sections.map((section) => (
             <section key={section} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '0.75rem', fontWeight: '800', color: section === 'Critical' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                {section} ({backlog?.[section]?.length || 0})
-              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '0.75rem', fontWeight: '800', color: section === 'Critical' ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {section} ({backlog?.[section]?.length || 0})
+                </h2>
+                {section !== 'Completed' && (
+                  <button
+                    onClick={() => { setAddingTaskTo(section); setNewTaskTitle(''); setNewTaskDesc(''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'hsl(var(--primary))' }}
+                  >
+                    <Plus size={14} /> Add Task
+                  </button>
+                )}
+              </div>
 
               <SortableContext
                 id={section}
@@ -330,9 +370,43 @@ export default function RoadmapClient() {
                   {backlog?.[section]?.map((item, idx) => (
                     <SortableItem key={item.id} item={item} index={idx} onToggle={toggleStatus} />
                   ))}
-                  {(!backlog?.[section] || backlog[section].length === 0) && (
+                  {(!backlog?.[section] || backlog[section].length === 0) && addingTaskTo !== section && (
                     <div style={{ padding: '0.5rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', opacity: 0.5 }}>
                       No items
+                    </div>
+                  )}
+
+                  {addingTaskTo === section && (
+                    <div style={{ padding: '0.75rem', background: 'hsla(var(--primary) / 0.05)', borderBottom: '1px solid hsla(var(--border) / 0.3)' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Task title..." 
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid hsla(var(--border) / 0.5)', background: 'hsl(var(--background))', color: 'inherit' }}
+                        autoFocus
+                      />
+                      <textarea 
+                        placeholder="Description (optional)..." 
+                        value={newTaskDesc}
+                        onChange={(e) => setNewTaskDesc(e.target.value)}
+                        style={{ width: '100%', marginBottom: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid hsla(var(--border) / 0.5)', background: 'hsl(var(--background))', color: 'inherit', minHeight: '60px', resize: 'vertical' }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => setAddingTaskTo(null)}
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', background: 'none', border: '1px solid hsla(var(--border) / 0.5)', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={() => handleCreateTask(section)}
+                          disabled={isSubmitting || !newTaskTitle.trim()}
+                          style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '4px', background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))', cursor: newTaskTitle.trim() ? 'pointer' : 'not-allowed', opacity: newTaskTitle.trim() ? 1 : 0.5 }}
+                        >
+                          {isSubmitting ? 'Saving...' : 'Save Task'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </DroppableSection>
