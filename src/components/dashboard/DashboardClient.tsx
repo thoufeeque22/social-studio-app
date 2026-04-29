@@ -1,20 +1,29 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
-import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
+import { stageVideoFile } from '@/lib/upload/upload-utils';
 import { StyleMode, AITier } from '@/lib/core/constants';
-import { storeDraftFile, getDraftFile, clearDraftFile } from '@/lib/upload/file-store';
-import { updateVideoFormatPreference, updateAIStylePreference } from '@/app/actions/user';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { extractVideoFrames } from '@/lib/utils/video-analysis';
 import type { Session } from 'next-auth';
 import { Account, PlatformPreference } from '@/lib/core/types';
+import { useDraftFile } from '@/hooks/dashboard/useDraftFile';
+import { usePlatformSelection } from '@/hooks/dashboard/usePlatformSelection';
+import { useDistributionEngine } from '@/hooks/dashboard/useDistributionEngine';
+
+interface ReviewContext {
+  stagedFileId: string;
+  fileName: string;
+  historyId: string;
+  formData: FormData;
+  targetAccountIds?: string[];
+}
 
 interface DashboardClientProps {
   session: Session;
@@ -33,45 +42,51 @@ export default function DashboardClient({
   initialAIStyle,
   initialAITier
 }: Readonly<DashboardClientProps>) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-
   const resumeHistoryId = searchParams.get('resume');
+
+  // 1. MODULAR LOGIC: Hooks handle the heavy lifting
   const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  
+  const {
+    draftFileRef,
+    draftFileName,
+    videoFormat,
+    setVideoFormat,
+    videoDuration,
+    handleFileChange
+  } = useDraftFile(session?.user?.id);
+
+  const {
+    selectedAccountIds,
+    setSelectedAccountIds,
+    handleToggleAccount
+  } = usePlatformSelection(accounts, preferences, isLoading);
+
+  const {
+    isUploading,
+    uploadStatus,
+    setUploadStatus,
+    platformStatuses,
+    platformErrors,
+    successfulAccountIds,
+    handleAbortPlatform,
+    handleAbortAll,
+    executeDistribution
+  } = useDistributionEngine(accounts);
+
+  // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
   const [aiTier, setAiTier] = useState<AITier>(initialAITier || 'Manual');
   const [contentMode, setContentMode] = useState<StyleMode>(
     (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Hook'
   );
-  const [videoFormat, setVideoFormat] = useState<'short' | 'long'>(initialVideoFormat);
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
-
-  const [isInitialSync, setIsInitialSync] = useState(false);
-  const [platformStatuses, setPlatformStatuses] = useState<Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>>({});
-  const [platformErrors, setPlatformErrors] = useState<Record<string, string>>({});
-  const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
-  const [draftFileName, setDraftFileName] = useState<string | null>(null);
-  const draftFileRef = useRef<File | null>(null);
-  const abortControllers = useRef<Record<string, AbortController>>({});
-
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
-  const [reviewContext, setReviewContext] = useState<Record<string, unknown> | null>(null);
+  const [reviewContext, setReviewContext] = useState<ReviewContext | null>(null);
 
-  useEffect(() => {
-    getDraftFile().then(file => {
-      if (file) {
-        draftFileRef.current = file;
-        setDraftFileName(file.name);
-      }
-    });
-  }, [session?.user?.id]);
-
+  // 3. EFFECT: Resumption Logic
   useEffect(() => {
     if (resumeHistoryId && accounts.length > 0) {
       const loadResumptionData = async () => {
@@ -97,368 +112,104 @@ export default function DashboardClient({
               }
             });
             if (matchingIds.length > 0) setSelectedAccountIds(matchingIds);
-            setIsInitialSync(true);
             setUploadStatus(`✅ Ready to resume: "${data.title}"`);
           }
         } catch (err) {
           console.error("Failed to load resumption data", err);
-          setUploadStatus("⚠️ Failed to load resumption context");
         }
       };
       loadResumptionData();
     }
-  }, [resumeHistoryId, accounts]);
+  }, [resumeHistoryId, accounts, setSelectedAccountIds, setUploadStatus, setVideoFormat]);
 
-  useEffect(() => {
-    if (isLoading || isInitialSync) return;
-    const stickySelection = localStorage.getItem('SS_SELECTED_PLATFORMS');
-    if (stickySelection) {
-      try {
-        const parsed = JSON.parse(stickySelection);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSelectedAccountIds(parsed);
-          setIsInitialSync(true);
-          return;
-        }
-      } catch (e) { console.error(e); }
-    }
-    if (accounts.length > 0) {
-      const initialSelection = calculateInitialSelection(accounts, preferences);
-      setSelectedAccountIds(initialSelection);
-      setIsInitialSync(true);
-    }
-  }, [accounts, isInitialSync, preferences, isLoading]);
-
-  useEffect(() => {
-    if (isInitialSync) {
-      localStorage.setItem('SS_SELECTED_PLATFORMS', JSON.stringify(selectedAccountIds));
-    }
-  }, [selectedAccountIds, isInitialSync]);
-
-  const handleToggleAccount = (id: string) => {
-    setSelectedAccountIds(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
-  };
-  
-  const handleAbortPlatform = (id: string) => {
-    if (abortControllers.current[id]) {
-      abortControllers.current[id].abort();
-      delete abortControllers.current[id];
-      setPlatformStatuses(prev => ({ ...prev, [id]: 'cancelled' }));
-      setPlatformErrors(prev => ({ ...prev, [id]: 'Stopped by user' }));
-    }
-  };
-
-  const handleAbortAll = () => {
-    // 1. Immediately signal all controllers
-    Object.values(abortControllers.current).forEach(controller => controller.abort());
-    
-    // 2. Instantly update UI states to 'cancelled' so we don't wait for results
-    setPlatformStatuses(prev => {
-      const next = { ...prev };
-      Object.keys(abortControllers.current).forEach(id => {
-        next[id] = 'cancelled';
-      });
-      return next;
-    });
-
-    setPlatformErrors(prev => {
-      const next = { ...prev };
-      Object.keys(abortControllers.current).forEach(id => {
-        next[id] = 'Stopped by user';
-      });
-      return next;
-    });
-
-    abortControllers.current = {};
-    setUploadStatus('⏹️ All uploads stopped by user.');
-    setIsUploading(false);
-  };
-
-  const detectVideoMetadata = (file: File): Promise<{ format: 'short' | 'long', duration: number }> => {
-    return new Promise((resolve) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.muted = true;
-      video.playsInline = true;
-      const cleanup = () => {
-        video.onloadedmetadata = null;
-        video.onerror = null;
-        if (video.src) { globalThis.URL.revokeObjectURL(video.src); video.src = ''; }
-        video.remove();
-      };
-      video.onloadedmetadata = () => {
-        const isVertical = video.videoHeight > video.videoWidth;
-        const duration = video.duration;
-        cleanup();
-        const format = (isVertical && duration <= 90) ? 'short' : 'long';
-        resolve({ format, duration });
-      };
-      video.onerror = () => { resolve({ format: 'long', duration: 0 }); cleanup(); };
-      video.src = globalThis.URL.createObjectURL(file);
-    });
-  };
-
-  const handleFileChange = async (file: File) => {
-    draftFileRef.current = file;
-    setDraftFileName(file.name);
-    await storeDraftFile(file);
-    setUploadStatus(null);
-    setSuccessfulAccountIds([]);
-    setPlatformStatuses({});
-    const { format, duration } = await detectVideoMetadata(file);
-    setVideoFormat(format);
-    setVideoDuration(duration);
-    updateVideoFormatPreference(format).catch(err => console.error(err));
-  };
-
-  const mapSelectedPlatforms = (ids: string[], accounts: Account[]) => {
-    return ids.map(sid => {
-      let platform: string;
-      let accountId: string;
-      if (sid.includes(':')) {
-         const parts = sid.split(':');
-         platform = parts[0];
-         accountId = parts[1];
-      } else {
-         const account = accounts.find(a => a.id === sid);
-         if (!account) return null;
-         platform = account.provider === 'google' ? 'youtube' : account.provider;
-         accountId = account.id;
-      }
-      return { platform, accountId };
-    }).filter((p): p is { platform: string; accountId: string } => p !== null);
-  };
-
-  const handlePlatformPersistence = (historyId: string, result: unknown) => {
-    if (!historyId) return;
-    import('@/app/actions/history').then(({ upsertPlatformResult }) => {
-      upsertPlatformResult(historyId, result as any).catch(err => console.error(err));
-    });
-  };
-
-  const calculateInitialSelection = (accounts: Account[], preferences: PlatformPreference[]) => {
-    const isPlatformEnabled = (platformId: string) => {
-      const pref = preferences.find(p => p.platformId === platformId);
-      return pref ? pref.isEnabled : true;
-    };
-    const selection: string[] = [];
-    accounts.forEach(account => {
-      if (!account.isDistributionEnabled) return;
-      if (account.provider === 'facebook') {
-        if (isPlatformEnabled('facebook')) selection.push(`facebook:${account.id}`);
-        if (isPlatformEnabled('instagram')) selection.push(`instagram:${account.id}`);
-      } else {
-        const platform = account.provider === 'google' ? 'youtube' : account.provider;
-        if (isPlatformEnabled(platform)) selection.push(account.id);
-      }
-    });
-    return selection;
-  };
-
-  const executeDistribution = async (
-    stagedFileId: string, 
-    fileName: string, 
-    historyId: string, 
-    formData: FormData,
-    reviewedContent?: Record<string, AIWriteResult>,
-    targetAccountIds?: string[]
-  ) => {
-    setIsUploading(true);
-    // Filter out already successful platforms to ensure we only target the "Remaining" ones
-    const activeTargets = (targetAccountIds || selectedAccountIds).filter(id => !successfulAccountIds.includes(id));
-    
-    if (activeTargets.length === 0) {
-      setUploadStatus("✅ All selected platforms are already successful.");
-      setIsUploading(false);
+  // 4. HANDLERS: Orchestrating the flows
+  const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
+    if (!draftFileRef.current) {
+      setUploadStatus("⚠️ Please select a video file first.");
       return;
     }
 
-    setUploadStatus(targetAccountIds ? `🔄 Retrying ${activeTargets.length} platform(s)...` : "🚀 Orchestrating distribution...");
-    
-    setPlatformStatuses(prev => {
-      const next = { ...prev };
-      activeTargets.forEach(id => { next[id] = 'pending'; });
-      return next;
-    });
-
-    const controllers: Record<string, AbortController> = {};
-    const signals: Record<string, AbortSignal> = {};
-    activeTargets.forEach(id => {
-      const controller = new AbortController();
-      controllers[id] = controller;
-      signals[id] = controller.signal;
-    });
-    abortControllers.current = controllers;
-
     try {
-      const distribution = await distributeToPlatforms({
-        stagedFileId,
-        fileName,
-        formData,
-        accounts,
-        selectedAccountIds: activeTargets,
-        contentMode,
-        videoFormat,
+      setUploadStatus("⚙️ Preparing video...");
+      const mappedPlatforms = (targetAccountIds || selectedAccountIds).map(id => ({
+        platform: id.split(':')[0],
+        accountId: id.split(':')[1] || id
+      }));
+
+      // A. Stage the file
+      const { stagedFileId, fileName, historyId } = await stageVideoFile({
+        file: draftFileRef.current,
         onStatusUpdate: setUploadStatus,
-        onPlatformStatus: (id, status, error) => {
-          setPlatformStatuses(prev => ({ ...prev, [id]: status }));
-          if (error) {
-            setPlatformErrors(prev => ({ ...prev, [id]: error }));
-          }
+        metadata: {
+          title: formData.get('title') as string,
+          description: formData.get('description') as string,
+          videoFormat,
+          scheduledAt: isScheduled ? scheduledAt : undefined,
+          isPublished: !isScheduled
         },
-        onAccountSuccess: (id, result) => {
-          if (result.status === 'success') {
-            setSuccessfulAccountIds(prev => [...prev, id]);
-          }
-          handlePlatformPersistence(historyId, result);
-        },
-        historyId,
-        reviewedContent: reviewedContent,
-        signals
+        platforms: mappedPlatforms,
+        resumeHistoryId: resumeHistoryId || undefined
       });
 
-      // Update statuses and errors using functional updates to avoid closure staleness
-      const finalResults = distribution.platformResults;
-      
-      setPlatformStatuses(prev => {
-        const next = { ...prev };
-        finalResults.forEach(result => {
-          if (result.status === 'success') {
-            next[result.accountId] = 'success';
-          } else if (result.status === 'cancelled') {
-            next[result.accountId] = 'cancelled';
-          } else if (result.status === 'failed') {
-            // Final safety check for any missed aborts
-            const isAborted = abortControllers.current[result.accountId]?.signal.aborted;
-            const msg = result.errorMessage || '';
-            if (isAborted || msg.includes('Cancelled') || msg.includes('Stopped') || msg.includes('Aborted')) {
-              next[result.accountId] = 'cancelled';
-            } else {
-              next[result.accountId] = 'failed';
-            }
-          }
-        });
-        return next;
-      });
-
-      setPlatformErrors(prev => {
-        const next = { ...prev };
-        finalResults.forEach(result => {
-          if (result.status === 'failed') {
-            next[result.accountId] = result.errorMessage || 'Unknown error';
-          } else if (result.status === 'cancelled') {
-            next[result.accountId] = 'Stopped by user';
-          }
-        });
-        return next;
-      });
-
-      const actualFailures = finalResults.filter(r => r.status === 'failed' && r.errorMessage !== 'Cancelled by user' && r.errorMessage !== 'Signal Aborted');
-      const cancellations = finalResults.filter(r => r.status === 'failed' && (r.errorMessage === 'Cancelled by user' || r.errorMessage === 'Signal Aborted'));
-
-      const totalAttempted = distribution.platformResults.length;
-      const totalSuccess = distribution.platformResults.filter(r => r.status === 'success').length;
-
-      if (totalSuccess === totalAttempted && totalAttempted > 0) {
-        setUploadStatus('Distribution Complete: All successful! ✨');
-        localStorage.removeItem('SS_DRAFT_TITLE');
-        localStorage.removeItem('SS_DRAFT_DESC');
-        draftFileRef.current = null;
-        setDraftFileName(null);
-        await clearDraftFile();
-      } else if (actualFailures.length > 0) {
-        setUploadStatus(`Distribution Complete: ${actualFailures.length} issues found.`);
-      } else if (cancellations.length > 0) {
-        setUploadStatus(`Distribution Complete: ${cancellations.length} stopped.`);
-      }
-    } catch (error: unknown) {
-      setUploadStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
-      
-      // Categorize statuses even on error (for Aborts)
-      setPlatformStatuses(prev => {
-        const next = { ...prev };
-        Object.entries(abortControllers.current).forEach(([id, controller]) => {
-          if (controller.signal.aborted && next[id] !== 'success') {
-            next[id] = 'cancelled';
-          }
-        });
-        return next;
-      });
-    } finally {
-      setIsUploading(false);
-      abortControllers.current = {};
-    }
-  };
-
-  const handleUpload = async (e: { preventDefault: () => void; currentTarget: HTMLFormElement }) => {
-    e.preventDefault();
-    if (!session) return;
-    const form = e.currentTarget;
-    const fileInput = form.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = fileInput.files?.[0] || draftFileRef.current;
-    
-    if (selectedAccountIds.length === 0 || !file) {
-      alert("Please select a file and at least one channel.");
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const data = new FormData(form);
-      if (!data.get('file')) data.set('file', file);
-      
-      const platforms = mapSelectedPlatforms(selectedAccountIds, accounts);
-      
-      const stagingController = new AbortController();
-      abortControllers.current['staging'] = stagingController;
-
-      const result = await stageVideoFile({
-        file,
-        onStatusUpdate: setUploadStatus,
-        metadata: { title: (data.get('title') as string), description: (data.get('description') as string), videoFormat },
-        platforms,
-        resumeHistoryId: resumeHistoryId || undefined,
-        signal: stagingController.signal
-      });
-
-      delete abortControllers.current['staging'];
-
-      if (aiTier !== 'Manual' && data.get('skipReview') !== 'true') {
+      // B. AI Review Flow Logic
+      if (aiTier !== 'Manual' && formData.get('skipReview') !== 'true') {
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-        const previews = await getMultiPlatformAIPreviews(data.get('title') as string, (data.get('description') as string) || '', aiTier, contentMode, platforms.map(p => p.platform));
+        setUploadStatus("🪄 Generating AI options...");
+        const previews = await getMultiPlatformAIPreviews(
+          formData.get('title') as string, 
+          (formData.get('description') as string) || '', 
+          aiTier, 
+          contentMode, 
+          mappedPlatforms.map(p => p.platform)
+        );
         setAiPreviews(previews);
-        setReviewContext({ stagedFileId: result.stagedFileId, historyId: result.historyId, fileName: result.fileName, formData: data, platforms });
+        setReviewContext({ stagedFileId, fileName, historyId, formData, targetAccountIds });
         setIsReviewing(true);
-        setIsUploading(false);
         return;
       }
 
-      setUploadStatus("🚀 Orchestrating distribution...");
-      await executeDistribution(result.stagedFileId, result.fileName, result.historyId, data);
-    } catch (error: unknown) {
-      setUploadStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
-      setIsUploading(false);
+      // C. Direct Distribution
+      const distribution = await executeDistribution({
+        stagedFileId,
+        fileName,
+        historyId,
+        formData,
+        selectedAccountIds,
+        reviewedContent: aiPreviews,
+        targetAccountIds
+      });
+
+      if (distribution?.platformResults.every(r => r.status === 'success')) {
+        setUploadStatus('Distribution Complete: All successful! ✨');
+        localStorage.removeItem('SS_DRAFT_TITLE');
+        localStorage.removeItem('SS_DRAFT_DESC');
+        handleFileChange(null as unknown as File); 
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`❌ Error: ${message}`);
     }
   };
 
   const handleConfirmReview = async (updatedPreviews: Record<string, AIWriteResult>) => {
     if (!reviewContext) return;
     setIsReviewing(false);
-    setIsUploading(true);
-    await executeDistribution(
-      reviewContext.stagedFileId as string,
-      reviewContext.fileName as string,
-      reviewContext.historyId as string,
-      reviewContext.formData as FormData,
-      updatedPreviews
-    );
+    setAiPreviews(updatedPreviews);
+    
+    const distribution = await executeDistribution({
+      ...reviewContext!,
+      selectedAccountIds,
+      reviewedContent: updatedPreviews
+    });
+
+    if (distribution?.platformResults.every(r => r.status === 'success')) {
+      setUploadStatus('Distribution Complete: All successful! ✨');
+      handleFileChange(null as any);
+    }
   };
 
   const handleVisualScan = async (file: File) => {
     try {
-      setIsUploading(true);
       setUploadStatus('🪄 Scanning video content with AI...');
       const frames = await extractVideoFrames(file);
       const platforms = preferences.filter(p => p.isEnabled);
@@ -466,7 +217,7 @@ export default function DashboardClient({
       const previews = await getMultiPlatformAIPreviews('', '', 'Generate', contentMode, platforms.map(p => p.platformId), frames);
       setAiPreviews(previews);
       setIsReviewing(true);
-    } catch (err) { console.error(err); } finally { setIsUploading(false); }
+    } catch (err) { console.error(err); } 
   };
 
   return (
@@ -478,7 +229,7 @@ export default function DashboardClient({
             <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
               <AIContentReview 
                 previews={aiPreviews}
-                onBack={() => { setIsReviewing(false); setIsUploading(false); setUploadStatus(null); }}
+                onBack={() => { setIsReviewing(false); setUploadStatus(null); }}
                 onConfirm={handleConfirmReview}
                 isProcessing={isUploading}
               />
@@ -506,7 +257,7 @@ export default function DashboardClient({
               onAbort={handleAbortPlatform}
               onAbortAll={handleAbortAll}
               onFileChange={handleFileChange}
-              onSubmit={handleUpload}
+              onSubmit={handleMainAction}
               isScheduled={isScheduled}
               scheduledAt={scheduledAt}
               onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
@@ -539,6 +290,7 @@ export default function DashboardClient({
           </div>
           <button 
             type="button" 
+            aria-label="Stop all active uploads"
             onClick={handleAbortAll} 
             style={{ 
               background: '#EF4444', color: 'white', border: 'none', 
