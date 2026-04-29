@@ -302,8 +302,11 @@ export default function DashboardClient({
         contentMode,
         videoFormat,
         onStatusUpdate: setUploadStatus,
-        onPlatformStatus: (id, status) => {
+        onPlatformStatus: (id, status, error) => {
           setPlatformStatuses(prev => ({ ...prev, [id]: status }));
+          if (error) {
+            setPlatformErrors(prev => ({ ...prev, [id]: error }));
+          }
         },
         onAccountSuccess: (id, result) => {
           if (result.status === 'success') {

@@ -122,12 +122,45 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   }}
                 >
                   {/* Custom Instant Tooltip */}
-                  <div className="custom-tooltip">
-                    {platformErrors[item.id] || 
-                     (isSuccess ? 'Successfully posted' : 
-                      isFailed ? 'Upload failed' : 
-                      isCancelled ? 'Stopped by user' : 
-                      'Click to toggle')}
+                  <div className="custom-tooltip" style={{ 
+                    whiteSpace: 'normal', 
+                    maxWidth: '250px', 
+                    lineHeight: '1.4',
+                    textAlign: 'left'
+                  }}>
+                    {(() => {
+                      const err = platformErrors[item.id];
+                      if (!err) return isSuccess ? 'Successfully posted' : isFailed ? 'Upload failed' : isCancelled ? 'Stopped by user' : 'Click to toggle';
+                      
+                      let friendly = err;
+
+                      // 1. YouTube Limit
+                      if (err.includes('uploadLimitExceeded') || err.includes('exceeded the number of videos')) {
+                        return 'YouTube upload limit reached. Try again in 24h.';
+                      }
+
+                      // 2. Facebook/Instagram Rate Limit
+                      if (err.includes('limit how often you can post') || err.includes('protect the community from spam')) {
+                        return 'Platform limit reached. Please try again later.';
+                      }
+
+                      // 3. Clean up technical prefixes
+                      friendly = friendly.replace(/^Error: /i, '')
+                                       .replace(/^Reel Handshake Step \d+ Failed: /i, '')
+                                       .replace(/^YT Session Init Failed: /i, '')
+                                       .trim();
+
+                      // 4. Try to parse JSON if it's still there
+                      try {
+                        if (friendly.startsWith('{')) {
+                          const parsed = JSON.parse(friendly);
+                          friendly = parsed.error?.message || parsed.message || friendly;
+                        }
+                      } catch (e) { /* ignore */ }
+
+                      // 5. Final cap on length
+                      return friendly.length > 80 ? friendly.substring(0, 77) + '...' : friendly;
+                    })()}
                   </div>
 
                   {/* Progress Strip */}

@@ -28,7 +28,7 @@ interface UploadParams {
   contentMode: StyleMode;
   videoFormat: 'short' | 'long';
   onStatusUpdate: (status: string) => void;
-  onPlatformStatus?: (platformId: string, status: IndividualStatus) => void;
+  onPlatformStatus?: (platformId: string, status: IndividualStatus, errorMessage?: string) => void;
   onAccountSuccess?: (accountId: string, result: PlatformUploadResult) => void;
   historyId?: string; // Optional for real-time updates
   reviewedContent?: Record<string, import('@/lib/utils/ai-writer').AIWriteResult>;
@@ -320,7 +320,7 @@ export async function distributeToPlatforms({
       };
       platformResults.push(platformResult);
 
-      if (onPlatformStatus) onPlatformStatus(selectionId, isAborted ? 'cancelled' : 'failed');
+      if (onPlatformStatus) onPlatformStatus(selectionId, isAborted ? 'cancelled' : 'failed', isAborted ? undefined : err.message);
 
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
     }
