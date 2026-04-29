@@ -4,7 +4,12 @@ import { distributeToPlatforms } from '../../lib/upload/upload-utils';
 describe('Parallel Distribution Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ status: 'success', data: { id: 'test-id' } })),
+      json: () => Promise.resolve({ status: 'success', data: { id: 'test-id' } })
+    });
   });
 
   it('should trigger uploads in parallel for small files', async () => {
@@ -13,7 +18,11 @@ describe('Parallel Distribution Logic', () => {
     // Mock fetch to have a delay so we can see them in flight
     vi.mocked(global.fetch).mockImplementation(async () => {
       await new Promise(r => setTimeout(r, 100));
-      return { ok: true, json: async () => ({ id: '123' }) } as any;
+      return { 
+        ok: true, 
+        json: async () => ({ id: '123' }),
+        text: async () => JSON.stringify({ id: '123' })
+      } as any;
     });
 
     const formData = new FormData();
@@ -39,13 +48,13 @@ describe('Parallel Distribution Logic', () => {
     // Wait a tiny bit for the microtask queue
     await new Promise(r => setTimeout(r, 10));
 
-    expect(onPlatformStatus).toHaveBeenCalledWith('platform1', 'uploading');
-    expect(onPlatformStatus).toHaveBeenCalledWith('platform2', 'uploading');
-    expect(onPlatformStatus).toHaveBeenCalledWith('platform3', 'uploading');
-    expect(onPlatformStatus).toHaveBeenCalledWith('platform4', 'uploading');
+    expect(onPlatformStatus).toHaveBeenCalledWith('platform1', 'uploading', undefined);
+    expect(onPlatformStatus).toHaveBeenCalledWith('platform2', 'uploading', undefined);
+    expect(onPlatformStatus).toHaveBeenCalledWith('platform3', 'uploading', undefined);
+    expect(onPlatformStatus).toHaveBeenCalledWith('platform4', 'uploading', undefined);
 
     await distributionPromise;
-    expect(onPlatformStatus).toHaveBeenCalledWith('platform1', 'success');
+    expect(onPlatformStatus).toHaveBeenCalledWith('platform1', 'success', undefined);
   });
 
   it('should limit concurrency for large files', async () => {

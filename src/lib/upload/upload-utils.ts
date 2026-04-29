@@ -199,7 +199,7 @@ export async function distributeToPlatforms({
   // Instant visual feedback for the first batch
   const initialBatch = queue.slice(0, concurrency);
   initialBatch.forEach(id => {
-    if (onPlatformStatus) onPlatformStatus(id, 'uploading');
+    if (onPlatformStatus) onPlatformStatus(id, 'uploading', undefined);
   });
 
   const processOne = async (selectionId: string) => {
@@ -219,7 +219,7 @@ export async function distributeToPlatforms({
     const account = accounts.find(a => a.id === realAccountId);
     const displayName = formatHandle(account?.accountName || 'Unknown', platform);
 
-    if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading');
+    if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading', undefined);
 
     try {
       // PLATFORM INTEGRITY: Sanitize and Truncate Metadata
@@ -294,7 +294,7 @@ export async function distributeToPlatforms({
       results[selectionId] = rawData;
       platformResults.push(platformResult);
       
-      if (onPlatformStatus) onPlatformStatus(selectionId, 'success');
+      if (onPlatformStatus) onPlatformStatus(selectionId, 'success', undefined);
       
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
 

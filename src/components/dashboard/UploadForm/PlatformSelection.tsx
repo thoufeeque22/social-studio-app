@@ -122,7 +122,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     textAlign: 'left'
                   }}>
                     {(() => {
-                      const err = platformErrors[item.id];
+                      const err = platformErrors?.[item.id];
                       if (!err) return isSuccess ? 'Successfully posted' : isFailed ? 'Upload failed' : isCancelled ? 'Stopped by user' : 'Click to toggle';
                       
                       let friendly = err;
