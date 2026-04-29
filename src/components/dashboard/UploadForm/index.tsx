@@ -15,7 +15,7 @@ interface UploadFormProps {
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
-  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
   contentMode: StyleMode;
   aiTier: AITier;
   videoFormat: 'short' | 'long';
@@ -26,11 +26,15 @@ interface UploadFormProps {
   onModeChange: (mode: StyleMode) => void;
   onFormatChange: (format: 'short' | 'long') => void;
   onToggleAccount: (id: string) => void;
+  onAbort: (id: string) => void;
+  onAbortAll: () => void;
   onFileChange: (file: File) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   isScheduled: boolean;
   scheduledAt: string;
   onSchedulingChange: (isScheduled: boolean, date: string) => void;
+  hasFailures?: boolean;
+  platformErrors?: Record<string, string>;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -51,11 +55,15 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onModeChange,
   onFormatChange,
   onToggleAccount,
+  onAbort,
+  onAbortAll,
   onFileChange,
   onSubmit,
   isScheduled,
   scheduledAt,
   onSchedulingChange,
+  hasFailures = false,
+  platformErrors = {},
 }) => {
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -112,7 +120,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     }
   };
 
-  const isComplete = uploadStatus?.includes('successfully');
+  const isComplete = uploadStatus?.includes('Distribution Complete');
 
   return (
     <GlassCard id="create-post-section" style={{ padding: '2rem' }}>
@@ -168,10 +176,37 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             </Link>
           ) : (
             <GlassCard style={{ padding: '1rem', borderColor: 'hsl(var(--primary))' }}>
-              <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', margin: 0 }}>
-                <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
-                {uploadStatus}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', margin: 0, flex: 1 }}>
+                  <span className="animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'hsl(var(--primary))' }}></span>
+                  {uploadStatus}
+                </p>
+                {isUploading && (
+                  <button
+                    type="button"
+                    onClick={onAbortAll}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    }}
+                  >
+                    ⏹️ Stop All
+                  </button>
+                )}
+              </div>
             </GlassCard>
           )}
         </div>
@@ -485,7 +520,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           selectedAccountIds={selectedAccountIds} 
           successfulAccountIds={successfulAccountIds}
           platformStatuses={platformStatuses}
+          platformErrors={platformErrors}
           onToggleAccount={onToggleAccount} 
+          onAbort={onAbort}
         />
 
         <div style={{ 
@@ -568,9 +605,11 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         >
           {isUploading 
             ? '📤 Processing...' 
-            : aiTier !== 'Manual' 
-              ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
-              : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
+            : hasFailures
+              ? '🚀 Post to Remaining Channels'
+              : aiTier !== 'Manual' 
+                ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
+                : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
           }
         </button>
 
@@ -602,30 +641,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           </button>
         )}
 
-        {uploadStatus && (
-          <div style={{ textAlign: 'center' }}>
-            {isComplete ? (
-              <Link 
-                href="/history" 
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  fontSize: '0.85rem', 
-                  color: 'hsl(var(--primary))', 
-                  fontWeight: 600, 
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '4px'
-                }}
-              >
-                {uploadStatus} ↗
-              </Link>
-            ) : (
-              <p style={{ fontSize: '0.85rem', color: 'hsl(var(--primary))', fontWeight: 500 }}>
-                {uploadStatus}
-              </p>
-            )}
-          </div>
-        )}
       </form>
     </GlassCard>
   );

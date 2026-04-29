@@ -28,6 +28,7 @@ interface UploadParams {
   onAccountSuccess?: (accountId: string, result: PlatformUploadResult) => void;
   historyId?: string; // Optional for real-time updates
   reviewedContent?: Record<string, import('@/lib/utils/ai-writer').AIWriteResult>;
+  signals?: Record<string, AbortSignal>;
 }
 
 
@@ -40,13 +41,15 @@ export async function stageVideoFile({
   onStatusUpdate,
   metadata,
   platforms,
-  resumeHistoryId
+  resumeHistoryId,
+  signal
 }: { 
   file: File; 
   onStatusUpdate: (status: string) => void;
   metadata?: { title?: string; description?: string; videoFormat?: string; scheduledAt?: string; isPublished?: boolean };
   platforms: { platform: string; accountId: string }[];
   resumeHistoryId?: string;
+  signal?: AbortSignal;
 }): Promise<{ stagedFileId: string; fileName: string; historyId: string }> {
   // 0. CREATE DETERMINISTIC UPLOAD ID (Fingerprinting for resumption)
   const fingerprint = `${file.name}-${file.size}-${file.type}`.replace(/[^a-zA-Z0-9]/g, '_');
@@ -79,7 +82,7 @@ export async function stageVideoFile({
   onStatusUpdate("🔍 Checking for existing chunks...");
   let existingChunks: number[] = [];
   try {
-    const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`);
+    const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });
     if (chunksResponse.ok) {
       const data = await chunksResponse.json();
       existingChunks = data.chunks || [];
@@ -116,6 +119,7 @@ export async function stageVideoFile({
         'x-chunk-index': i.toString(),
       },
       body: chunk,
+      signal
     });
 
     if (!chunkResponse.ok) {
@@ -137,6 +141,7 @@ export async function stageVideoFile({
       ...metadata,
       historyId
     }),
+    signal
   });
 
   const stageResult = await assembleResponse.json();
@@ -168,7 +173,8 @@ export async function distributeToPlatforms({
   onPlatformStatus,
   onAccountSuccess,
   historyId,
-  reviewedContent
+  reviewedContent,
+  signals
 }: UploadParams & { stagedFileId: string; fileName: string }): Promise<{ raw: Record<string, any>; platformResults: PlatformUploadResult[] }> {
   const results: Record<string, any> = {};
   const platformResults: PlatformUploadResult[] = [];
@@ -185,6 +191,12 @@ export async function distributeToPlatforms({
   } catch (e) {}
 
   const queue = [...selectedAccountIds];
+  
+  // Instant visual feedback for the first batch
+  const initialBatch = queue.slice(0, concurrency);
+  initialBatch.forEach(id => {
+    if (onPlatformStatus) onPlatformStatus(id, 'uploading');
+  });
 
   const processOne = async (selectionId: string) => {
     let platform: string;
@@ -243,13 +255,21 @@ export async function distributeToPlatforms({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: signals ? signals[selectionId] : undefined,
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: any;
+      try {
+        data = responseText ? JSON.parse(responseText) : { status: 'failed', message: 'No response from server' };
+      } catch (e) {
+        console.error(`Malformed JSON from ${platform}:`, responseText);
+        throw new Error(`Server returned invalid response (${response.status}). The file might be too large for a single upload.`);
+      }
 
       if (!response.ok) {
         throw { 
-          message: data.error || `Failed to upload to ${platform}`,
+          message: data.error || data.message || `Failed to upload to ${platform}`,
           resumableUrl: data.resumableUrl,
           videoId: data.videoId,
           creationId: data.creationId
@@ -275,15 +295,21 @@ export async function distributeToPlatforms({
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
 
     } catch (err: any) {
-      console.error(`❌ [${platform}] Error: ${err.message}`);
-      results[selectionId] = { error: err.message };
+      const isAborted = err.name === 'AbortError' || err.message === 'The user aborted a request.';
+      if (isAborted) {
+        console.log(`⏹️ [${platform}] Upload cancelled by user.`);
+      } else {
+        console.error(`❌ [${platform}] Error: ${err.message}`);
+      }
+      
+      results[selectionId] = { error: isAborted ? 'Cancelled' : err.message };
       const platformResult: PlatformUploadResult = {
         platform,
         accountName: account?.accountName || null,
         platformPostId: null,
         permalink: null,
         status: 'failed',
-        errorMessage: err.message,
+        errorMessage: isAborted ? 'Cancelled by user' : err.message,
         resumableUrl: err.resumableUrl,
         videoId: err.videoId,
         creationId: err.creationId

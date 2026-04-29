@@ -122,6 +122,7 @@ export const publishInstagramReel = async ({
         headers: {
           "Authorization": `OAuth ${userAccessToken}`,
           "Offset": offset.toString(),
+          "Content-Length": (fileSize - offset).toString(),
           "X-Entity-Length": fileSize.toString(),
           "X-Entity-Name": `video_${Date.now()}.mp4`,
           "X-Entity-Type": "video/mp4",

@@ -71,10 +71,26 @@ export async function POST(req: NextRequest) {
         const canWrite = stream.write(buffer);
         if (canWrite) {
           resolve();
-        } else {
-          stream.once('drain', resolve);
-          stream.once('error', reject);
+          return;
         }
+
+        const cleanup = () => {
+          stream.removeListener('drain', onDrain);
+          stream.removeListener('error', onError);
+        };
+
+        function onDrain() {
+          cleanup();
+          resolve();
+        }
+
+        function onError(err: Error) {
+          cleanup();
+          reject(err);
+        }
+
+        stream.on('drain', onDrain);
+        stream.on('error', onError);
       });
     };
 

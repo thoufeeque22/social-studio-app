@@ -8,8 +8,10 @@ interface PlatformSelectionProps {
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
   successfulAccountIds: string[];
-  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
+  platformErrors: Record<string, string>;
   onToggleAccount: (id: string) => void;
+  onAbort: (id: string) => void;
 }
 
 export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
@@ -18,7 +20,9 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   selectedAccountIds,
   successfulAccountIds,
   platformStatuses,
+  platformErrors,
   onToggleAccount,
+  onAbort,
 }) => {
   // Helper to check if a platform is enabled globally
   const isPlatformEnabled = (platformId: string) => {
@@ -52,6 +56,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
               const status = platformStatuses[item.id] || (isSuccess ? 'success' : 'pending');
               const isProcessing = status === 'uploading' || status === 'processing';
               const isFailed = status === 'failed';
+              const isCancelled = status === 'cancelled';
               
               return (
                 <button
@@ -59,18 +64,22 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   type="button"
                   aria-pressed={isSelected}
                   aria-label={`${item.platform}: ${item.displayName}`}
-                  onClick={() => onToggleAccount(item.id)}
+                  title={platformErrors[item.id] || (isSuccess ? 'Successfully posted' : 'Click to toggle')}
+                  onClick={() => {
+                    if (isProcessing || isSuccess) return; // Prevent toggling while uploading or if already successful
+                    onToggleAccount(item.id);
+                  }}
                   style={{
                     position: 'relative',
                     overflow: 'hidden',
                     padding: '0.6rem 1rem',
                     borderRadius: '0.75rem',
-                    border: `1px solid ${isSuccess ? '#10B981' : isFailed ? '#EF4444' : isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
-                    background: isSuccess ? 'rgba(16, 185, 129, 0.1)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
-                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    cursor: 'pointer',
+                    border: `1px solid ${isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? 'hsla(var(--border) / 0.8)' : isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
+                    background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isCancelled ? 'hsla(var(--muted) / 0.1)' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
+                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? 'hsl(var(--muted-foreground))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    cursor: (isProcessing || isSuccess) ? 'default' : 'pointer',
                     fontSize: '0.85rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     transition: 'all 0.2s',
                     display: 'flex',
                     alignItems: 'center',
@@ -100,6 +109,8 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                      <div className="animate-spin" style={{ width: '10px', height: '10px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
                   ) : isFailed ? (
                     <span style={{ fontSize: '10px' }}>❌</span>
+                  ) : isCancelled ? (
+                    <span style={{ fontSize: '10px' }}>⏹️</span>
                   ) : (
                     <span style={{ 
                       width: '8px', 
@@ -110,6 +121,34 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     }}></span>
                   )}
                   <span style={{ opacity: 0.7, textTransform: 'capitalize' }}>{item.platform}:</span> {item.displayName}
+
+                  {isProcessing && (
+                    <div 
+                      role="button"
+                      aria-label="Stop Upload"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAbort(item.id);
+                      }}
+                      style={{
+                        background: '#EF4444',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '9px',
+                        cursor: 'pointer',
+                        zIndex: 20,
+                        marginLeft: '4px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      ✕
+                    </div>
+                  )}
                 </button>
               );
             });
