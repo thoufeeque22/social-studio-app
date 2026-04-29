@@ -293,6 +293,7 @@ export default function DashboardClient({
           </div>
           <button 
             type="button" 
+            aria-label="Stop all active uploads"
             onClick={handleAbortAll} 
             style={{ 
               background: '#EF4444', color: 'white', border: 'none', 

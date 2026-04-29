@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
-import styles from './UploadForm.module.css';
+
 import { StyleMode, AITier, AI_TIERS } from '@/lib/core/constants';
 import { extractVideoFrames } from '@/lib/utils/video-analysis';
 import { Account, PlatformPreference } from '@/lib/core/types';

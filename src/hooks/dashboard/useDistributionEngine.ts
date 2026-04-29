@@ -24,12 +24,17 @@ export function useDistributionEngine(accounts: Account[]) {
   };
 
   const handleAbortAll = () => {
+    setUploadStatus('⏹️ All uploads stopped by user.');
+    setIsUploading(false);
+
     Object.values(abortControllers.current).forEach(controller => controller.abort());
     
     setPlatformStatuses(prev => {
       const next = { ...prev };
       Object.keys(abortControllers.current).forEach(id => {
-        next[id] = 'cancelled';
+        if (next[id] === 'pending' || next[id] === 'uploading' || next[id] === 'processing') {
+          next[id] = 'cancelled';
+        }
       });
       return next;
     });
@@ -43,8 +48,6 @@ export function useDistributionEngine(accounts: Account[]) {
     });
 
     abortControllers.current = {};
-    setUploadStatus('⏹️ All uploads stopped by user.');
-    setIsUploading(false);
   };
 
   const executeDistribution = async ({
