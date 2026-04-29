@@ -83,7 +83,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     border: isSuccess 
                       ? '1px solid #10B981' 
                       : isSelected 
-                        ? '2px solid hsl(var(--primary))' 
+                        ? `2px solid ${isFailed ? '#EF4444' : isCancelled ? '#9CA3AF' : 'hsl(var(--primary))'}`
                         : isFailed 
                           ? '1px solid #EF4444' 
                           : isCancelled 
@@ -92,7 +92,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     background: isSuccess 
                       ? 'rgba(16, 185, 129, 0.15)' 
                       : isSelected 
-                        ? 'hsla(var(--primary) / 0.2)' 
+                        ? (isFailed ? 'rgba(239, 68, 68, 0.2)' : isCancelled ? 'rgba(107, 114, 128, 0.2)' : 'hsla(var(--primary) / 0.2)')
                         : isFailed 
                           ? 'rgba(239, 68, 68, 0.1)' 
                           : isCancelled 
@@ -101,7 +101,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     color: isSuccess 
                       ? '#10B981' 
                       : isSelected 
-                        ? 'white' 
+                        ? (isFailed ? '#FF6B6B' : isCancelled ? '#D1D5DB' : 'white')
                         : isFailed 
                           ? '#EF4444' 
                           : isCancelled 
@@ -115,7 +115,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     alignItems: 'center',
                     gap: '0.4rem',
                     boxShadow: isSelected 
-                      ? `0 0 15px ${isFailed ? 'rgba(239, 68, 68, 0.3)' : 'hsla(var(--primary) / 0.4)'}` 
+                      ? `0 0 20px ${isFailed ? 'rgba(239, 68, 68, 0.4)' : isCancelled ? 'rgba(107, 114, 128, 0.3)' : 'hsla(var(--primary) / 0.4)'}` 
                       : isSuccess 
                         ? '0 0 12px rgba(16, 185, 129, 0.2)' 
                         : 'none'
