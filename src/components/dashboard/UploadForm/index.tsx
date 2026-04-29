@@ -18,13 +18,13 @@ interface UploadFormProps {
   platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed'>;
   contentMode: StyleMode;
   aiTier: AITier;
-  videoFormat: VideoFormat;
+  videoFormat: 'short' | 'long';
   videoDuration: number | null;
   draftFileName: string | null;
   onVisualScan: (file: File) => Promise<void>;
   onTierChange: (tier: AITier) => void;
   onModeChange: (mode: StyleMode) => void;
-  onFormatChange: (format: VideoFormat) => void;
+  onFormatChange: (format: 'short' | 'long') => void;
   onToggleAccount: (id: string) => void;
   onFileChange: (file: File) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
