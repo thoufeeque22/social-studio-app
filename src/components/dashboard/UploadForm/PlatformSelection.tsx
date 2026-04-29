@@ -80,9 +80,33 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     overflow: 'visible',
                     padding: '0.6rem 1rem',
                     borderRadius: '0.75rem',
-                    border: isSuccess ? '1px solid #10B981' : isFailed ? '1px solid #EF4444' : isCancelled ? '1px dashed #6B7280' : isSelected ? '1px solid hsl(var(--primary))' : '1px solid hsla(var(--border) / 0.5)',
-                    background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isCancelled ? 'transparent' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
-                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? '#6B7280' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    border: isSuccess 
+                      ? '1px solid #10B981' 
+                      : isSelected 
+                        ? '2px solid hsl(var(--primary))' 
+                        : isFailed 
+                          ? '1px solid #EF4444' 
+                          : isCancelled 
+                            ? '1px dashed #6B7280' 
+                            : '1px solid hsla(var(--border) / 0.5)',
+                    background: isSuccess 
+                      ? 'rgba(16, 185, 129, 0.15)' 
+                      : isSelected 
+                        ? 'hsla(var(--primary) / 0.2)' 
+                        : isFailed 
+                          ? 'rgba(239, 68, 68, 0.1)' 
+                          : isCancelled 
+                            ? 'transparent' 
+                            : 'hsla(var(--muted) / 0.2)',
+                    color: isSuccess 
+                      ? '#10B981' 
+                      : isSelected 
+                        ? 'white' 
+                        : isFailed 
+                          ? '#EF4444' 
+                          : isCancelled 
+                            ? '#6B7280' 
+                            : 'hsl(var(--muted-foreground))',
                     cursor: (isProcessing || isSuccess) ? 'default' : 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: 700,
@@ -90,7 +114,11 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: isSuccess ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none'
+                    boxShadow: isSelected 
+                      ? `0 0 15px ${isFailed ? 'rgba(239, 68, 68, 0.3)' : 'hsla(var(--primary) / 0.4)'}` 
+                      : isSuccess 
+                        ? '0 0 12px rgba(16, 185, 129, 0.2)' 
+                        : 'none'
                   }}
                 >
                   {/* Custom Instant Tooltip */}

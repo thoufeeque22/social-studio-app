@@ -569,11 +569,17 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         >
           {isUploading 
             ? '📤 Processing...' 
-            : hasFailures
-              ? '🚀 Post to Remaining Channels'
-              : aiTier !== 'Manual' 
-                ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
-                : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video')
+            : (() => {
+                const failedOrCancelled = Object.entries(platformStatuses)
+                  .filter(([id, status]) => (status === 'failed' || status === 'cancelled') && selectedAccountIds.includes(id));
+                
+                if (failedOrCancelled.length > 0) {
+                  return '🚀 Post to Remaining Channels';
+                }
+                return aiTier !== 'Manual' 
+                  ? (isScheduled ? '✨ Review AI Strategy & Schedule' : '✨ Review AI Strategy') 
+                  : (isScheduled ? '📅 Schedule Post' : '🚀 Post Video');
+              })()
           }
         </button>
 

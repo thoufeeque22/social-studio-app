@@ -136,13 +136,8 @@ export default function DashboardClient({
   }, [selectedAccountIds, isInitialSync]);
 
   const handleToggleAccount = (id: string) => {
-    if (!isUploading && (successfulAccountIds.length > 0 || Object.keys(platformStatuses).length > 0)) {
-      setSuccessfulAccountIds([]);
-      setPlatformStatuses({});
-      setUploadStatus(null);
-    }
-    setSelectedAccountIds(prev => 
-      prev.includes(id) ? prev.filter(aid => aid !== id) : [...prev, id]
+    setSelectedAccountIds(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
     );
   };
   
@@ -271,8 +266,16 @@ export default function DashboardClient({
     targetAccountIds?: string[]
   ) => {
     setIsUploading(true);
-    const activeTargets = targetAccountIds || selectedAccountIds;
-    setUploadStatus(targetAccountIds ? `🔄 Retrying ${targetAccountIds.length} platform(s)...` : "🚀 Orchestrating distribution...");
+    // Filter out already successful platforms to ensure we only target the "Remaining" ones
+    const activeTargets = (targetAccountIds || selectedAccountIds).filter(id => !successfulAccountIds.includes(id));
+    
+    if (activeTargets.length === 0) {
+      setUploadStatus("✅ All selected platforms are already successful.");
+      setIsUploading(false);
+      return;
+    }
+
+    setUploadStatus(targetAccountIds ? `🔄 Retrying ${activeTargets.length} platform(s)...` : "🚀 Orchestrating distribution...");
     
     setPlatformStatuses(prev => {
       const next = { ...prev };
