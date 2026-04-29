@@ -155,7 +155,7 @@ export async function distributeToPlatforms({
     const size = file?.size || 0;
     if (size > 300 * 1024 * 1024) concurrency = 1;
     else if (size > 0 && size < 50 * 1024 * 1024) concurrency = 4;
-  } catch (e) {}
+  } catch (e: any) {}
 
   const processOne = async (selectionId: string) => {
     let platform: string;
@@ -246,11 +246,14 @@ export async function distributeToPlatforms({
   };
 
   const workers = [];
-  for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+  const activeConcurrency = Math.min(concurrency, queue.length);
+  
+  for (let i = 0; i < activeConcurrency; i++) {
     workers.push((async () => {
-      while (queue.length > 0) {
+      while (true) {
         const id = queue.shift();
-        if (id) await processOne(id);
+        if (!id) break;
+        await processOne(id);
       }
     })());
   }
