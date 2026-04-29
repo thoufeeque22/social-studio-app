@@ -42,13 +42,15 @@ export function generatePermalink(platform: string, data: any): string | null {
   }
 }
 
+import { generateSignedMediaUrl } from "./media-auth";
+
 /**
  * Constructs a public video URL for platforms that require pull-based ingestion (FB/IG).
- * Uses TUNNEL_URL in development/tunnel environments.
+ * Uses time-limited signed tokens to prevent unauthorized access.
  */
 export function constructPublicVideoUrl(stagedFileId: string): string {
-  const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : "");
-  return `${baseUrl.replace(/\/$/, '')}/api/media/${encodeURIComponent(stagedFileId)}`;
+  // Use the signed URL utility (defaults to 1 hour expiry)
+  return generateSignedMediaUrl(stagedFileId, 60);
 }
 
 /**

@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 import { auth } from "@/auth";
+import { verifyMediaSignature } from "@/lib/core/media-auth";
 
 export const maxDuration = 300;
 
@@ -25,12 +26,21 @@ function getMimeType(fileName: string): string {
 /**
  * RESTRICTED MEDIA SERVER
  * Supports HTTP Range Requests (206) for professional ingestors (Meta/TikTok).
+ * Requires time-limited signed tokens (?expires=...&signature=...)
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ fileId: string }> }
 ) {
   const { fileId } = await params;
+  const searchParams = req.nextUrl.searchParams;
+  const expires = searchParams.get('expires');
+  const signature = searchParams.get('signature');
+
+  // 🔐 Verify Signature
+  if (!verifyMediaSignature(fileId, expires, signature)) {
+    return new NextResponse("Unauthorized: Invalid or expired media token", { status: 403 });
+  }
 
   const tempDir = path.join(process.cwd(), "src/tmp");
   const filePath = path.join(tempDir, fileId);

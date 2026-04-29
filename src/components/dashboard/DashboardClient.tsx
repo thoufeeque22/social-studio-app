@@ -474,7 +474,9 @@ export default function DashboardClient({
           setPlatformStatuses(prev => ({ ...prev, [id]: status }));
         },
         onAccountSuccess: (id, result) => {
-          setSuccessfulAccountIds(prev => [...prev, id]);
+          if (result.status === 'success') {
+            setSuccessfulAccountIds(prev => [...prev, id]);
+          }
           handlePlatformPersistence(historyId, result);
         },
         historyId,
@@ -578,7 +580,11 @@ export default function DashboardClient({
         onPlatformStatus: (id, status) => {
           setPlatformStatuses(prev => ({ ...prev, [id]: status }));
         },
-        onAccountSuccess: (id) => setSuccessfulAccountIds(prev => [...prev, id]),
+        onAccountSuccess: (id, result) => {
+          if (result.status === 'success') {
+            setSuccessfulAccountIds(prev => [...prev, id]);
+          }
+        },
         historyId: reviewContext.historyId as string,
         reviewedContent: updatedPreviews
       });
