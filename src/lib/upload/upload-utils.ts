@@ -6,16 +6,20 @@ import { extractPlatformPostId, generatePermalink } from '@/lib/core/distributor
 export interface PlatformUploadResult {
   platform: string;
   accountName: string | null;
-  platformPostId: string | null;
-  permalink: string | null;
-  status: 'success' | 'failed' | 'pending';
+  status: 'success' | 'failed' | 'cancelled';
   errorMessage?: string;
-  resumableUrl?: string;
-  videoId?: string;
-  creationId?: string;
+  platformPostId?: string | null;
+  permalink?: string | null;
+  resumableUrl?: string | null;
+  videoId?: string | null;
+  creationId?: string | null;
 }
 
-export type IndividualStatus = 'pending' | 'uploading' | 'processing' | 'success' | 'failed';
+export interface DistributionResult {
+  platformResults: PlatformUploadResult[];
+}
+
+export type IndividualStatus = 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled';
 
 interface UploadParams {
   formData: FormData;
@@ -308,7 +312,7 @@ export async function distributeToPlatforms({
         accountName: account?.accountName || null,
         platformPostId: null,
         permalink: null,
-        status: 'failed',
+        status: isAborted ? 'cancelled' : 'failed',
         errorMessage: isAborted ? 'Cancelled by user' : err.message,
         resumableUrl: err.resumableUrl,
         videoId: err.videoId,
@@ -316,7 +320,7 @@ export async function distributeToPlatforms({
       };
       platformResults.push(platformResult);
 
-      if (onPlatformStatus) onPlatformStatus(selectionId, 'failed');
+      if (onPlatformStatus) onPlatformStatus(selectionId, isAborted ? 'cancelled' : 'failed');
 
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
     }

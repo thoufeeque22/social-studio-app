@@ -74,9 +74,9 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     overflow: 'hidden',
                     padding: '0.6rem 1rem',
                     borderRadius: '0.75rem',
-                    border: `1px solid ${isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? 'hsla(var(--border) / 0.8)' : isSelected ? 'hsl(var(--primary))' : 'hsla(var(--border) / 0.5)'}`,
-                    background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isCancelled ? 'hsla(var(--muted) / 0.1)' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
-                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? 'hsl(var(--muted-foreground))' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    border: isSuccess ? '1px solid #10B981' : isFailed ? '1px solid #EF4444' : isCancelled ? '1px dashed #6B7280' : isSelected ? '1px solid hsl(var(--primary))' : '1px solid hsla(var(--border) / 0.5)',
+                    background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : isFailed ? 'rgba(239, 68, 68, 0.1)' : isCancelled ? 'transparent' : isSelected ? 'hsla(var(--primary) / 0.15)' : 'hsla(var(--muted) / 0.2)',
+                    color: isSuccess ? '#10B981' : isFailed ? '#EF4444' : isCancelled ? '#6B7280' : isSelected ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                     cursor: (isProcessing || isSuccess) ? 'default' : 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: 700,
@@ -108,9 +108,14 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   ) : isProcessing ? (
                      <div className="animate-spin" style={{ width: '10px', height: '10px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
                   ) : isFailed ? (
-                    <span style={{ fontSize: '10px' }}>❌</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                   ) : isCancelled ? (
-                    <span style={{ fontSize: '10px' }}>⏹️</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+                    </svg>
                   ) : (
                     <span style={{ 
                       width: '8px', 

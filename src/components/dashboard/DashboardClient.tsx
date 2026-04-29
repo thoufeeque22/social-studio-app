@@ -321,8 +321,13 @@ export default function DashboardClient({
         finalResults.forEach(result => {
           if (result.status === 'success') {
             next[result.accountId] = 'success';
+          } else if (result.status === 'cancelled') {
+            next[result.accountId] = 'cancelled';
           } else if (result.status === 'failed') {
-            if (result.errorMessage === 'Cancelled by user' || result.errorMessage === 'Signal Aborted') {
+            // Final safety check for any missed aborts
+            const isAborted = abortControllers.current[result.accountId]?.signal.aborted;
+            const msg = result.errorMessage || '';
+            if (isAborted || msg.includes('Cancelled') || msg.includes('Stopped') || msg.includes('Aborted')) {
               next[result.accountId] = 'cancelled';
             } else {
               next[result.accountId] = 'failed';
@@ -362,6 +367,17 @@ export default function DashboardClient({
       }
     } catch (error: unknown) {
       setUploadStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      
+      // Categorize statuses even on error (for Aborts)
+      setPlatformStatuses(prev => {
+        const next = { ...prev };
+        Object.entries(abortControllers.current).forEach(([id, controller]) => {
+          if (controller.signal.aborted && next[id] !== 'success') {
+            next[id] = 'cancelled';
+          }
+        });
+        return next;
+      });
     } finally {
       setIsUploading(false);
       abortControllers.current = {};
