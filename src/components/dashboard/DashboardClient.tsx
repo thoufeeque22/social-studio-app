@@ -257,10 +257,7 @@ export default function DashboardClient({
               onAbort={handleAbortPlatform}
               onAbortAll={handleAbortAll}
               onFileChange={handleFileChange}
-              onSubmit={async (e: React.FormEvent<HTMLFormElement>) => {
-                e.preventDefault();
-                handleMainAction(new FormData(e.currentTarget));
-              }}
+              onSubmit={handleMainAction}
               isScheduled={isScheduled}
               scheduledAt={scheduledAt}
               onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
