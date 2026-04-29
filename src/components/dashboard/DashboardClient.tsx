@@ -464,49 +464,51 @@ export default function DashboardClient({
   };
 
   return (
-    <div className="fade-in">
-      <DashboardHeader session={session} />
-      <div className="responsive-grid">
-        {isReviewing ? (
-          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-            <AIContentReview 
-              previews={aiPreviews}
-              onBack={() => { setIsReviewing(false); setIsUploading(false); setUploadStatus(null); }}
-              onConfirm={handleConfirmReview}
-              isProcessing={isUploading}
+    <>
+      <div className="fade-in">
+        <DashboardHeader session={session} />
+        <div className="responsive-grid">
+          {isReviewing ? (
+            <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+              <AIContentReview 
+                previews={aiPreviews}
+                onBack={() => { setIsReviewing(false); setIsUploading(false); setUploadStatus(null); }}
+                onConfirm={handleConfirmReview}
+                isProcessing={isUploading}
+              />
+            </div>
+          ) : (
+            <UploadForm 
+              isUploading={isUploading}
+              uploadStatus={uploadStatus}
+              accounts={accounts}
+              preferences={preferences}
+              selectedAccountIds={selectedAccountIds}
+              successfulAccountIds={successfulAccountIds}
+              platformStatuses={platformStatuses}
+              platformErrors={platformErrors}
+              contentMode={contentMode}
+              aiTier={aiTier}
+              videoFormat={videoFormat}
+              videoDuration={videoDuration}
+              draftFileName={draftFileName}
+              onVisualScan={handleVisualScan}
+              onTierChange={setAiTier}
+              onModeChange={setContentMode}
+              onFormatChange={setVideoFormat}
+              onToggleAccount={handleToggleAccount}
+              onAbort={handleAbortPlatform}
+              onAbortAll={handleAbortAll}
+              onFileChange={handleFileChange}
+              onSubmit={handleUpload}
+              isScheduled={isScheduled}
+              scheduledAt={scheduledAt}
+              onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
+              hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
             />
-          </div>
-        ) : (
-          <UploadForm 
-            isUploading={isUploading}
-            uploadStatus={uploadStatus}
-            accounts={accounts}
-            preferences={preferences}
-            selectedAccountIds={selectedAccountIds}
-            successfulAccountIds={successfulAccountIds}
-            platformStatuses={platformStatuses}
-            platformErrors={platformErrors}
-            contentMode={contentMode}
-            aiTier={aiTier}
-            videoFormat={videoFormat}
-            videoDuration={videoDuration}
-            draftFileName={draftFileName}
-            onVisualScan={handleVisualScan}
-            onTierChange={setAiTier}
-            onModeChange={setContentMode}
-            onFormatChange={setVideoFormat}
-            onToggleAccount={handleToggleAccount}
-            onAbort={handleAbortPlatform}
-            onAbortAll={handleAbortAll}
-            onFileChange={handleFileChange}
-            onSubmit={handleUpload}
-            isScheduled={isScheduled}
-            scheduledAt={scheduledAt}
-            onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
-            hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
-          />
-        )}
-        <SidebarInfo accounts={accounts} />
+          )}
+          <SidebarInfo accounts={accounts} />
+        </div>
       </div>
 
       {isUploading && uploadStatus && !uploadStatus.includes('Complete') && (
@@ -560,6 +562,6 @@ export default function DashboardClient({
           to { transform: translate(-50%, 0); opacity: 1; }
         }
       `}</style>
-    </div>
+    </>
   );
 }
