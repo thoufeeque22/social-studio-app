@@ -77,7 +77,7 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   }}
                   style={{
                     position: 'relative',
-                    overflow: 'hidden',
+                    overflow: 'visible',
                     padding: '0.6rem 1rem',
                     borderRadius: '0.75rem',
                     border: isSuccess ? '1px solid #10B981' : isFailed ? '1px solid #EF4444' : isCancelled ? '1px dashed #6B7280' : isSelected ? '1px solid hsl(var(--primary))' : '1px solid hsla(var(--border) / 0.5)',
@@ -93,6 +93,15 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                     boxShadow: isSuccess ? '0 0 12px rgba(16, 185, 129, 0.2)' : 'none'
                   }}
                 >
+                  {/* Custom Instant Tooltip */}
+                  <div className="custom-tooltip">
+                    {platformErrors[item.id] || 
+                     (isSuccess ? 'Successfully posted' : 
+                      isFailed ? 'Upload failed' : 
+                      isCancelled ? 'Stopped by user' : 
+                      'Click to toggle')}
+                  </div>
+
                   {/* Progress Strip */}
                   {isProcessing && (
                     <div style={{
@@ -103,7 +112,9 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                       background: 'hsl(var(--primary))',
                       width: status === 'uploading' ? '40%' : '85%',
                       transition: 'width 2s ease-in-out',
-                      animation: 'pulse 1.5s infinite'
+                      animation: 'pulse 1.5s infinite',
+                      borderBottomLeftRadius: '0.75rem',
+                      borderBottomRightRadius: '0.75rem'
                     }} />
                   )}
 
