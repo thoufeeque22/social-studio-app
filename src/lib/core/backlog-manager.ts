@@ -22,6 +22,7 @@ export async function getBacklog() {
     'High Priority': [],
     'Medium Priority': [],
     'Low Priority': [],
+    'On-Hold': [],
     'Completed': []
   };
 
@@ -58,7 +59,7 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
   const updateData: any = {};
   if (newStatus) updateData.status = newStatus;
   
-  const prioritySections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority'];
+  const prioritySections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'On-Hold'];
   if (prioritySections.includes(newSection)) {
     updateData.priority = newSection;
   }

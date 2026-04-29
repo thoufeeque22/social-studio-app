@@ -48,7 +48,21 @@ type BacklogData = Record<string, BacklogItem[]>;
 
 // --- Components ---
 
-function SortableItem({ item, index, onToggle, onSaveEdit }: { item: BacklogItem; index: number; onToggle: (item: BacklogItem) => void; onSaveEdit: (item: BacklogItem, title: string, desc: string) => Promise<void> }) {
+function SortableItem({ 
+  item, 
+  index, 
+  sections,
+  onToggle, 
+  onSaveEdit,
+  onMove
+}: { 
+  item: BacklogItem; 
+  index: number; 
+  sections: string[];
+  onToggle: (item: BacklogItem) => void; 
+  onSaveEdit: (item: BacklogItem, title: string, desc: string) => Promise<void>;
+  onMove: (item: BacklogItem, newSection: string) => Promise<void>;
+}) {
   const {
     attributes,
     listeners,
@@ -169,6 +183,24 @@ function SortableItem({ item, index, onToggle, onSaveEdit }: { item: BacklogItem
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+          <select
+            value={item.status === 'completed' ? 'Completed' : item.priority}
+            onChange={(e) => onMove(item, e.target.value)}
+            style={{ 
+              fontSize: '0.65rem', 
+              background: 'hsla(var(--muted) / 0.3)', 
+              border: '1px solid hsla(var(--border) / 0.5)', 
+              borderRadius: '4px',
+              padding: '1px 4px',
+              color: 'hsl(var(--muted-foreground))',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            {sections.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
           {item.status === 'pending' && item.priority !== 'Completed' && (
             <Zap size={12} style={{ color: 'hsla(var(--primary) / 0.5)' }} />
           )}
@@ -345,6 +377,22 @@ export default function RoadmapClient() {
     await fetchBacklog();
   };
 
+  const handleMoveTask = async (item: BacklogItem, newSection: string) => {
+    const newStatus = newSection === 'Completed' ? 'completed' : 'pending';
+    
+    await fetch('/api/roadmap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        id: item.id, 
+        section: newSection, 
+        status: newStatus, 
+        index: 0 // Move to top of new section
+      })
+    });
+    await fetchBacklog();
+  };
+
   const handleCreateTask = async (section: string) => {
     if (!newTaskTitle.trim()) return;
     setIsSubmitting(true);
@@ -395,7 +443,7 @@ export default function RoadmapClient() {
     );
   }
 
-  const sections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'Completed'];
+  const sections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'On-Hold', 'Completed'];
 
   return (
     <div style={{ maxWidth: '1400px', margin: '-1rem auto 0' }}>
@@ -439,7 +487,15 @@ export default function RoadmapClient() {
               >
                 <DroppableSection id={section}>
                   {backlog?.[section]?.map((item, idx) => (
-                    <SortableItem key={item.id} item={item} index={idx} onToggle={toggleStatus} onSaveEdit={handleEditTask} />
+                    <SortableItem 
+                      key={item.id} 
+                      item={item} 
+                      index={idx} 
+                      sections={sections}
+                      onToggle={toggleStatus} 
+                      onSaveEdit={handleEditTask}
+                      onMove={handleMoveTask}
+                    />
                   ))}
                   {(!backlog?.[section] || backlog[section].length === 0) && addingTaskTo !== section && (
                     <div style={{ padding: '0.5rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: '0.7rem', opacity: 0.5 }}>
