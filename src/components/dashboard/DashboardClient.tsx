@@ -342,6 +342,8 @@ export default function DashboardClient({
         finalResults.forEach(result => {
           if (result.status === 'failed') {
             next[result.accountId] = result.errorMessage || 'Unknown error';
+          } else if (result.status === 'cancelled') {
+            next[result.accountId] = 'Stopped by user';
           }
         });
         return next;
