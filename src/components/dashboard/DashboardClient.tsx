@@ -511,20 +511,46 @@ export default function DashboardClient({
 
       {isUploading && uploadStatus && !uploadStatus.includes('Complete') && (
         <div style={{
-          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-          width: '90%', maxWidth: '500px', background: 'rgba(15, 15, 15, 0.95)', backdropFilter: 'blur(16px)',
-          border: '1px solid hsla(var(--primary) / 0.5)', borderRadius: '1.25rem', padding: '1rem 1.25rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.25rem',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.8)', animation: 'slideUpHUD 0.5s'
+          position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+          width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)', border: '1px solid hsla(var(--primary) / 0.5)', 
+          borderRadius: '1.5rem', padding: '1.25rem 1.5rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 20px hsla(var(--primary) / 0.2)', 
+          animation: 'slideUpHUD 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
-            <div className="animate-pulse" style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'hsl(var(--primary))' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
+            <div className="animate-pulse" style={{ 
+              width: '14px', height: '14px', borderRadius: '50%', 
+              background: 'hsl(var(--primary))', boxShadow: '0 0 12px hsl(var(--primary))' 
+            }} />
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '0.65rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 800 }}>Upload Progress</span>
-              <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadStatus}</p>
+              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>Current Progress</span>
+              <p style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadStatus}</p>
             </div>
           </div>
-          <button type="button" onClick={handleAbortAll} style={{ background: '#EF4444', color: 'white', border: 'none', padding: '0.6rem 1.2rem', borderRadius: '0.8rem', fontSize: '0.75rem', fontWeight: 900 }}>STOP ALL</button>
+          <button 
+            type="button" 
+            onClick={handleAbortAll} 
+            style={{ 
+              background: '#EF4444', color: 'white', border: 'none', 
+              padding: '0.75rem 1.5rem', borderRadius: '1rem', 
+              fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+            }}
+          >
+            ⏹️ STOP ALL
+          </button>
         </div>
       )}
 
