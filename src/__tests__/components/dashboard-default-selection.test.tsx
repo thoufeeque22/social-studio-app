@@ -199,6 +199,7 @@ describe('Dashboard Default Connection Selection', () => {
         selectedAccountIds={['acc_yt_1']}
         successfulAccountIds={[]}
         platformStatuses={{}}
+        platformErrors={{}}
         onToggleAccount={mockOnToggle}
       />
     );

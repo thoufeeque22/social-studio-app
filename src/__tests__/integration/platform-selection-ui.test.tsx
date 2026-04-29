@@ -86,6 +86,6 @@ describe('PlatformSelection UI', () => {
     );
 
     const ytButton = screen.getByRole('button', { name: /youtube/i });
-    expect(ytButton.textContent).toContain('❌');
+    expect(ytButton.querySelector('line')).toBeTruthy();
   });
 });
