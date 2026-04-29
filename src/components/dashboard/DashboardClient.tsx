@@ -313,28 +313,37 @@ export default function DashboardClient({
         signals
       });
 
-      const errors: Record<string, string> = { ...platformErrors };
-      const statuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'> = { ...platformStatuses };
-
-      distribution.platformResults.forEach(result => {
-        if (result.status === 'failed') {
-          if (result.errorMessage === 'Cancelled by user' || result.errorMessage === 'Signal Aborted') {
-            statuses[result.accountId] = 'cancelled';
-            errors[result.accountId] = 'Stopped by user';
-          } else {
-            statuses[result.accountId] = 'failed';
-            errors[result.accountId] = result.errorMessage || 'Unknown error';
+      // Update statuses and errors using functional updates to avoid closure staleness
+      const finalResults = distribution.platformResults;
+      
+      setPlatformStatuses(prev => {
+        const next = { ...prev };
+        finalResults.forEach(result => {
+          if (result.status === 'success') {
+            next[result.accountId] = 'success';
+          } else if (result.status === 'failed') {
+            if (result.errorMessage === 'Cancelled by user' || result.errorMessage === 'Signal Aborted') {
+              next[result.accountId] = 'cancelled';
+            } else {
+              next[result.accountId] = 'failed';
+            }
           }
-        } else if (result.status === 'success') {
-          statuses[result.accountId] = 'success';
-        }
+        });
+        return next;
       });
 
-      setPlatformStatuses(statuses);
-      setPlatformErrors(errors);
+      setPlatformErrors(prev => {
+        const next = { ...prev };
+        finalResults.forEach(result => {
+          if (result.status === 'failed') {
+            next[result.accountId] = result.errorMessage || 'Unknown error';
+          }
+        });
+        return next;
+      });
 
-      const actualFailures = distribution.platformResults.filter(r => r.status === 'failed' && r.errorMessage !== 'Cancelled by user' && r.errorMessage !== 'Signal Aborted');
-      const cancellations = distribution.platformResults.filter(r => r.status === 'failed' && (r.errorMessage === 'Cancelled by user' || r.errorMessage === 'Signal Aborted'));
+      const actualFailures = finalResults.filter(r => r.status === 'failed' && r.errorMessage !== 'Cancelled by user' && r.errorMessage !== 'Signal Aborted');
+      const cancellations = finalResults.filter(r => r.status === 'failed' && (r.errorMessage === 'Cancelled by user' || r.errorMessage === 'Signal Aborted'));
 
       const totalAttempted = distribution.platformResults.length;
       const totalSuccess = distribution.platformResults.filter(r => r.status === 'success').length;
