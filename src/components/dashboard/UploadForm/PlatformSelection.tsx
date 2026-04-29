@@ -64,13 +64,6 @@ export const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                   type="button"
                   aria-pressed={isSelected}
                   aria-label={`${item.platform}: ${item.displayName}`}
-                  title={
-                    platformErrors[item.id] || 
-                    (isSuccess ? 'Successfully posted' : 
-                     isFailed ? 'Upload failed' : 
-                     isCancelled ? 'Stopped by user' : 
-                     'Click to toggle')
-                  }
                   onClick={() => {
                     if (isProcessing || isSuccess) return; // Prevent toggling while uploading or if already successful
                     onToggleAccount(item.id);

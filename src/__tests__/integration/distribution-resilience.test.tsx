@@ -105,4 +105,31 @@ describe('Distribution Resilience', () => {
       expect(fbBadge.innerHTML).toContain('rect'); // Stop icon
     }, { timeout: 5000 });
   });
+
+  it('should translate technical API errors into friendly user messages', async () => {
+    // 1. Mock a technical YouTube limit error
+    vi.mocked(uploadUtils.distributeToPlatforms).mockResolvedValue({
+      platformResults: [
+        { 
+          accountId: 'google:2', 
+          status: 'failed', 
+          platform: 'youtube', 
+          accountName: 'YT',
+          errorMessage: JSON.stringify({ error: { message: 'The user has exceeded the number of videos they may upload.' } })
+        },
+      ],
+    });
+
+    render(<DashboardClient session={mockSession} initialAccounts={mockAccounts} initialPreferences={[]} />);
+
+    const postButton = screen.getByText(/Post/i);
+    fireEvent.click(postButton);
+
+    // 2. Wait for failure and check tooltip content
+    await waitFor(() => {
+      const ytBadge = screen.getByLabelText(/youtube/i);
+      // The badge should show the friendly message, not the JSON
+      expect(ytBadge.textContent).toContain('YouTube upload limit reached');
+    }, { timeout: 5000 });
+  });
 });
