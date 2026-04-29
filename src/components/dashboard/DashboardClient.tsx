@@ -46,6 +46,7 @@ export default function DashboardClient({
     (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Hook'
   );
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>(initialVideoFormat);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
 
   // AI Review States
   const [isReviewing, setIsReviewing] = useState(false);
@@ -168,31 +169,7 @@ export default function DashboardClient({
     );
   };
 
-  const handleFileChange = async (file: File) => {
-    draftFileRef.current = file;
-    setDraftFileName(file.name);
-    await storeDraftFile(file);
-    
-    // Reset statuses for a new post
-    setUploadStatus(null);
-    setSuccessfulAccountIds([]);
-    setPlatformStatuses({});
-  };
-
-  // Helper: Client-side Aspect Ratio & Duration Validation
-  const validateVideoMetadata = async (
-    file: File, 
-    videoFormat: 'short' | 'long', 
-    accounts: Account[], 
-    selectedAccountIds: string[],
-    setUploadStatus: (s: string | null) => void
-  ): Promise<boolean> => {
-    if (file.size > 1.5 * 1024 * 1024 * 1024) {
-      setUploadStatus('🚀 Large file detected. Proceeding directly to streaming upload...');
-      return true; 
-    }
-
-    setUploadStatus('🔍 Analyzing Video Metadata...');
+  const detectVideoMetadata = (file: File): Promise<{ format: 'short' | 'long', duration: number }> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
@@ -213,35 +190,64 @@ export default function DashboardClient({
         const isVertical = video.videoHeight > video.videoWidth;
         const duration = video.duration;
         cleanup();
-
-        if (videoFormat === 'short' && !isVertical) {
-          alert('❌ Short-form content must be Vertical (9:16).');
-          resolve(false);
-          return;
-        } 
         
-        if (videoFormat === 'long' && isVertical) {
-          alert('❌ Long-form content should be Landscape (16:9).');
-          resolve(false);
-          return;
-        }
-
-        const platformSet = getSelectedPlatformSet(accounts, selectedAccountIds);
-
-        if (platformSet.has('youtube') && videoFormat === 'short' && duration >= 60) {
-          alert('❌ YouTube Shorts must be under 60 seconds.');
-          resolve(false);
-        } else if (platformSet.has('facebook') && videoFormat === 'short' && duration > 90) {
-          alert('❌ Reels via API are limited to 90 seconds.');
-          resolve(false);
-        } else {
-          resolve(true);
-        }
+        // Logic: Vertical + < 90s = Short. Everything else = Long.
+        // We use 90s as a threshold for Reels/Shorts compatibility.
+        const format = (isVertical && duration <= 90) ? 'short' : 'long';
+        resolve({ format, duration });
       };
 
-      video.onerror = () => { resolve(false); cleanup(); };
+      video.onerror = () => { 
+        resolve({ format: 'long', duration: 0 }); 
+        cleanup(); 
+      };
+      
       video.src = globalThis.URL.createObjectURL(file);
     });
+  };
+
+  const handleFileChange = async (file: File) => {
+    draftFileRef.current = file;
+    setDraftFileName(file.name);
+    await storeDraftFile(file);
+    
+    // Reset statuses for a new post
+    setUploadStatus(null);
+    setSuccessfulAccountIds([]);
+    setPlatformStatuses({});
+
+    // 🚀 Dynamic Format Detection
+    const { format, duration } = await detectVideoMetadata(file);
+    setVideoFormat(format);
+    setVideoDuration(duration);
+    updateVideoFormatPreference(format).catch(err => console.error("Failed to save format preference", err));
+  };
+
+  // Helper: Client-side Aspect Ratio & Duration Validation
+  const validateVideoMetadata = async (
+    file: File, 
+    videoFormat: 'short' | 'long', 
+    accounts: Account[], 
+    selectedAccountIds: string[],
+    setUploadStatus: (s: string | null) => void
+  ): Promise<boolean> => {
+    setUploadStatus('🔍 Final Metadata Check...');
+    const { duration } = await detectVideoMetadata(file);
+    
+    const platformSet = getSelectedPlatformSet(accounts, selectedAccountIds);
+
+    // Hard limits check
+    if (platformSet.has('youtube') && videoFormat === 'short' && duration >= 60) {
+      alert('❌ YouTube Shorts must be under 60 seconds. This video is too long for a Short.');
+      return false;
+    } 
+    
+    if (platformSet.has('facebook') && videoFormat === 'short' && duration > 90) {
+      alert('❌ Reels via API are limited to 90 seconds.');
+      return false;
+    }
+
+    return true;
   };
 
   const mapSelectedPlatforms = (ids: string[], accounts: Account[]) => {
@@ -642,6 +648,7 @@ export default function DashboardClient({
             contentMode={contentMode}
             aiTier={aiTier}
             videoFormat={videoFormat}
+            videoDuration={videoDuration}
             draftFileName={draftFileName}
             onVisualScan={handleVisualScan}
             onTierChange={(tier) => {
