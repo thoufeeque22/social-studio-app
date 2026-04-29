@@ -4,6 +4,7 @@ import { StyleMode } from '@/lib/core/constants';
 import { extractPlatformPostId, generatePermalink } from '@/lib/core/distributor-utils';
 
 export interface PlatformUploadResult {
+  accountId: string;
   platform: string;
   accountName: string | null;
   status: 'success' | 'failed' | 'cancelled';
@@ -282,6 +283,7 @@ export async function distributeToPlatforms({
 
       const rawData = data.data || data;
       const platformResult: PlatformUploadResult = {
+        accountId: selectionId,
         platform,
         accountName: account?.accountName || null,
         platformPostId: extractPlatformPostId(platform, rawData),
@@ -308,6 +310,7 @@ export async function distributeToPlatforms({
       
       results[selectionId] = { error: isAborted ? 'Cancelled' : err.message };
       const platformResult: PlatformUploadResult = {
+        accountId: selectionId,
         platform,
         accountName: account?.accountName || null,
         platformPostId: null,
