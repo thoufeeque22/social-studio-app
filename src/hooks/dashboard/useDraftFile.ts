@@ -81,14 +81,13 @@ export function useDraftFile(userId?: string) {
     setIsProcessing(true);
     try {
       const rotatedFile = await rotateVideo(draftFileRef.current);
-      await handleFileChange(rotatedFile);
+      if (rotatedFile) {
+        await handleFileChange(rotatedFile);
+      }
     } catch (error: any) {
       console.error("Video rotation failed:", error);
-      // Don't alert if the error is due to intentional termination
-      const isCancel = error?.message?.includes('terminate') || error?.message?.includes('cancelled');
-      if (!isCancel) {
-        alert("Failed to rotate video. Your browser might not support the required features.");
-      }
+      // Only alert if it wasn't a manual termination (which now returns null)
+      alert("Failed to rotate video. Your browser might not support the required features.");
     } finally {
       setIsProcessing(false);
     }

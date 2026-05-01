@@ -109,11 +109,22 @@ export async function rotateVideo(
     }
 
     const blob = new Blob([data], { type: 'video/mp4' });
-    return new File([blob], `rotated_${file.name}`, { type: 'video/mp4' });
+    
+    // Improve naming to avoid "rotated_rotated_..."
+    // Matches "rotated_N_" where N is degrees
+    const rotationMatch = file.name.match(/^rotated_(\d+)_/);
+    let currentDegrees = rotationMatch ? parseInt(rotationMatch[1], 10) : 0;
+    const newDegrees = (currentDegrees + 90) % 360;
+    
+    // Remove old prefix if it exists, then add new one
+    const cleanName = file.name.replace(/^rotated_\d+_/, '');
+    const newName = newDegrees === 0 ? cleanName : `rotated_${newDegrees}_${cleanName}`;
+
+    return new File([blob], newName, { type: 'video/mp4' });
   } catch (err: any) {
     if (err?.message?.includes('terminate')) {
       console.log("[FFmpeg] Aborted by user.");
-      throw new Error("ROTATION_CANCELLED");
+      return null;
     }
     console.error("[FFmpeg] Execution error:", err);
     throw err;
