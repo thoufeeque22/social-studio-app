@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { storeDraftFile, getDraftFile } from '@/lib/upload/file-store';
 import { updateVideoFormatPreference } from '@/app/actions/user';
+import { rotateVideo, terminateVideoRotation } from '@/lib/utils/ffmpeg-utils';
 
 export function useDraftFile(userId?: string) {
+  const [draftFile, setDraftFile] = useState<File | null>(null);
   const [draftFileName, setDraftFileName] = useState<string | null>(null);
   const [videoFormat, setVideoFormat] = useState<'short' | 'long'>('short');
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const draftFileRef = useRef<File | null>(null);
 
   useEffect(() => {
     getDraftFile().then(file => {
       if (file) {
         draftFileRef.current = file;
+        setDraftFile(file);
         setDraftFileName(file.name);
       }
     });
@@ -51,8 +55,16 @@ export function useDraftFile(userId?: string) {
     });
   };
 
-  const handleFileChange = async (file: File) => {
+  const handleFileChange = async (file: File | null) => {
+    if (!file) {
+      draftFileRef.current = null;
+      setDraftFile(null);
+      setDraftFileName(null);
+      setVideoDuration(null);
+      return;
+    }
     draftFileRef.current = file;
+    setDraftFile(file);
     setDraftFileName(file.name);
     await storeDraftFile(file);
     
@@ -63,12 +75,40 @@ export function useDraftFile(userId?: string) {
     updateVideoFormatPreference(format).catch(err => console.error(err));
   };
 
+  const handleRotate = async () => {
+    if (!draftFileRef.current) return;
+    
+    setIsProcessing(true);
+    try {
+      const rotatedFile = await rotateVideo(draftFileRef.current);
+      await handleFileChange(rotatedFile);
+    } catch (error: any) {
+      console.error("Video rotation failed:", error);
+      // Don't alert if the error is due to intentional termination
+      const isCancel = error?.message?.includes('terminate') || error?.message?.includes('cancelled');
+      if (!isCancel) {
+        alert("Failed to rotate video. Your browser might not support the required features.");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancelRotate = async () => {
+    await terminateVideoRotation();
+    setIsProcessing(false);
+  };
+
   return {
+    draftFile,
     draftFileRef,
     draftFileName,
     videoFormat,
     setVideoFormat,
     videoDuration,
-    handleFileChange
+    isProcessing,
+    handleFileChange,
+    handleRotate,
+    handleCancelRotate
   };
 }

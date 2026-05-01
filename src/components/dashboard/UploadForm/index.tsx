@@ -24,6 +24,10 @@ interface UploadFormProps {
   videoFormat: 'short' | 'long';
   videoDuration: number | null;
   draftFileName: string | null;
+  draftFile?: File | null;
+  isProcessingVideo?: boolean;
+  onRotateVideo?: () => void;
+  onCancelRotateVideo?: () => void;
   onVisualScan: (file: File) => Promise<void>;
   onTierChange: (tier: AITier) => void;
   onModeChange: (mode: StyleMode) => void;
@@ -31,7 +35,7 @@ interface UploadFormProps {
   onToggleAccount: (id: string) => void;
   onAbort: (id: string) => void;
   onAbortAll: () => void;
-  onFileChange: (file: File) => void;
+  onFileChange: (file: File | null) => void;
   onSubmit: (formData: FormData) => Promise<void>;
   isScheduled: boolean;
   scheduledAt: string;
@@ -53,6 +57,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   videoFormat,
   videoDuration,
   draftFileName,
+  draftFile,
+  isProcessingVideo = false,
+  onRotateVideo,
+  onCancelRotateVideo,
   onVisualScan,
   onTierChange,
   onModeChange,
@@ -140,13 +148,22 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
-          <VideoFileDisplay fileName={draftFileName} format={videoFormat} duration={videoDuration} />
+          <VideoFileDisplay 
+            fileName={draftFileName} 
+            file={draftFile}
+            format={videoFormat} 
+            duration={videoDuration} 
+            isProcessing={isProcessingVideo}
+            onRotate={onRotateVideo}
+            onCancel={onCancelRotateVideo}
+          />
           <input 
             id="file-upload"
             type="file" 
             name="file" 
             accept="video/*" 
             required={!draftFileName}
+            disabled={isProcessingVideo || isUploading}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) onFileChange(file);
@@ -156,7 +173,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               padding: '1rem', 
               borderRadius: '0.75rem', 
               border: '1px dashed hsla(var(--border) / 0.5)',
-              cursor: 'pointer'
+              cursor: (isProcessingVideo || isUploading) ? 'not-allowed' : 'pointer'
             }} 
           />
         </div>
@@ -262,13 +279,13 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <button 
           type="submit" 
-          disabled={isUploading}
-          style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
+          disabled={isUploading || isProcessingVideo}
+          style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: (isUploading || isProcessingVideo) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
         >
-          {isUploading ? '📤 Processing...' : (hasFailures ? '🚀 Post to Remaining' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video'))}
+          {isUploading ? '📤 Processing...' : (isProcessingVideo ? '🔄 Rotating Video...' : (hasFailures ? '🚀 Post to Remaining' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video')))}
         </button>
 
-        {aiTier !== 'Manual' && !isUploading && (
+        {aiTier !== 'Manual' && !isUploading && !isProcessingVideo && (
           <button
             type="button"
             onClick={(e) => {

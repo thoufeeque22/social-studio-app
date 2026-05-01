@@ -49,12 +49,16 @@ export default function DashboardClient({
   const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
   
   const {
+    draftFile,
     draftFileRef,
     draftFileName,
     videoFormat,
     setVideoFormat,
     videoDuration,
-    handleFileChange
+    isProcessing: isProcessingVideo,
+    handleFileChange,
+    handleRotate: onRotateVideo,
+    handleCancelRotate: onCancelRotateVideo
   } = useDraftFile(session?.user?.id);
 
   const {
@@ -204,7 +208,7 @@ export default function DashboardClient({
 
     if (distribution?.platformResults.every(r => r.status === 'success')) {
       setUploadStatus('Distribution Complete: All successful! ✨');
-      handleFileChange(null as any);
+      handleFileChange(null);
     }
   };
 
@@ -249,6 +253,10 @@ export default function DashboardClient({
               videoFormat={videoFormat}
               videoDuration={videoDuration}
               draftFileName={draftFileName}
+              draftFile={draftFile}
+              isProcessingVideo={isProcessingVideo}
+              onRotateVideo={onRotateVideo}
+              onCancelRotateVideo={onCancelRotateVideo}
               onVisualScan={handleVisualScan}
               onTierChange={setAiTier}
               onModeChange={setContentMode}
