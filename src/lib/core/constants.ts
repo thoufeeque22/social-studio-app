@@ -21,3 +21,6 @@ export const GEMINI_FALLBACK_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.0-flash"
 ];
+
+export const OLLAMA_DEFAULT_BASE_URL = "http://localhost:11434";
+export const OLLAMA_DEFAULT_MODEL = "gemma4";
