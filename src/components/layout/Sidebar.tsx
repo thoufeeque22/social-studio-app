@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { Plus } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -26,11 +27,11 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
         onClick={onClose}
       />
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.logo}>
+        <Link href="/" className={styles.logo} onClick={onClose}>
           <div className={styles.logoIcon}>✨</div>
           <span className={styles.logoText}>SocialStudio</span>
-          <button className={styles.closeButton} onClick={onClose}>✕</button>
-        </div>
+          <button className={styles.closeButton} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}>✕</button>
+        </Link>
 
       <nav className={styles.nav}>
         {menuItems.map((item) => (
