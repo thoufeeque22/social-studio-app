@@ -36,7 +36,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
   const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
   const results: any[] = [];
 
-  for (const p of platforms) {
+  await Promise.allSettled(platforms.map(async (p) => {
     try {
       console.log(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform}`);
       
@@ -56,7 +56,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       if (existingResult?.status === 'cancelled') {
         console.log(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
         results.push(existingResult as any);
-        continue;
+        return;
       }
 
       let finalTitle = title;
@@ -182,7 +182,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         }
       });
     }
-  }
+  }));
 
   return results;
 }
