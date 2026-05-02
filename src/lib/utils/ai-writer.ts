@@ -46,23 +46,49 @@ Always generate exactly 5 hashtags by default.`;
   }
 
   const platformConstraints: Record<Platform, string> = {
-    youtube: `\nConstraints: The title MUST be under 60 characters for YouTube Shorts. The description should be engaging and SEO-rich.`,
-    tiktok: `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy. Maximum 5 hashtags allowed.`,
-    instagram: `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length. Maximum 5 hashtags allowed.`
+    youtube: `\nConstraints: 
+- YouTube is a SEARCH engine. Prioritize SEO and Search Intent.
+- The Title MUST be under 60 characters and lead with high-volume keywords.
+- The Description must be keyword-dense, include a summary of the video, and use searchable phrases.
+- Tone: Informative, authoritative, yet engaging.`,
+    tiktok: `\nConstraints: 
+- TikTok is an ATTENTION engine. Prioritize the HOOK.
+- The Description must start with a scroll-stopping statement or a curiosity gap.
+- Use trendy, high-energy language and Gen-Z appropriate slang if it fits the vibe.
+- Keep the caption short; the visuals do the talking. Maximum 5 hashtags.
+- Tone: High-energy, raw, authentic, and fast-paced.`,
+    instagram: `\nConstraints: 
+- Instagram is a LIFESTYLE engine. Prioritize Aesthetics and Community.
+- Use emojis strategically to break up text and add personality.
+- Captions should be relatable, storyteller-focused, or highly curated.
+- Include a clear 'Link in Bio' or 'Save for Later' call to action.
+- Tone: Aesthetic, aspirational, relatable, and community-driven.`
   };
   
   if (platformConstraints[platform]) {
     prompt += platformConstraints[platform];
   }
 
+  let activeMode = mode;
+  if (mode === 'Smart') {
+    if (platform === 'youtube') activeMode = 'SEO';
+    else if (platform === 'tiktok') activeMode = 'Hook';
+    else if (platform === 'instagram') activeMode = 'Story';
+    else activeMode = 'Value'; // Default fallback
+  }
+
   const styleConstraints: Record<StyleMode, string> = {
-    Hook: `\nStyle: High-adrenaline, click-inducing, FOMO-driven hook. Make it impossible not to click.`,
-    SEO: `\nStyle: Search-optimized, informative, keyword-dense but readable.`,
-    "Gen-Z": `\nStyle: Authentic, low-caps, gen-z slang, ironically detached but engaging. No cap.`
+    Smart: `\nStyle: PLATFORM-OPTIMIZED. You are in 'Smart Mode'. Switch your strategy dynamically to the absolute best cultural fit for ${platform}.`,
+    Hook: `\nStyle: ADRENALINE. The first sentence must be a 'pattern interrupt' that stops the scroll immediately. Focus on intense curiosity or a bold claim.`,
+    SEO: `\nStyle: DISCOVERABILITY. Focus on semantic keywords and phrases that people actually type into search bars. Structure content logically.`,
+    "Gen-Z": `\nStyle: AUTHENTICITY. Use lowercase, ironical detachment, and specific slang like 'no cap', 'bet', or 'fr'. Avoid looking like a 'brand trying too hard'.`,
+    Story: `\nStyle: NARRATIVE. Use the 'Hero's Journey' or a simple 'Problem-Agitation-Solution' framework. Make the viewer care about the outcome.`,
+    Value: `\nStyle: EDUCATIONAL. Provide a 'quick win' or a 'did you know' fact. Focus on utility and being helpful.`,
+    Sales: `\nStyle: CONVERSION. Clear benefits, scarcity, and a strong, direct Call to Action. Focus on the result the user gets.`
   };
 
-  if (styleConstraints[mode]) {
-    prompt += styleConstraints[mode];
+  if (styleConstraints[activeMode]) {
+    prompt += styleConstraints[activeMode];
   }
 
   return prompt;

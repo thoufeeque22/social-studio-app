@@ -79,7 +79,7 @@ export default function DashboardClient({
   // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
   const [aiTier, setAiTier] = useState<AITier>(initialAITier || 'Manual');
   const [contentMode, setContentMode] = useState<StyleMode>(
-    (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Hook'
+    (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Smart'
   );
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
