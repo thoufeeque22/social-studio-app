@@ -262,12 +262,13 @@ export default function HistoryPage() {
     const isFailed = p.status === 'failed';
     const isCancelled = p.status === 'cancelled';
     const isRetrying = p.status === 'retrying' || processingIds.includes(p.id);
-    const isPending = p.status === 'pending' || p.status === 'uploading' || p.status === 'processing';
+    const isUploading = p.status === 'uploading';
+    const isPending = p.status === 'pending' || p.status === 'processing';
     
     const postCreatedAt = new Date(post.createdAt).getTime();
     const isPostStale = p.status === 'pending' && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
     
-    const hasLink = !isFailed && !isRetrying && !isPending && !isCancelled && !isPostStale && p.permalink;
+    const hasLink = !isFailed && !isRetrying && !isPending && !isUploading && !isCancelled && !isPostStale && p.permalink;
 
     const pillClasses = [
       styles.platformPill,
@@ -275,20 +276,21 @@ export default function HistoryPage() {
       isFailed ? styles.platformPillFailed : 
       isCancelled ? styles.platformPillCancelled :
       isRetrying ? styles.platformPillRetrying : 
+      isUploading ? styles.platformPillUploading :
       (isPending && !isPostStale) ? styles.platformPillPending :
       isPostStale ? styles.platformPillStale :
       hasLink ? styles.platformPillSuccess : styles.platformPillNoLink,
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
-    const progressStyle = (isPending && !isPostStale && p.progress > 0) ? {
+    const progressStyle = ((isPending || isUploading) && !isPostStale && p.progress > 0) ? {
       background: `linear-gradient(90deg, hsla(var(--primary) / 0.15) ${p.progress}%, transparent ${p.progress}%)`,
     } : {};
 
     const content = (
       <>
         <span className={styles.pillIcon}>
-          {isRetrying || (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : isCancelled ? '⏹️' : meta.icon}
+          {isRetrying ? '⏳' : isUploading ? '📤' : (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : isCancelled ? '⏹️' : meta.icon}
         </span>
         <span className={styles.pillLabel}>
           {isPostStale ? `${meta.label} (Stalled)` : isCancelled ? `${meta.label} (Stopped)` : meta.label}

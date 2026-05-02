@@ -38,6 +38,8 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
   for (const p of platforms) {
     try {
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform}`);
+      
       // 1. Fetch existing result to see if we have a resumable session or cancellation
       const existingResult = await prisma.postPlatformResult.findUnique({
         where: {
@@ -48,6 +50,8 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           }
         }
       });
+
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Existing result status for ${p.platform}: ${existingResult?.status || 'none'}`);
 
       if (existingResult?.status === 'cancelled') {
         console.log(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
@@ -68,7 +72,28 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
       
+      // 1.5 Ensure the record exists for onProgress updates
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Updating status to uploading for ${p.platform}`);
+      const currentResult = await prisma.postPlatformResult.upsert({
+        where: {
+          postHistoryId_platform_accountId: {
+            postHistoryId: historyId,
+            platform: p.platform,
+            accountId: p.accountId
+          }
+        },
+        update: { status: 'uploading' },
+        create: {
+          postHistoryId: historyId,
+          platform: p.platform,
+          accountId: p.accountId,
+          accountName: p.accountName,
+          status: 'uploading'
+        }
+      });
+      
       // 2. Optimization check
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Starting optimization check for ${p.platform}`);
       let activeFilePath = filePath;
       try {
         activeFilePath = await getOptimizedVideoPath(stagedFileId, p.platform, historyId, p.accountId);
@@ -76,6 +101,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         console.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`, optErr);
       }
 
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Calling distributeSinglePlatform for ${p.platform}`);
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
         userId,
@@ -91,9 +117,9 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         },
         onProgress: async (percent) => {
           await prisma.postPlatformResult.update({
-            where: { id: existingResult!.id },
+            where: { id: currentResult.id },
             data: { progress: Math.round(percent) }
-          });
+          }).catch(e => console.error("Failed to update progress:", e));
         }
       });
 

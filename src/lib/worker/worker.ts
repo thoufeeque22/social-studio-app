@@ -97,9 +97,9 @@ export async function startPublishingWorker() {
       });
 
       if (pending.length > 0) {
-        console.log(`👷 [WORKER] Found ${pending.length} overdue posts to publish.`);
+        console.log(`👷 [WORKER] Found ${pending.length} overdue posts to publish. Processing in parallel...`);
 
-        for (const post of pending) {
+        await Promise.allSettled(pending.map(async (post) => {
           console.log(`🚀 [WORKER] Attempting to publish: "${post.title}" (ID: ${post.id})`);
           
           // Mark as published immediately so other worker ticks don't pick it up
@@ -112,7 +112,7 @@ export async function startPublishingWorker() {
             const stagedFileId = post.stagedFileId;
             if (!stagedFileId) {
                console.warn(`⚠️ [WORKER] Post "${post.title}" has no stagedFileId. Skipping.`);
-               continue;
+               return;
             }
 
             const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
@@ -154,13 +154,13 @@ export async function startPublishingWorker() {
             Sentry.captureException(err, {
               extra: { postId: post.id, title: post.title }
             });
-            // We mark it as published/processed so it doesn't keep looping
+            // We mark it as processed so it doesn't keep looping
             await prisma.postHistory.update({
               where: { id: post.id },
               data: { isPublished: true } 
             });
           }
-        }
+        }));
       }
     } catch (err) {
       console.error("👷 [WORKER] Polling failed:", err);

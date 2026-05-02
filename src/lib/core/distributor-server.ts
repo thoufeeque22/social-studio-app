@@ -1,4 +1,4 @@
-"use server";
+"use strict";
 import path from 'path';
 import { 
   formatPlatformCaption, 
@@ -18,7 +18,7 @@ export async function distributeSinglePlatform({
   videoFormat,
   accountId,
   fields = {},
-  onProgress
+  onProgress: progressCallback
 }: {
   platform: string;
   userId: string;
@@ -52,7 +52,7 @@ export async function distributeSinglePlatform({
       privacy: (fields.privacy as any) || 'public',
       accountId,
       resumableUrl: fields.resumableUrl,
-      onProgress
+      onProgress: progressCallback
     });
     return result.data;
   } 
@@ -60,7 +60,7 @@ export async function distributeSinglePlatform({
   if (platform === 'facebook') {
     const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
     if (videoFormat === 'short') {
-      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId, onProgress });
+      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId, onProgress: progressCallback });
     } else {
       return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId });
     }

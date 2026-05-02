@@ -264,12 +264,19 @@
   animation: rotate 2s linear infinite;
 }
 
+.platformPillUploading {
+  background: hsla(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border-color: hsla(var(--primary) / 0.3);
+  cursor: progress;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 .platformPillPending {
   background: hsla(200, 80%, 60%, 0.12);
   color: hsl(200, 80%, 75%);
   border-color: hsla(200, 80%, 60%, 0.3);
   cursor: wait;
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .platformPillStale {
