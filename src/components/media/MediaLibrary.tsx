@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Film, Search, Clock, HardDrive, AlertTriangle, Trash2, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Film, Search, Clock, HardDrive, AlertTriangle, Trash2, ExternalLink, Plus } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Heading } from '@/components/ui/Heading';
+import { stageVideoFile } from '@/lib/upload/upload-utils';
 
 interface GalleryAsset {
   id: string;
@@ -91,20 +92,72 @@ const MediaPreview: React.FC<{ src?: string; isGrid?: boolean }> = ({ src, isGri
 export const MediaLibrary: React.FC = () => {
   const [assets, setAssets] = useState<GalleryAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchAssets = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/media');
+      const data = await res.json();
+      if (data.success) {
+        setAssets(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch media:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch('/api/media')
-      .then(res => res.json())
-      .then(data => {
-        setAssets(data.data || []);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setIsLoading(false);
-      });
+    fetchAssets();
   }, []);
+
+  const handleAddVideo = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setUploadStatus("Preparing upload...");
+      
+      await stageVideoFile({
+        file,
+        onStatusUpdate: setUploadStatus,
+        platforms: [], 
+        metadata: {
+          title: file.name,
+          isPublished: false
+        }
+      });
+
+      setUploadStatus("✨ Upload complete!");
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadStatus(null);
+        fetchAssets(); 
+      }, 1500);
+
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`❌ Error: ${message}`);
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadStatus(null);
+      }, 3000);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const formatSize = (bytes: number | null) => {
     if (!bytes) return 'Unknown size';
@@ -128,7 +181,7 @@ export const MediaLibrary: React.FC = () => {
 
 
 
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
 
   const handleDeleteAsset = async (fileId: string) => {
     if (!globalThis.confirm('Are you sure you want to permanentely remove this video from your staged media?')) return;
@@ -219,9 +272,37 @@ export const MediaLibrary: React.FC = () => {
             Manage your staged video assets and reused them across platforms.
           </p>
         </div>
-        {assets.length > 0 && (
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept="video/*" 
+            style={{ display: 'none' }} 
+          />
           <button 
-            onClick={handleClearAll}
+            onClick={handleAddVideo}
+            disabled={isUploading}
+            style={{ 
+              padding: '0.6rem 1.25rem', borderRadius: '0.5rem', 
+              background: 'hsl(var(--primary))', border: 'none',
+              color: 'white', fontSize: '0.85rem', fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 12px hsla(var(--primary) / 0.3)',
+              opacity: isUploading ? 0.7 : 1
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <Plus size={18} />
+            Add Video
+          </button>
+          
+          {assets.length > 0 && (
+            <button 
+              onClick={handleClearAll}
+              disabled={isUploading}
             style={{ 
               padding: '0.6rem 1rem', borderRadius: '0.5rem', 
               background: 'none', border: '1px solid #ef4444',
@@ -236,6 +317,7 @@ export const MediaLibrary: React.FC = () => {
             Clear Gallery
           </button>
         )}
+        </div>
       </header>
 
       <GlassCard style={{ padding: '1.5rem' }}>
@@ -351,7 +433,7 @@ export const MediaLibrary: React.FC = () => {
       </div>
 
       {/* FIXED HUD - AGGRESSIVE VIEWPORT FIX */}
-      {selectedIds.length > 0 && (
+      {(selectedIds.length > 0 || isUploading) && (
         <div style={{
           position: 'fixed', 
           bottom: '40px', 
@@ -375,50 +457,57 @@ export const MediaLibrary: React.FC = () => {
           animation: 'slideUpHUD 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>✨</span>
+            <span style={{ fontSize: '1.2rem' }}>{isUploading ? '📤' : '✨'}</span>
             <span style={{ fontWeight: 700, color: 'white', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
-               {selectedIds.length} {selectedIds.length === 1 ? 'video' : 'videos'} selected
+               {isUploading ? uploadStatus : `${selectedIds.length} ${selectedIds.length === 1 ? 'video' : 'videos'} selected`}
             </span>
           </div>
           
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <button 
-              onClick={() => setSelectedIds([])}
-              style={{ 
-                background: 'none', border: 'none', 
-                color: 'hsl(var(--muted-foreground))', 
-                cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
-                padding: '0.5rem 1rem', borderRadius: '0.75rem',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
-            >
-              Cancel
-            </button>
-            
-            <button 
-              onClick={handleBulkDelete}
-              style={{ 
-                background: '#EF4444', color: 'white', border: 'none', 
-                padding: '0.85rem 2rem', borderRadius: '1.1rem', 
-                fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
-                whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', gap: '0.75rem'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 15px 35px rgba(239, 68, 68, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1) translateY(0)';
-                e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.4)';
-              }}
-            >
-              ⏹️ DELETE SELECTED
-            </button>
+            {!isUploading && (
+              <>
+                <button 
+                  onClick={() => setSelectedIds([])}
+                  style={{ 
+                    background: 'none', border: 'none', 
+                    color: 'hsl(var(--muted-foreground))', 
+                    cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
+                    padding: '0.5rem 1rem', borderRadius: '0.75rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'hsl(var(--muted-foreground))'}
+                >
+                  Cancel
+                </button>
+                
+                <button 
+                  onClick={handleBulkDelete}
+                  style={{ 
+                    background: '#EF4444', color: 'white', border: 'none', 
+                    padding: '0.85rem 2rem', borderRadius: '1.1rem', 
+                    fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
+                    whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: '0.75rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 15px 35px rgba(239, 68, 68, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1) translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.4)';
+                  }}
+                >
+                  ⏹️ DELETE SELECTED
+                </button>
+              </>
+            )}
+            {isUploading && (
+               <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid hsla(var(--primary) / 0.3)', borderTopColor: 'hsl(var(--primary))', animation: 'spin 1s linear infinite' }} />
+            )}
           </div>
         </div>
       )}
@@ -427,6 +516,9 @@ export const MediaLibrary: React.FC = () => {
         @keyframes slideUpHUD {
           from { transform: translate(-50%, 200%); opacity: 0; }
           to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

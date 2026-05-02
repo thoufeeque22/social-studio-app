@@ -15,7 +15,7 @@ import { Account, PlatformPreference } from '@/lib/core/types';
 
 interface UploadFormProps {
   isUploading: boolean;
-  uploadStatus: string | null;
+  uploadStatus: React.ReactNode;
   accounts: Account[];
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
@@ -40,6 +40,7 @@ interface UploadFormProps {
   scheduledAt: string;
   onSchedulingChange: (isScheduled: boolean, date: string) => void;
   hasFailures?: boolean;
+  isComplete: boolean;
   platformErrors?: Record<string, string>;
 }
 
@@ -69,6 +70,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   scheduledAt,
   onSchedulingChange,
   hasFailures = false,
+  isComplete,
   platformErrors = {},
 }) => {
   const {
@@ -85,7 +87,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   } = useUploadForm();
 
   const [showGallery, setShowGallery] = useState(false);
-  const isComplete = uploadStatus?.includes('Distribution Complete');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -99,41 +100,42 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       
       {uploadStatus && isComplete && (
         <div style={{ marginBottom: '1.5rem' }}>
-          <Link 
-            href="/history" 
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ 
-              display: 'block',
-              textDecoration: 'none', 
-              padding: '1rem',
-              borderRadius: '0.75rem',
-              background: 'hsla(var(--primary) / 0.1)',
-              border: '1px solid hsla(var(--primary) / 0.3)',
-              transition: 'all 0.2s ease',
-              cursor: 'pointer'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
-                <span style={{ fontSize: '1.1rem' }}>✨</span>
-                <span>{uploadStatus}</span>
-              </p>
-              <div style={{ 
+          <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '1rem',
+            borderRadius: '0.75rem',
+            background: 'hsla(var(--primary) / 0.1)',
+            border: '1px solid hsla(var(--primary) / 0.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
+              <span style={{ fontSize: '1.1rem' }}>✨</span>
+              <span>{uploadStatus}</span>
+            </div>
+            <Link 
+              href="/history" 
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ 
                 background: 'hsl(var(--primary))', 
                 color: 'white', 
-                padding: '2px 8px', 
+                padding: '4px 12px', 
                 borderRadius: '99px', 
-                fontSize: '0.7rem', 
+                fontSize: '0.75rem', 
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
-              }}>
-                View History <span>→</span>
-              </div>
-            </div>
-          </Link>
+                gap: '4px',
+                textDecoration: 'none',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              View History <span>→</span>
+            </Link>
+          </div>
         </div>
       )}
 

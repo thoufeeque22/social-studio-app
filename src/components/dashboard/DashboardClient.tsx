@@ -88,6 +88,7 @@ export default function DashboardClient({
   const [reviewContext, setReviewContext] = useState<ReviewContext | null>(null);
   const [galleryFileId, setGalleryFileId] = useState<string | null>(null);
   const [galleryFileName, setGalleryFileName] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
 
   // 3. EFFECT: Resumption Logic
   useEffect(() => {
@@ -208,7 +209,34 @@ export default function DashboardClient({
       });
 
       if (distribution?.platformResults.every(r => r.status === 'success')) {
+        const finishedFileId = stagedFileId;
         setUploadStatus('Distribution Complete: All successful! ✨');
+        setIsComplete(true);
+        
+        // Add a small delay then show the cleanup prompt
+        setTimeout(() => {
+          setUploadStatus(
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span>Distribution Complete! ✨</span>
+              <button 
+                onClick={async () => {
+                  if (finishedFileId) {
+                    await fetch(`/api/media/${finishedFileId}`, { method: 'DELETE' });
+                    setUploadStatus('✅ Distributed & Purged from Gallery.');
+                  }
+                }}
+                style={{ 
+                  background: 'hsla(var(--primary) / 0.2)', border: '1px solid hsla(var(--primary) / 0.3)',
+                  color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.8rem',
+                  cursor: 'pointer', fontWeight: 600
+                }}
+              >
+                🗑️ Cleanup from Gallery
+              </button>
+            </div>
+          );
+        }, 1000);
+
         localStorage.removeItem('SS_DRAFT_TITLE');
         localStorage.removeItem('SS_DRAFT_DESC');
         handleFileChange(null); 
@@ -233,7 +261,33 @@ export default function DashboardClient({
     });
 
     if (distribution?.platformResults.every(r => r.status === 'success')) {
+      const finishedFileId = reviewContext?.stagedFileId;
       setUploadStatus('Distribution Complete: All successful! ✨');
+      setIsComplete(true);
+      
+      setTimeout(() => {
+        setUploadStatus(
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span>Distribution Complete! ✨</span>
+            <button 
+              onClick={async () => {
+                if (finishedFileId) {
+                  await fetch(`/api/media/${finishedFileId}`, { method: 'DELETE' });
+                  setUploadStatus('✅ Distributed & Purged from Gallery.');
+                }
+              }}
+              style={{ 
+                background: 'hsla(var(--primary) / 0.2)', border: '1px solid hsla(var(--primary) / 0.3)',
+                color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.8rem',
+                cursor: 'pointer', fontWeight: 600
+              }}
+            >
+              🗑️ Cleanup from Gallery
+            </button>
+          </div>
+        );
+      }, 1000);
+
       handleFileChange(null);
       setGalleryFileId(null);
       setGalleryFileName(null);
@@ -299,13 +353,18 @@ export default function DashboardClient({
                 setGalleryFileId(null);
                 setGalleryFileName(null);
                 handleFileChange(file);
+                setIsComplete(false);
               }}
-              onGallerySelect={handleGallerySelect}
+              onGallerySelect={(fileId, fileName) => {
+                handleGallerySelect(fileId, fileName);
+                setIsComplete(false);
+              }}
               onSubmit={handleMainAction}
               isScheduled={isScheduled}
               scheduledAt={scheduledAt}
               onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
               hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
+              isComplete={isComplete}
             />
           )}
           <SidebarInfo accounts={accounts} />

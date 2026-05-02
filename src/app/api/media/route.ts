@@ -37,7 +37,7 @@ export async function GET() {
       previewUrl: generateSignedMediaUrl(asset.fileId, 120) // 2 hour signed preview
     }));
 
-    return NextResponse.json({ data: serializedAssets });
+    return NextResponse.json({ success: true, data: serializedAssets });
   } catch (error: any) {
     console.error("Gallery Fetch Error:", error);
     return NextResponse.json({ error: "Failed to fetch gallery assets" }, { status: 500 });
