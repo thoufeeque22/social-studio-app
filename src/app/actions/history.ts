@@ -67,10 +67,22 @@ export interface SavePostHistoryInput {
 
 export async function savePostHistory(data: SavePostHistoryInput) {
   return protectedAction(async (userId) => {
+    // 🛠️ DEVELOPMENTAL AUTO-TITLE LOGIC
+    let finalTitle = data.title;
+    if (!finalTitle || finalTitle.trim() === "" || /^\d+$/.test(finalTitle)) {
+      const lastPost = await prisma.postHistory.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      });
+      const lastNum = parseInt(lastPost?.title.match(/\d+/)?.[0] || "0", 10);
+      finalTitle = `${lastNum + 1}`;
+      console.log(`🪄 [DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
+    }
+
     const postHistory = await prisma.postHistory.create({
       data: {
         userId,
-        title: data.title,
+        title: finalTitle,
         description: data.description,
         videoFormat: data.videoFormat,
         stagedFileId: data.stagedFileId,
