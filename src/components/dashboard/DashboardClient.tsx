@@ -89,6 +89,7 @@ export default function DashboardClient({
   const [galleryFileId, setGalleryFileId] = useState<string | null>(null);
   const [galleryFileName, setGalleryFileName] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [customStyleText, setCustomStyleText] = useState('');
 
   // 3. EFFECT: Resumption Logic
   useEffect(() => {
@@ -189,7 +190,9 @@ export default function DashboardClient({
           (formData.get('description') as string) || '', 
           aiTier, 
           contentMode, 
-          mappedPlatforms.map(p => p.platform)
+          mappedPlatforms.map(p => p.platform),
+          undefined, // visualData
+          customStyleText
         );
         setAiPreviews(previews);
         setReviewContext({ stagedFileId, fileName, historyId, formData, targetAccountIds });
@@ -300,7 +303,7 @@ export default function DashboardClient({
       const frames = await extractVideoFrames(file);
       const platforms = preferences.filter(p => p.isEnabled);
       const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-      const previews = await getMultiPlatformAIPreviews('', '', 'Generate', contentMode, platforms.map(p => p.platformId), frames);
+      const previews = await getMultiPlatformAIPreviews('', '', 'Generate', contentMode, platforms.map(p => p.platformId), frames, customStyleText);
       setAiPreviews(previews);
       setIsReviewing(true);
     } catch (err) { console.error(err); } 
@@ -365,6 +368,8 @@ export default function DashboardClient({
               onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
               hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
               isComplete={isComplete}
+              customStyleText={customStyleText}
+              onCustomStyleChange={setCustomStyleText}
             />
           )}
           <SidebarInfo accounts={accounts} />

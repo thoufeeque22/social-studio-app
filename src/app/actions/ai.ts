@@ -14,7 +14,8 @@ export const getMultiPlatformAIPreviews = async (
   tier: AITier,
   mode: StyleMode,
   platforms: string[],
-  visualData?: string[]
+  visualData?: string[],
+  customStyleText?: string
 ) => {
   return protectedAction(async () => {
     if (tier === 'Manual') {
@@ -31,7 +32,8 @@ export const getMultiPlatformAIPreviews = async (
           title,
           description,
           platform as any,
-          visualData
+          visualData,
+          customStyleText
         );
         results.push({ platform, result });
       } catch (err: any) {

@@ -22,7 +22,7 @@ interface Part {
   };
 }
 
-function buildSystemPrompt(platform: Platform, tier: AITier, mode: StyleMode, hasVisualData: boolean): string {
+function buildSystemPrompt(platform: Platform, tier: AITier, mode: StyleMode, hasVisualData: boolean, customStyleText?: string): string {
   let prompt = `You are a social media copywriter expert. 
 Target Platform: ${(platform || "general").toUpperCase()}.
 AI Strategy: ${(tier || "generate").toUpperCase()} mode.
@@ -82,6 +82,7 @@ Always generate exactly 5 hashtags by default.`;
     "Gen-Z": `\nStyle: ADRENALINE & AUTHENTICITY. Use a 'pattern interrupt' hook to stop the scroll. Use lowercase, ironical detachment, and specific slang like 'no cap', 'bet', or 'fr'. High energy, trendy, and raw.`,
     SEO: `\nStyle: DISCOVERABILITY. Focus on semantic keywords and phrases that people actually type into search bars. Structure content logically for search intent.`,
     Story: `\nStyle: NARRATIVE. Use the 'Hero's Journey' or a simple 'Problem-Agitation-Solution' framework. Focus on building a human connection.`,
+    Custom: `\nStyle: USER-DEFINED. Use the following specific tone and style as your primary constraint: ${customStyleText || 'Be helpful and engaging.'}`
   };
 
   if (styleConstraints[activeMode]) {
@@ -179,7 +180,8 @@ export async function generatePostContent(
   rawText: string,
   videoContext: string,
   platform: Platform,
-  visualData?: string[]
+  visualData?: string[],
+  customStyleText?: string
 ): Promise<AIWriteResult> {
   const isProduction = process.env.NODE_ENV === 'production';
   if (tier === 'Manual') {
@@ -191,7 +193,7 @@ export async function generatePostContent(
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const systemPrompt = buildSystemPrompt(platform, tier, mode, !!visualData && visualData.length > 0);
+  const systemPrompt = buildSystemPrompt(platform, tier, mode, !!visualData && visualData.length > 0, customStyleText);
   const prompt = tier === 'Enrich' 
     ? `Draft Title: ${rawText}\nDraft Description: ${videoContext}`
     : `User Prompt: ${rawText}\nAdditional Context: ${videoContext}`;

@@ -42,6 +42,8 @@ interface UploadFormProps {
   hasFailures?: boolean;
   isComplete: boolean;
   platformErrors?: Record<string, string>;
+  customStyleText: string;
+  onCustomStyleChange: (text: string) => void;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -72,6 +74,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   hasFailures = false,
   isComplete,
   platformErrors = {},
+  customStyleText,
+  onCustomStyleChange
 }) => {
   const {
     title,
@@ -276,7 +280,14 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           </div>
         </div>
 
-        {aiTier !== 'Manual' && <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />}
+        {aiTier !== 'Manual' && (
+          <AIStyleSelector 
+            contentMode={contentMode} 
+            onModeChange={onModeChange} 
+            customStyleText={customStyleText}
+            onCustomStyleChange={onCustomStyleChange}
+          />
+        )}
         
         {aiTier !== 'Manual' && (
           <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'hsla(var(--primary)/0.05)', border: '1px solid hsla(var(--primary)/0.15)' }}>
