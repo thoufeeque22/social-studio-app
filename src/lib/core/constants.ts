@@ -8,10 +8,10 @@ export const PLATFORMS = [
 ];
 
 export type AITier = 'Manual' | 'Enrich' | 'Generate';
-export type StyleMode = 'Smart' | 'Hook' | 'SEO' | 'Gen-Z' | 'Story' | 'Value' | 'Sales';
+export type StyleMode = 'Smart' | 'Gen-Z' | 'SEO' | 'Story';
 
 export const AI_TIERS: AITier[] = ['Manual', 'Enrich', 'Generate'];
-export const STYLE_MODES: StyleMode[] = ['Smart', 'Hook', 'SEO', 'Gen-Z', 'Story', 'Value', 'Sales'];
+export const STYLE_MODES: StyleMode[] = ['Smart', 'Gen-Z', 'SEO', 'Story'];
 
 export const GEMINI_FALLBACK_MODELS = [
   "gemini-3.1-pro-preview",

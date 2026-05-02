@@ -72,19 +72,16 @@ Always generate exactly 5 hashtags by default.`;
   let activeMode = mode;
   if (mode === 'Smart') {
     if (platform === 'youtube') activeMode = 'SEO';
-    else if (platform === 'tiktok') activeMode = 'Hook';
+    else if (platform === 'tiktok') activeMode = 'Gen-Z';
     else if (platform === 'instagram') activeMode = 'Story';
-    else activeMode = 'Value'; // Default fallback
+    else activeMode = 'Story'; // Default fallback
   }
 
   const styleConstraints: Record<StyleMode, string> = {
     Smart: `\nStyle: PLATFORM-OPTIMIZED. You are in 'Smart Mode'. Switch your strategy dynamically to the absolute best cultural fit for ${platform}.`,
-    Hook: `\nStyle: ADRENALINE. The first sentence must be a 'pattern interrupt' that stops the scroll immediately. Focus on intense curiosity or a bold claim.`,
-    SEO: `\nStyle: DISCOVERABILITY. Focus on semantic keywords and phrases that people actually type into search bars. Structure content logically.`,
-    "Gen-Z": `\nStyle: AUTHENTICITY. Use lowercase, ironical detachment, and specific slang like 'no cap', 'bet', or 'fr'. Avoid looking like a 'brand trying too hard'.`,
-    Story: `\nStyle: NARRATIVE. Use the 'Hero's Journey' or a simple 'Problem-Agitation-Solution' framework. Make the viewer care about the outcome.`,
-    Value: `\nStyle: EDUCATIONAL. Provide a 'quick win' or a 'did you know' fact. Focus on utility and being helpful.`,
-    Sales: `\nStyle: CONVERSION. Clear benefits, scarcity, and a strong, direct Call to Action. Focus on the result the user gets.`
+    "Gen-Z": `\nStyle: ADRENALINE & AUTHENTICITY. Use a 'pattern interrupt' hook to stop the scroll. Use lowercase, ironical detachment, and specific slang like 'no cap', 'bet', or 'fr'. High energy, trendy, and raw.`,
+    SEO: `\nStyle: DISCOVERABILITY. Focus on semantic keywords and phrases that people actually type into search bars. Structure content logically for search intent.`,
+    Story: `\nStyle: NARRATIVE. Use the 'Hero's Journey' or a simple 'Problem-Agitation-Solution' framework. Focus on building a human connection.`,
   };
 
   if (styleConstraints[activeMode]) {
