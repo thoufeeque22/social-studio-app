@@ -126,4 +126,61 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       expect(call[0]).not.toContain(':11434');
     });
   });
+
+  describe('Cultural Intelligence & Custom Styles', () => {
+    it('Smart Mode: should use SEO strategy for YouTube', async () => {
+      const mockResponse = {
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "YT", description: "Desc", hashtags: [] }) }] } }]
+        })
+      };
+      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+
+      await generatePostContent('Generate', 'Smart', 'Title', 'Context', 'youtube');
+      
+      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const prompt = fetchBody.contents[0].parts[0].text;
+      
+      expect(prompt).toContain('DISCOVERABILITY');
+      expect(prompt).toContain('SEARCH engine');
+    });
+
+    it('Smart Mode: should use Gen-Z strategy for TikTok', async () => {
+      const mockResponse = {
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "TT", description: "Desc", hashtags: [] }) }] } }]
+        })
+      };
+      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+
+      await generatePostContent('Generate', 'Smart', 'Title', 'Context', 'tiktok');
+      
+      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const prompt = fetchBody.contents[0].parts[0].text;
+      
+      expect(prompt).toContain('ADRENALINE & AUTHENTICITY');
+      expect(prompt).toContain('ATTENTION engine');
+    });
+
+    it('Custom Mode: should inject user-defined style text', async () => {
+      const mockResponse = {
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "Custom", description: "Desc", hashtags: [] }) }] } }]
+        })
+      };
+      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+
+      const customVibe = "Like a 1950s Detective";
+      await generatePostContent('Generate', 'Custom', 'Title', 'Context', 'instagram', undefined, customVibe);
+      
+      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const prompt = fetchBody.contents[0].parts[0].text;
+      
+      expect(prompt).toContain('USER-DEFINED');
+      expect(prompt).toContain(customVibe);
+    });
+  });
 });

@@ -219,7 +219,7 @@ export default function DashboardClient({
         // Add a small delay then show the cleanup prompt
         setTimeout(() => {
           setUploadStatus(
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <span>Distribution Complete! ✨</span>
               <button 
                 onClick={async () => {
@@ -236,7 +236,7 @@ export default function DashboardClient({
               >
                 🗑️ Cleanup from Gallery
               </button>
-            </div>
+            </span>
           );
         }, 1000);
 
@@ -376,7 +376,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {isUploading && uploadStatus && !uploadStatus.includes('Complete') && (
+      {isUploading && uploadStatus && (typeof uploadStatus === 'string' ? !uploadStatus.includes('Complete') : true) && (
         <div style={{
           position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
           width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',
@@ -393,7 +393,7 @@ export default function DashboardClient({
             }} />
             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <span style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>Current Progress</span>
-              <p style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadStatus}</p>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadStatus}</div>
             </div>
           </div>
           <button 

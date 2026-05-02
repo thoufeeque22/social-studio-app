@@ -17,7 +17,7 @@ describe('getMultiPlatformAIPreviews', () => {
   });
 
   it('throws an error if tier is Manual', async () => {
-    await expect(getMultiPlatformAIPreviews('Title', 'Desc', 'Manual', 'Hook', ['youtube']))
+    await expect(getMultiPlatformAIPreviews('Title', 'Desc', 'Manual', 'Smart', ['youtube']))
       .rejects.toThrow('Cannot generate previews in Manual mode.');
   });
 
@@ -30,7 +30,9 @@ describe('getMultiPlatformAIPreviews', () => {
       'Original Desc',
       'Premium',
       'SEO',
-      ['youtube', 'tiktok']
+      ['youtube', 'tiktok'],
+      undefined,
+      'My Custom Vibe'
     );
 
     expect(result).toEqual({
@@ -50,11 +52,39 @@ describe('getMultiPlatformAIPreviews', () => {
       '',
       'Basic',
       'Hook',
-      ['youtube', 'instagram']
+      ['youtube', 'instagram'],
+      undefined,
+      undefined
     );
 
     expect(result.youtube.title).toBe('YT Title');
     expect(result.instagram.description).toContain('AI Error: AI Busy');
     expect(result.instagram.title).toBe('My Video'); // Fallback title
+  });
+
+  it('passes customStyleText to generatePostContent', async () => {
+    const mockResult = { title: 'Custom', description: 'Desc', hashtags: [] };
+    vi.mocked(generatePostContent).mockResolvedValue(mockResult);
+
+    const customVibe = "Sassy and Puns";
+    await getMultiPlatformAIPreviews(
+      'Title',
+      'Desc',
+      'Generate',
+      'Custom',
+      ['youtube'],
+      undefined,
+      customVibe
+    );
+
+    expect(generatePostContent).toHaveBeenCalledWith(
+      'Generate',
+      'Custom',
+      'Title',
+      'Desc',
+      'youtube',
+      undefined,
+      customVibe
+    );
   });
 });

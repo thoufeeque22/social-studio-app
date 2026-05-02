@@ -115,7 +115,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
               <span style={{ fontSize: '1.1rem' }}>✨</span>
-              <span>{uploadStatus}</span>
+              <div>{uploadStatus}</div>
             </div>
             <Link 
               href="/history" 

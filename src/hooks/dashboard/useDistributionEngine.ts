@@ -7,7 +7,7 @@ export type PlatformStatus = 'pending' | 'uploading' | 'processing' | 'success' 
 
 export function useDistributionEngine(accounts: Account[]) {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | React.ReactNode | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<Record<string, PlatformStatus>>({});
   const [platformErrors, setPlatformErrors] = useState<Record<string, string>>({});
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
