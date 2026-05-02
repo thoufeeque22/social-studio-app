@@ -16,6 +16,7 @@ model User {
   accounts      Account[]
   platformPreferences PlatformPreference[]
   postHistories PostHistory[]
+  galleryAssets GalleryAsset[]
   preferredVideoFormat String @default("short")
   preferredAIStyle    String @default("Manual")
 
@@ -128,4 +129,19 @@ model LaunchTask {
   updatedAt   DateTime @updatedAt
 
   @@index([category, status])
+}
+
+model GalleryAsset {
+  id           String   @id @default(cuid())
+  userId       String
+  fileId       String   @unique // The UUID-based stagedFileId
+  fileName     String
+  fileSize     BigInt?
+  mimeType     String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

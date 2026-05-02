@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { Film } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
 import { AITierSelector } from './AITierSelector';
 import { VideoFileDisplay } from './VideoFileDisplay';
 import { SchedulingSelector } from './SchedulingSelector';
+import { MediaPicker } from './MediaPicker';
 import { useUploadForm } from '@/hooks/dashboard/useUploadForm';
 
 import { StyleMode, AITier } from '@/lib/core/constants';
@@ -32,6 +34,7 @@ interface UploadFormProps {
   onAbort: (id: string) => void;
   onAbortAll: () => void;
   onFileChange: (file: File) => void;
+  onGallerySelect: (fileId: string, fileName: string) => void;
   onSubmit: (formData: FormData) => Promise<void>;
   isScheduled: boolean;
   scheduledAt: string;
@@ -81,6 +84,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     handleUndoDesc
   } = useUploadForm();
 
+  const [showGallery, setShowGallery] = useState(false);
   const isComplete = uploadStatus?.includes('Distribution Complete');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -139,7 +143,31 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
+            {!isUploading && (
+              <button 
+                type="button"
+                onClick={() => setShowGallery(true)}
+                style={{ 
+                  background: 'hsla(var(--primary) / 0.1)', 
+                  border: '1px solid hsla(var(--primary) / 0.3)',
+                  color: 'hsl(var(--primary))',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Film size={12} />
+                Browse Gallery
+              </button>
+            )}
+          </div>
           <VideoFileDisplay fileName={draftFileName} format={videoFormat} duration={videoDuration} />
           <input 
             id="file-upload"
@@ -160,6 +188,16 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             }} 
           />
         </div>
+
+        {showGallery && (
+          <MediaPicker 
+            onClose={() => setShowGallery(false)}
+            onSelect={(asset) => {
+              onGallerySelect(asset.fileId, asset.fileName);
+              setShowGallery(false);
+            }}
+          />
+        )}
 
         <AITierSelector selectedTier={aiTier} onChange={onTierChange} />
 

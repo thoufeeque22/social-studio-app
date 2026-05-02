@@ -113,3 +113,40 @@ export async function GET(
     return new NextResponse("File not found or inaccessible", { status: 404 });
   }
 }
+
+/**
+ * SECURE DELETE: Remove asset from gallery and disk
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ fileId: string }> }
+) {
+  const { fileId } = await params;
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    // 1. Delete from DB first (ownership check included)
+    await prisma.galleryAsset.delete({
+      where: { 
+        fileId: fileId,
+        userId: session.user.id
+      }
+    });
+
+    // 2. Physically delete from disk
+    const filePath = path.join(process.cwd(), "src/tmp", fileId);
+    if (fsSync.existsSync(filePath)) {
+      await fs.unlink(filePath);
+      console.log(`🗑️ [GALLERY] Deleted physical file: ${fileId}`);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Delete Error:", error);
+    return NextResponse.json({ error: "Failed to delete asset or not authorized" }, { status: 500 });
+  }
+}

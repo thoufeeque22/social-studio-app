@@ -45,23 +45,27 @@ export async function handlePlatformUploadRequest({
     const contentType = req.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       const body = await req.json();
-      if (body.stagedFileId) {
-        // Security check: ensure the file is strictly within src/tmp
-        const safeFileId = path.basename(body.stagedFileId);
-        filePath = path.join(process.cwd(), "src/tmp", safeFileId);
-        fields = body;
-        fileName = body.fileName;
+      if (!body.stagedFileId) {
+        console.log("❌ [PLATFORM] JSON request missing stagedFileId");
+        return NextResponse.json({ error: "JSON request missing stagedFileId" }, { status: 400 });
       }
-    }
-
-    if (!filePath) {
+      // Security check: ensure the file is strictly within src/tmp
+      const safeFileId = path.basename(body.stagedFileId);
+      filePath = path.join(process.cwd(), "src/tmp", safeFileId);
+      fields = body;
+      fileName = body.fileName;
+    } else if (contentType.includes("multipart/form-data")) {
       const parsed = await streamMultipartFormData(req);
       filePath = parsed.filePath;
       fields = parsed.fields;
       fileName = parsed.fileName;
+    } else {
+      console.log(`❌ [PLATFORM] Unsupported Content-Type: ${contentType}`);
+      return NextResponse.json({ error: `Unsupported Content-Type: ${contentType}` }, { status: 400 });
     }
 
     if (!filePath || !fsSync.existsSync(filePath)) {
+      console.log(`❌ [PLATFORM] File not found or path invalid. Path: "${filePath}". Exists: ${filePath ? fsSync.existsSync(filePath) : 'false'}`);
       return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
     }
 

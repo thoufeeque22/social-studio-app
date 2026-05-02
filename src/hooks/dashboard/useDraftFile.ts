@@ -51,16 +51,19 @@ export function useDraftFile(userId?: string) {
     });
   };
 
-  const handleFileChange = async (file: File) => {
+  const handleFileChange = async (file: File | null) => {
     draftFileRef.current = file;
-    setDraftFileName(file.name);
-    await storeDraftFile(file);
+    setDraftFileName(file?.name || null);
     
-    const { format, duration } = await detectVideoMetadata(file);
-    setVideoFormat(format);
-    setVideoDuration(duration);
-    
-    updateVideoFormatPreference(format).catch(err => console.error(err));
+    if (file) {
+      await storeDraftFile(file);
+      const { format, duration } = await detectVideoMetadata(file);
+      setVideoFormat(format);
+      setVideoDuration(duration);
+      updateVideoFormatPreference(format).catch(err => console.error(err));
+    } else {
+      setVideoDuration(null);
+    }
   };
 
   return {

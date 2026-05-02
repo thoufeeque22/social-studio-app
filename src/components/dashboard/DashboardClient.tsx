@@ -44,6 +44,7 @@ export default function DashboardClient({
 }: Readonly<DashboardClientProps>) {
   const searchParams = useSearchParams();
   const resumeHistoryId = searchParams.get('resume');
+  const stagedFileIdParam = searchParams.get('staged');
 
   // 1. MODULAR LOGIC: Hooks handle the heavy lifting
   const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
@@ -85,6 +86,8 @@ export default function DashboardClient({
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [reviewContext, setReviewContext] = useState<ReviewContext | null>(null);
+  const [galleryFileId, setGalleryFileId] = useState<string | null>(null);
+  const [galleryFileName, setGalleryFileName] = useState<string | null>(null);
 
   // 3. EFFECT: Resumption Logic
   useEffect(() => {
@@ -122,9 +125,25 @@ export default function DashboardClient({
     }
   }, [resumeHistoryId, accounts, setSelectedAccountIds, setUploadStatus, setVideoFormat]);
 
+  useEffect(() => {
+    if (stagedFileIdParam) {
+      fetch(`/api/media`)
+        .then(res => res.json())
+        .then(data => {
+           const asset = data.data?.find((a: any) => a.fileId === stagedFileIdParam);
+           if (asset) {
+             setGalleryFileId(asset.fileId);
+             setGalleryFileName(asset.fileName);
+             setUploadStatus(`✅ Ready to post: ${asset.fileName}`);
+           }
+        })
+        .catch(err => console.error("Failed to load staged asset", err));
+    }
+  }, [stagedFileIdParam, setUploadStatus]);
+
   // 4. HANDLERS: Orchestrating the flows
   const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
-    if (!draftFileRef.current) {
+    if (!draftFileRef.current && !galleryFileId) {
       setUploadStatus("⚠️ Please select a video file first.");
       return;
     }
@@ -136,20 +155,29 @@ export default function DashboardClient({
         accountId: id.split(':')[1] || id
       }));
 
-      // A. Stage the file
-      const { stagedFileId, fileName, historyId } = await stageVideoFile({
-        file: draftFileRef.current,
-        onStatusUpdate: setUploadStatus,
-        metadata: {
-          title: formData.get('title') as string,
-          description: formData.get('description') as string,
-          videoFormat,
-          scheduledAt: isScheduled ? scheduledAt : undefined,
-          isPublished: !isScheduled
-        },
-        platforms: mappedPlatforms,
-        resumeHistoryId: resumeHistoryId || undefined
-      });
+      // A. Stage the file (Skip if already staged via gallery)
+      let stagedFileId = galleryFileId;
+      let fileName = galleryFileName || '';
+      let historyId = resumeHistoryId || '';
+
+      if (!stagedFileId && draftFileRef.current) {
+        const stageResult = await stageVideoFile({
+          file: draftFileRef.current,
+          onStatusUpdate: setUploadStatus,
+          metadata: {
+            title: formData.get('title') as string,
+            description: formData.get('description') as string,
+            videoFormat,
+            scheduledAt: isScheduled ? scheduledAt : undefined,
+            isPublished: !isScheduled
+          },
+          platforms: mappedPlatforms,
+          resumeHistoryId: resumeHistoryId || undefined
+        });
+        stagedFileId = stageResult.stagedFileId;
+        fileName = stageResult.fileName;
+        historyId = stageResult.historyId;
+      }
 
       // B. AI Review Flow Logic
       if (aiTier !== 'Manual' && formData.get('skipReview') !== 'true') {
@@ -183,7 +211,9 @@ export default function DashboardClient({
         setUploadStatus('Distribution Complete: All successful! ✨');
         localStorage.removeItem('SS_DRAFT_TITLE');
         localStorage.removeItem('SS_DRAFT_DESC');
-        handleFileChange(null as unknown as File); 
+        handleFileChange(null); 
+        setGalleryFileId(null);
+        setGalleryFileName(null);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -204,7 +234,9 @@ export default function DashboardClient({
 
     if (distribution?.platformResults.every(r => r.status === 'success')) {
       setUploadStatus('Distribution Complete: All successful! ✨');
-      handleFileChange(null as any);
+      handleFileChange(null);
+      setGalleryFileId(null);
+      setGalleryFileName(null);
     }
   };
 
@@ -218,6 +250,13 @@ export default function DashboardClient({
       setAiPreviews(previews);
       setIsReviewing(true);
     } catch (err) { console.error(err); } 
+  };
+
+  const handleGallerySelect = (fileId: string, fileName: string) => {
+    setGalleryFileId(fileId);
+    setGalleryFileName(fileName);
+    handleFileChange(null); // Clear local file if picking from gallery
+    setUploadStatus(`✅ Selected: ${fileName}`);
   };
 
   return (
@@ -248,7 +287,7 @@ export default function DashboardClient({
               aiTier={aiTier}
               videoFormat={videoFormat}
               videoDuration={videoDuration}
-              draftFileName={draftFileName}
+              draftFileName={galleryFileName || draftFileName}
               onVisualScan={handleVisualScan}
               onTierChange={setAiTier}
               onModeChange={setContentMode}
@@ -256,7 +295,12 @@ export default function DashboardClient({
               onToggleAccount={handleToggleAccount}
               onAbort={handleAbortPlatform}
               onAbortAll={handleAbortAll}
-              onFileChange={handleFileChange}
+              onFileChange={(file) => {
+                setGalleryFileId(null);
+                setGalleryFileName(null);
+                handleFileChange(file);
+              }}
+              onGallerySelect={handleGallerySelect}
               onSubmit={handleMainAction}
               isScheduled={isScheduled}
               scheduledAt={scheduledAt}

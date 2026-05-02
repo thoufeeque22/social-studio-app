@@ -112,6 +112,8 @@ export async function stageVideoFile({
     body: JSON.stringify({
       uploadId,
       fileName: file.name,
+      totalChunks,
+      totalSize: file.size,
       ...metadata,
       historyId: resumeHistoryId
     }),
@@ -122,9 +124,9 @@ export async function stageVideoFile({
   if (!assembleResponse.ok) throw new Error(stageResult.error || "Assembly failed");
 
   return { 
-    stagedFileId: stageResult.stagedFileId, 
+    stagedFileId: stageResult.data.fileId, 
     fileName: file.name,
-    historyId: stageResult.historyId 
+    historyId: stageResult.data.historyId 
   };
 }
 

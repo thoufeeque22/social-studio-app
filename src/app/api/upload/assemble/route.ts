@@ -19,16 +19,17 @@ export async function POST(req: NextRequest) {
   }
 
   // --- AUTO-SCRUB SAFETY TASK ---
-  // Periodically clean up src/tmp for files older than 24 hours
+  // Periodically clean up src/tmp for untracked files older than 48 hours
   try {
     const tempDir = path.join(process.cwd(), "src/tmp");
     if (fsSync.existsSync(tempDir)) {
       const files = await fs.readdir(tempDir);
       const now = Date.now();
       for (const file of files) {
+        if (file === 'chunks') continue;
         const filePath = path.join(tempDir, file);
         const stats = await fs.stat(filePath);
-        if (stats.isFile() && (now - stats.mtimeMs > 24 * 60 * 60 * 1000)) {
+        if (stats.isFile() && (now - stats.mtimeMs > 7 * 24 * 60 * 60 * 1000)) {
           await fs.unlink(filePath);
           console.log(`🧹 [AUTO-SCRUB] Purged old temp file: ${file}`);
         }
@@ -129,6 +130,46 @@ export async function POST(req: NextRequest) {
     await fs.rmdir(chunkDir);
 
     console.log(`✅ [ASSEMBLE] Success: ${fileId}`);
+
+    // REGISTER OR UPDATE IN GALLERY (LEAN GALLERY #388) - DEDUPLICATION LOGIC
+    try {
+      const stats = await fs.stat(finalPath);
+      const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      // Check for existing asset with same name and size for this user
+      const existingAsset = await prisma.galleryAsset.findFirst({
+        where: {
+          userId: session.user.id,
+          fileName: fileName,
+          fileSize: BigInt(stats.size)
+        }
+      });
+
+      if (existingAsset) {
+        console.log(`🔄 [GALLERY] Updating existing asset to prevent duplicate: ${fileName}`);
+        await prisma.galleryAsset.update({
+          where: { id: existingAsset.id },
+          data: {
+            fileId: fileId, // Point to the newest version
+            expiresAt: sevenDaysFromNow,
+            createdAt: new Date() // Reset creation date for sorting
+          }
+        });
+      } else {
+        await prisma.galleryAsset.create({
+          data: {
+            userId: session.user.id,
+            fileId: fileId,
+            fileName: fileName,
+          fileSize: BigInt(stats.size),
+            mimeType: "video/mp4", // Default
+            expiresAt: sevenDaysFromNow
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ [ASSEMBLE] Gallery registration failed (non-critical):", e);
+    }
 
     // UPSERT POST HISTORY RECORD (RELIABILITY FIX V4)
     let history;

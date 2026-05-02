@@ -1,7 +1,51 @@
 import { prisma } from "@/lib/core/prisma";
 import * as Sentry from "@sentry/nextjs";
 import path from "path";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, promises as fs } from "fs";
+
+/**
+ * PURGE EXPIRED ASSETS
+ * Cleans up both DB records and physical files for staged assets older than 7 days.
+ */
+async function purgeExpiredAssets() {
+  try {
+    const now = new Date();
+    const expired = await prisma.galleryAsset.findMany({
+      where: {
+        expiresAt: {
+          lte: now
+        }
+      }
+    });
+
+    if (expired.length > 0) {
+      console.log(`🧹 [WORKER] Found ${expired.length} expired gallery assets to purge.`);
+      
+      for (const asset of expired) {
+        try {
+          const filePath = path.join(process.cwd(), "src/tmp", asset.fileId);
+          if (existsSync(filePath)) {
+            await fs.unlink(filePath);
+            console.log(`🗑️ [WORKER] Deleted physical file: ${asset.fileId}`);
+          }
+          
+          const metadataPath = path.join(process.cwd(), "src/tmp", `${asset.fileId}.metadata.json`);
+          if (existsSync(metadataPath)) {
+            await fs.unlink(metadataPath);
+          }
+
+          await prisma.galleryAsset.delete({
+            where: { id: asset.id }
+          });
+        } catch (err: any) {
+          console.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("🧹 [WORKER] Asset purge failed:", err);
+  }
+}
 
 /**
  * A simple polling worker that checks for scheduled posts and publishes them.
@@ -14,6 +58,9 @@ export async function startPublishingWorker() {
     console.log("♻️ [WORKER] Restarting worker with new logic...");
     if ((global as any)._ss_worker_interval) {
         clearInterval((global as any)._ss_worker_interval);
+    }
+    if ((global as any)._ss_cleanup_interval) {
+        clearInterval((global as any)._ss_cleanup_interval);
     }
   }
   
@@ -121,5 +168,18 @@ export async function startPublishingWorker() {
     }
   }, 10000); // Check every 10 seconds
 
+  // Asset Cleanup Interval (Every 1 hour)
+  const cleanupInterval = setInterval(async () => {
+    if ((global as any)._ss_worker_version !== currentVersion) {
+      clearInterval(cleanupInterval);
+      return;
+    }
+    await purgeExpiredAssets();
+  }, 60 * 60 * 1000);
+
+  // Run cleanup immediately on start
+  purgeExpiredAssets();
+
   (global as any)._ss_worker_interval = interval;
+  (global as any)._ss_cleanup_interval = cleanupInterval;
 }
