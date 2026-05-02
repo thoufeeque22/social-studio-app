@@ -16,6 +16,22 @@ vi.mock('lucide-react', () => ({
   Check: () => <div data-testid="check-icon" />,
   X: () => <div data-testid="x-icon" />,
   AlertCircle: () => <div data-testid="alert-icon" />,
+  Film: () => <div data-testid="film-icon" />,
+  Sparkles: () => <div data-testid="sparkles-icon" />,
+  Wand2: () => <div data-testid="wand-icon" />,
+  Layout: () => <div data-testid="layout-icon" />,
+  Calendar: () => <div data-testid="calendar-icon" />,
+  Plus: () => <div data-testid="plus-icon" />,
+  Trash2: () => <div data-testid="trash-icon" />,
+  History: () => <div data-testid="history-icon" />,
+  ArrowRight: () => <div data-testid="arrow-right-icon" />,
+  Settings: () => <div data-testid="settings-icon" />,
+  LogOut: () => <div data-testid="logout-icon" />,
+  User: () => <div data-testid="user-icon" />,
+  MoreHorizontal: () => <div data-testid="more-icon" />,
+  ChevronRight: () => <div data-testid="chevron-right-icon" />,
+  Globe: () => <div data-testid="globe-icon" />,
+  Shield: () => <div data-testid="shield-icon" />,
 }));
 
 describe('Project Management & UI Humanization', () => {
