@@ -293,7 +293,7 @@ export default function HistoryPage() {
           {isRetrying ? '⏳' : isUploading ? '📤' : (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : isCancelled ? '⏹️' : meta.icon}
         </span>
         <span className={styles.pillLabel}>
-          {isPostStale ? `${meta.label} (Stalled)` : isCancelled ? `${meta.label} (Stopped)` : meta.label}
+          {isPostStale ? `${meta.label} (Stalled)` : isCancelled ? `${meta.label} (Stopped)` : (isPending && !isPostStale) ? `${meta.label} (In Queue)` : meta.label}
         </span>
         
         {/* ACTION BUTTONS */}
@@ -348,13 +348,21 @@ export default function HistoryPage() {
       );
     }
 
+    const getTooltip = () => {
+      if (isFailed) return p.errorMessage || 'Upload failed';
+      if (isRetrying) return 'Retrying upload...';
+      if (isPending && !isPostStale) return 'Waiting for background worker to pick up this task...';
+      if (isPostStale) return 'Upload seems stalled. You might need to manually resume.';
+      return `Status: ${p.status}${p.progress > 0 ? ` (${p.progress}%)` : ''}`;
+    };
+
     return (
       <span
         key={p.id}
         className={pillClasses}
         style={progressStyle}
         data-error={isFailed ? p.errorMessage || 'Upload failed' : undefined}
-        title={isFailed ? (p.errorMessage || 'Upload failed') : isRetrying ? 'Retrying upload...' : `Status: ${p.status}${p.progress > 0 ? ` (${p.progress}%)` : ''}`}
+        title={getTooltip()}
       >
         {content}
       </span>
