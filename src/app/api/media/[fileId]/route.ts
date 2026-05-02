@@ -129,24 +129,39 @@ export async function DELETE(
   }
 
   try {
-    // 1. Delete from DB first (ownership check included)
-    await prisma.galleryAsset.delete({
+    console.log(`🗑️ [GALLERY] Starting deletion for ${fileId}...`);
+
+    // 1. Delete from DB (ownership check included)
+    const dbDelete = await prisma.galleryAsset.delete({
       where: { 
         fileId: fileId,
         userId: session.user.id
       }
+    }).catch(e => {
+       console.warn(`⚠️ [GALLERY] DB record already gone or inaccessible for ${fileId}`);
+       return null;
     });
 
     // 2. Physically delete from disk
-    const filePath = path.join(process.cwd(), "src/tmp", fileId);
+    const tempDir = path.join(process.cwd(), "src/tmp");
+    const filePath = path.join(tempDir, fileId);
+    
+    let diskDeleted = false;
     if (fsSync.existsSync(filePath)) {
       await fs.unlink(filePath);
+      diskDeleted = true;
       console.log(`🗑️ [GALLERY] Deleted physical file: ${fileId}`);
+    } else {
+      console.log(`ℹ️ [GALLERY] Physical file already missing from disk: ${fileId}`);
     }
 
-    return NextResponse.json({ success: true });
+    if (!dbDelete && !diskDeleted) {
+       return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, dbDeleted: !!dbDelete, diskDeleted });
   } catch (error: any) {
-    console.error("Delete Error:", error);
-    return NextResponse.json({ error: "Failed to delete asset or not authorized" }, { status: 500 });
+    console.error("❌ [GALLERY] Deletion Failed:", error);
+    return NextResponse.json({ error: "Failed to delete asset" }, { status: 500 });
   }
 }

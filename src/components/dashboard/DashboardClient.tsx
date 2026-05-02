@@ -158,22 +158,29 @@ export default function DashboardClient({
       setIsUploading(true);
       setUploadStatus("⚙️ Preparing video...");
 
-      const targetPlatforms = (targetAccountIds || selectedAccountIds).map(id => {
-        const isSplit = id.includes(':');
-        const platformKey = isSplit ? id.split(':')[0] : null;
-        const actualAccountId = isSplit ? id.split(':')[1] : id;
-        
-        const account = accounts.find(a => a.id === actualAccountId);
-        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
-        
-        // If it's a split ID (FB/IG), the first part IS the provider
-        if (isSplit && platformKey) provider = platformKey;
-        
-        return {
-          platform: provider,
-          accountId: actualAccountId
-        };
-      });
+      const targetPlatforms = (targetAccountIds || selectedAccountIds)
+        .map(id => {
+          const isSplit = id.includes(':');
+          const platformKey = isSplit ? id.split(':')[0] : null;
+          const actualAccountId = isSplit ? id.split(':')[1] : id;
+          
+          const account = accounts.find(a => a.id === actualAccountId);
+          let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
+          
+          if (isSplit && platformKey) provider = platformKey;
+          
+          return {
+            platform: provider,
+            accountId: actualAccountId
+          };
+        })
+        .filter(p => p.platform !== 'unknown'); // 🛡️ FILTER GHOSTS
+
+      if (targetPlatforms.length === 0) {
+        setUploadStatus("⚠️ No valid platforms selected.");
+        setIsUploading(false);
+        return;
+      }
 
       if (!stagedFileId && draftFileRef.current) {
         const stageResult = await stageVideoFile({
