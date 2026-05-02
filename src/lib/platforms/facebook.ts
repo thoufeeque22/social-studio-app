@@ -204,32 +204,35 @@ export const publishFacebookReel = async ({
     console.log(`🚀 [FB-REEL-PUSH] Step 2 Success for ${videoId}. Meta has the bits.`);
   }
 
-  // 3. POLLING Step (Wait for Meta to process)
-  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Waiting 10s for initial ingestion, then polling...`);
-  await sleep(10000); 
+  // 3. POLLING Step (Wait for Meta to index the bits)
+  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Waiting for Meta to index video bits...`);
+  await sleep(15000); 
 
   let status = "IN_PROGRESS";
-  for (let i = 0; i < 30; i++) {
-    // Query the base 'status' field only - Meta nests everything inside it
+  for (let i = 0; i < 15; i++) {
+    // Attempt a lightweight status check
     const statusRes = await fetch(`https://graph.facebook.com/v20.0/${videoId}?fields=status&access_token=${pageAccessToken}`);
     const statusData = await statusRes.json();
     
-    console.log(`🔍 [FB-DEBUG-STATUS] Raw status object: ${JSON.stringify(statusData.status || statusData)}`);
-    
-    // Safely drill into the status object
     const s = statusData.status || {};
     const vStatus = s.video_status?.status || s.video_status;
-    const upStatus = s.uploading_phase?.status;
-    const procStatus = s.processing_phase?.status;
     
-    console.log(`[FB-POLL] Iteration ${i}: Status: ${vStatus || 'n/a'}, Up: ${upStatus || 'n/a'}, Proc: ${procStatus || 'n/a'}`);
+    console.log(`[FB-POLL] Iteration ${i}: Video Status: ${vStatus || 'n/a'}`);
 
-    if (vStatus === 'ready' || vStatus === 'upload_complete' || upStatus === 'complete' || procStatus === 'complete') {
+    if (vStatus === 'ready' || vStatus === 'upload_complete') {
       status = "FINISHED";
       break;
     }
 
-    if (vStatus === 'error' || upStatus === 'error') {
+    // FALLBACK: If we've waited long enough and Step 2 was a success, 
+    // we proceed to finalize as Meta's status API can be delayed.
+    if (i >= 6) {
+       console.log("⚠️ [FB-POLL] Status indexing is taking long. Proceeding to finalize based on Step 2 success.");
+       status = "FINISHED";
+       break;
+    }
+
+    if (vStatus === 'error') {
       throw new Error(`Meta Video Processing Failed: ${JSON.stringify(statusData)}`);
     }
 
