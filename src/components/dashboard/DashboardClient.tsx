@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -66,14 +66,14 @@ export default function DashboardClient({
 
   const {
     isUploading,
+    setIsUploading,
     uploadStatus,
     setUploadStatus,
     platformStatuses,
     platformErrors,
     successfulAccountIds,
     handleAbortPlatform,
-    handleAbortAll,
-    executeDistribution
+    handleAbortAll
   } = useDistributionEngine(accounts);
 
   // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
@@ -150,17 +150,33 @@ export default function DashboardClient({
       return;
     }
 
-    try {
-      setUploadStatus("⚙️ Preparing video...");
-      const mappedPlatforms = (targetAccountIds || selectedAccountIds).map(id => ({
-        platform: id.split(':')[0],
-        accountId: id.split(':')[1] || id
-      }));
+    let stagedFileId = galleryFileId;
+    let fileName = galleryFileName || '';
+    let historyId = resumeHistoryId || '';
 
-      // A. Stage the file (Skip if already staged via gallery)
-      let stagedFileId = galleryFileId;
-      let fileName = galleryFileName || '';
-      let historyId = resumeHistoryId || '';
+    try {
+      setIsUploading(true);
+      setUploadStatus("⚙️ Preparing video...");
+
+      const mappedPlatforms = (targetAccountIds || selectedAccountIds).map(id => {
+        const isSplit = id.includes(':');
+        const platformKey = isSplit ? id.split(':')[0] : null;
+        const actualAccountId = isSplit ? id.split(':')[1] : id;
+        
+        const account = accounts.find(a => a.id === actualAccountId);
+        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : (platformKey || 'unknown');
+        
+        if (provider === 'unknown' && platformKey) provider = platformKey;
+        
+        return {
+          platform: provider,
+          accountId: actualAccountId
+        };
+      });
+
+      const uniquePlatforms = mappedPlatforms.filter((p, index, self) =>
+        index === self.findIndex((t) => t.accountId === p.accountId)
+      );
 
       if (!stagedFileId && draftFileRef.current) {
         const stageResult = await stageVideoFile({
@@ -171,9 +187,9 @@ export default function DashboardClient({
             description: formData.get('description') as string,
             videoFormat,
             scheduledAt: isScheduled ? scheduledAt : undefined,
-            isPublished: !isScheduled
+            isPublished: false 
           },
-          platforms: mappedPlatforms,
+          platforms: uniquePlatforms,
           resumeHistoryId: resumeHistoryId || undefined
         });
         stagedFileId = stageResult.stagedFileId;
@@ -181,7 +197,6 @@ export default function DashboardClient({
         historyId = stageResult.historyId;
       }
 
-      // B. AI Review Flow Logic
       if (aiTier !== 'Manual' && formData.get('skipReview') !== 'true') {
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         setUploadStatus("🪄 Generating AI options...");
@@ -190,110 +205,57 @@ export default function DashboardClient({
           (formData.get('description') as string) || '', 
           aiTier, 
           contentMode, 
-          mappedPlatforms.map(p => p.platform),
-          undefined, // visualData
+          uniquePlatforms.map(p => p.platform),
+          undefined,
           customStyleText
         );
         setAiPreviews(previews);
-        setReviewContext({ stagedFileId, fileName, historyId, formData, targetAccountIds });
+        setReviewContext({ stagedFileId: stagedFileId!, fileName, historyId, formData, targetAccountIds });
         setIsReviewing(true);
+        setIsUploading(false); 
         return;
       }
 
-      // C. Direct Distribution
-      const distribution = await executeDistribution({
-        stagedFileId,
-        fileName,
-        historyId,
-        formData,
-        selectedAccountIds,
-        reviewedContent: aiPreviews,
-        targetAccountIds
-      });
+      setUploadStatus("✨ Upload received! Finalizing in Activity Hub...");
+      setIsComplete(true);
+      
+      localStorage.removeItem('SS_DRAFT_TITLE');
+      localStorage.removeItem('SS_DRAFT_DESC');
+      
+      setTimeout(() => {
+        window.location.href = '/history';
+      }, 1500);
 
-      if (distribution?.platformResults.every(r => r.status === 'success')) {
-        const finishedFileId = stagedFileId;
-        setUploadStatus('Distribution Complete: All successful! ✨');
-        setIsComplete(true);
-        
-        // Add a small delay then show the cleanup prompt
-        setTimeout(() => {
-          setUploadStatus(
-            <span style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span>Distribution Complete! ✨</span>
-              <button 
-                onClick={async () => {
-                  if (finishedFileId) {
-                    await fetch(`/api/media/${finishedFileId}`, { method: 'DELETE' });
-                    setUploadStatus('✅ Distributed & Purged from Gallery.');
-                  }
-                }}
-                style={{ 
-                  background: 'hsla(var(--primary) / 0.2)', border: '1px solid hsla(var(--primary) / 0.3)',
-                  color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.8rem',
-                  cursor: 'pointer', fontWeight: 600
-                }}
-              >
-                🗑️ Cleanup from Gallery
-              </button>
-            </span>
-          );
-        }, 1000);
-
-        localStorage.removeItem('SS_DRAFT_TITLE');
-        localStorage.removeItem('SS_DRAFT_DESC');
-        handleFileChange(null); 
-        setGalleryFileId(null);
-        setGalleryFileName(null);
-      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setUploadStatus(`❌ Error: ${message}`);
+      setIsUploading(false);
     }
   };
 
   const handleConfirmReview = async (updatedPreviews: Record<string, AIWriteResult>) => {
     if (!reviewContext) return;
     setIsReviewing(false);
-    setAiPreviews(updatedPreviews);
+    setIsUploading(true);
+    setUploadStatus("🪄 Applying AI magic...");
     
-    const distribution = await executeDistribution({
-      ...reviewContext!,
-      selectedAccountIds,
-      reviewedContent: updatedPreviews
-    });
-
-    if (distribution?.platformResults.every(r => r.status === 'success')) {
-      const finishedFileId = reviewContext?.stagedFileId;
-      setUploadStatus('Distribution Complete: All successful! ✨');
+    try {
+      const { updatePlatformResultsAction } = await import('@/app/actions/history');
+      await updatePlatformResultsAction(reviewContext.historyId, updatedPreviews);
+      
+      setUploadStatus("✨ AI Content saved! Finalizing in Activity Hub...");
       setIsComplete(true);
       
       setTimeout(() => {
-        setUploadStatus(
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span>Distribution Complete! ✨</span>
-            <button 
-              onClick={async () => {
-                if (finishedFileId) {
-                  await fetch(`/api/media/${finishedFileId}`, { method: 'DELETE' });
-                  setUploadStatus('✅ Distributed & Purged from Gallery.');
-                }
-              }}
-              style={{ 
-                background: 'hsla(var(--primary) / 0.2)', border: '1px solid hsla(var(--primary) / 0.3)',
-                color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.8rem',
-                cursor: 'pointer', fontWeight: 600
-              }}
-            >
-              🗑️ Cleanup from Gallery
-            </button>
-          </div>
-        );
-      }, 1000);
-
+        window.location.href = '/history';
+      }, 1500);
+      
       handleFileChange(null);
       setGalleryFileId(null);
       setGalleryFileName(null);
+    } catch (err: any) {
+      setUploadStatus(`❌ Error saving AI content: ${err.message}`);
+      setIsUploading(false);
     }
   };
 
@@ -312,7 +274,7 @@ export default function DashboardClient({
   const handleGallerySelect = (fileId: string, fileName: string) => {
     setGalleryFileId(fileId);
     setGalleryFileName(fileName);
-    handleFileChange(null); // Clear local file if picking from gallery
+    handleFileChange(null);
     setUploadStatus(`✅ Selected: ${fileName}`);
   };
 
@@ -407,14 +369,6 @@ export default function DashboardClient({
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
               whiteSpace: 'nowrap'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
             }}
           >
             ⏹️ STOP ALL

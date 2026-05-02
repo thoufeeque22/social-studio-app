@@ -32,9 +32,9 @@ export const publishTikTokVideo = async ({
 
   console.log(`Starting TikTok video upload for User ID: ${userId}`);
 
-  // 1. Read file to get binary buffer and size
-  const videoBuffer = await fs.readFile(videoPath);
-  const videoSize = videoBuffer.length;
+  // 1. Get file size via stat
+  const stats = await fs.stat(videoPath);
+  const videoSize = stats.size;
 
   const initUrl = "https://open.tiktokapis.com/v2/post/publish/video/init/";
   
@@ -79,6 +79,9 @@ export const publishTikTokVideo = async ({
   console.log(`TikTok publish initialized. Uploading ${videoSize} bytes to chunk server...`);
 
   // 3. Upload the binary data to the designated TikTok chunk server
+  const { createReadStream } = await import('fs');
+  const videoStream = createReadStream(videoPath);
+  
   const uploadResponse = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
@@ -86,7 +89,9 @@ export const publishTikTokVideo = async ({
       "Content-Length": videoSize.toString(),
       "Content-Range": `bytes 0-${videoSize - 1}/${videoSize}`,
     },
-    body: videoBuffer,
+    body: videoStream as any,
+    // @ts-ignore
+    duplex: 'half'
   });
 
   if (!uploadResponse.ok) {

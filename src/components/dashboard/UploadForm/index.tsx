@@ -153,6 +153,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
             {!isUploading && (
               <button 
+                id="browse-gallery-btn"
                 type="button"
                 onClick={() => setShowGallery(true)}
                 style={{ 

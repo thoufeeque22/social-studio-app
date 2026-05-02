@@ -91,18 +91,27 @@ export async function stageVideoFile({
     const end = Math.min(file.size, start + CHUNK_SIZE);
     const chunk = file.slice(start, end);
 
-    onStatusUpdate(`📤 Uploading chunk ${i + 1}/${totalChunks}...`);
-    const chunkResponse = await fetch(`/api/upload/chunk`, {
-      method: 'POST',
-      headers: {
-        'x-upload-id': uploadId,
-        'x-chunk-index': i.toString(),
-      },
-      body: chunk,
-      signal
-    });
-
-    if (!chunkResponse.ok) throw new Error("Chunk upload failed");
+    let success = false;
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        const chunkResponse = await fetch(`/api/upload/chunk`, {
+          method: 'POST',
+          headers: {
+            'x-upload-id': uploadId,
+            'x-chunk-index': i.toString(),
+          },
+          body: chunk,
+          signal
+        });
+        if (chunkResponse.ok) {
+          success = true;
+          break;
+        }
+      } catch (e) {
+        console.warn(`Chunk ${i} upload failed (attempt ${retry + 1})`, e);
+      }
+    }
+    if (!success) throw new Error(`Chunk ${i + 1}/${totalChunks} upload failed after 3 attempts.`);
   }
 
   onStatusUpdate("🔗 Assembling video...");
@@ -115,6 +124,7 @@ export async function stageVideoFile({
       totalChunks,
       totalSize: file.size,
       ...metadata,
+      platforms,
       historyId: resumeHistoryId
     }),
     signal
@@ -185,6 +195,7 @@ export async function distributeToPlatforms({
         videoFormat,
         accountId: realAccountId,
         contentMode,
+        historyId,
         reviewedContent: reviewedContent ? reviewedContent[platform] : undefined,
       };
 

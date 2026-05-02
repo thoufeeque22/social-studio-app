@@ -154,6 +154,7 @@ export function useDistributionEngine(accounts: Account[]) {
 
   return {
     isUploading,
+    setIsUploading,
     uploadStatus,
     setUploadStatus,
     platformStatuses,

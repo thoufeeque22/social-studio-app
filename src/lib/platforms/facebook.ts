@@ -80,10 +80,11 @@ export const publishFacebookVideo = async ({
   console.log(`🚀 [FB-PUSH] Initializing Feed Binary Push for: ${pageName}`);
 
   // 1. UPLOAD Phase (Binary Push)
-  const fileBuffer = await fs.readFile(filePath);
+  const fileStream = fsSync.createReadStream(filePath);
   const formData = new FormData();
   
-  formData.append("source", new Blob([fileBuffer]) as any, "video.mp4");
+  // Note: Standard Web fetch in Node 18+ supports streams in FormData
+  formData.append("source", fileStream as any, "video.mp4");
   formData.append("title", title);
   formData.append("description", description);
   formData.append("access_token", pageAccessToken);
@@ -149,7 +150,7 @@ export const publishFacebookReel = async ({
     console.log(`🚀 [FB-REEL-PUSH] Step 2: Pushing Binary Data for ${videoId}`);
 
     // 2. BINARY PUSH Step (to rupload)
-    const fileBuffer = await fs.readFile(filePath);
+    const fileStream = fsSync.createReadStream(filePath);
     const fileStats = await fs.stat(filePath);
 
     const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
@@ -160,7 +161,9 @@ export const publishFacebookReel = async ({
         "X-Entity-Length": fileStats.size.toString(),
         "X-Entity-Type": "video/mp4",
       },
-      body: fileBuffer,
+      body: fileStream as any,
+      // @ts-ignore - duplex is required for streaming bodies in some fetch implementations
+      duplex: 'half'
     });
 
     const uploadData = await uploadRes.json();
@@ -174,10 +177,10 @@ export const publishFacebookReel = async ({
 
   if (!videoId) throw new Error("Failed to acquire Video ID for polling");
 
-  // 3. POLLING Step (5 Minutes Max)
+  // 3. POLLING Step (20 Minutes Max for Large Files)
   console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Polling for ingestion...`);
   let videoReady = false;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 120; i++) {
     await sleep(10000); // Check every 10s
     const statusReport = await getFacebookVideoStatus(videoId, pageAccessToken);
     console.log(`[FB-POLL] ${statusReport}`);

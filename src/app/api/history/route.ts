@@ -15,14 +15,12 @@ export async function GET(req: NextRequest) {
   const cursor = searchParams.get('cursor');
   const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 50);
 
-  const published = searchParams.get('published') !== 'false';
   const posts = await prisma.postHistory.findMany({
     where: { 
-      userId: session.user.id,
-      isPublished: published 
+      userId: session.user.id
     },
     include: { platforms: true },
-    orderBy: published ? { scheduledAt: 'desc' } : { scheduledAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });

@@ -10,10 +10,10 @@
 export function extractPlatformPostId(platform: string, data: any): string | null {
   if (!data) return null;
   switch (platform) {
-    case 'youtube': return data.id || null;
+    case 'youtube': return data.id || data.data?.id || null;
     case 'facebook': return data.videoId || data.id || null;
     case 'instagram': return data.id || data.videoId || null;
-    case 'tiktok': return data.publish_id || null;
+    case 'tiktok': return data.publish_id || data.id || null;
     default: return null;
   }
 }
@@ -31,11 +31,19 @@ export function generatePermalink(platform: string, data: any): string | null {
     }
     case 'facebook': {
       const videoId = data.videoId || data.id;
-      return videoId ? `https://facebook.com/${videoId}` : null;
+      // Facebook Reels and Videos can often be accessed via /watch/?v=
+      return videoId ? `https://facebook.com/watch/?v=${videoId}` : null;
     }
     case 'instagram': {
-      const mediaId = data.id;
-      return mediaId ? `https://instagram.com/p/${mediaId}` : null;
+      const mediaId = data.id || data.videoId;
+      // Instagram Reels specific link pattern
+      return mediaId ? `https://www.instagram.com/reels/${mediaId}/` : null;
+    }
+    case 'tiktok': {
+      const publishId = data.publish_id || data.id;
+      // TikTok doesn't easily give a direct video URL from publish_id, 
+      // but we can link to the user's profile or a generic search
+      return publishId ? `https://www.tiktok.com/` : null;
     }
     default:
       return null;

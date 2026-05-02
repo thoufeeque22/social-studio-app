@@ -7,6 +7,7 @@ import {
   formatPlatformCaption
 } from '@/lib/core/distributor-utils';
 import { distributeSinglePlatform } from '@/lib/core/distributor-server';
+import { getOptimizedVideoPath } from '@/lib/video/transcode-manager';
 
 export interface ServerDistributeParams {
   stagedFileId: string;
@@ -40,9 +41,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       // 1. Fetch existing result to see if we have a resumable session
       const existingResult = await prisma.postPlatformResult.findUnique({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         }
       });
@@ -50,19 +52,28 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       let finalTitle = title;
       let finalDesc = description;
       
-      if (params.reviewedContent && params.reviewedContent[p.platform]) {
-        const custom = params.reviewedContent[p.platform];
-        finalTitle = custom.title || title;
-        const hashText = custom.hashtags && custom.hashtags.length > 0 ? `\n\n${custom.hashtags.join(' ')}` : '';
-        finalDesc = (custom.description || description) + hashText;
+      const customContent = (existingResult?.metadata as any)?.customContent || params.reviewedContent?.[p.platform];
+      
+      if (customContent) {
+        finalTitle = customContent.title || title;
+        const hashText = customContent.hashtags && customContent.hashtags.length > 0 ? `\n\n${customContent.hashtags.join(' ')}` : '';
+        finalDesc = (customContent.description || description) + hashText;
       }
 
       console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
       
+      // 2. Optimization check
+      let activeFilePath = filePath;
+      try {
+        activeFilePath = await getOptimizedVideoPath(stagedFileId, p.platform, historyId, p.accountId);
+      } catch (optErr) {
+        console.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`, optErr);
+      }
+
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
         userId,
-        filePath,
+        filePath: activeFilePath,
         title: finalTitle,
         description: finalDesc,
         videoFormat,
@@ -76,6 +87,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       const platformResult = {
         platform: p.platform,
+        accountId: p.accountId,
         accountName: p.accountName,
         platformPostId: extractPlatformPostId(p.platform, rawData),
         permalink: generatePermalink(p.platform, rawData),
@@ -87,9 +99,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       // In-lined database logic to avoid importing from Server Actions files
       await prisma.postPlatformResult.upsert({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         },
         update: { ...platformResult, postHistoryId: historyId },
@@ -103,6 +116,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       
       const errorPayload = {
         platform: p.platform,
+        accountId: p.accountId,
         status: 'failed' as const,
         errorMessage: err.message,
         resumableUrl: err.resumableUrl,

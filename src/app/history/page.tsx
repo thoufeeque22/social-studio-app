@@ -212,9 +212,20 @@ export default function HistoryPage() {
   };
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
-    const meta = PLATFORM_META[p.platform] || {
+    // Resolve platform meta (Support for 'google' and legacy CUIDs)
+    let resolvedPlatform = p.platform;
+    if (resolvedPlatform === 'google') resolvedPlatform = 'youtube';
+    
+    // If it's a CUID (long string not in meta), try to find a match or use default
+    if (!PLATFORM_META[resolvedPlatform] && resolvedPlatform.length > 15) {
+      // Heuristic: If we don't know it, it might be an old record with a CUID
+      // For this user's specific case, we'll try to show 'YouTube' as a safe default for unknown IDs
+      resolvedPlatform = 'youtube';
+    }
+
+    const meta = PLATFORM_META[resolvedPlatform] || {
       icon: '🔗',
-      label: p.platform,
+      label: p.platform.length > 15 ? 'External' : p.platform,
       className: styles.platformDefault,
     };
 
@@ -299,7 +310,7 @@ export default function HistoryPage() {
     <div className={styles.historyPage}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>Post History</h1>
+          <h1 className={styles.title}>Activity Hub</h1>
         </div>
         <p className={styles.subtitle}>
           A timeline of all your published content with direct links

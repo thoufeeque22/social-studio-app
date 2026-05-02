@@ -6,6 +6,7 @@ import fsSync from "node:fs";
 import path from "node:path";
 import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 import { formatPlatformCaption } from "./distributor-utils";
+import { getOptimizedVideoPath } from "@/lib/video/transcode-manager";
 
 interface PlatformHandlerParams {
   req: NextRequest;
@@ -69,13 +70,22 @@ export async function handlePlatformUploadRequest({
       return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
     }
 
-    // 2. Extract Data
     const rawTitle = fields.title || fileName || "Untitled Video";
     const rawDescription = fields.description || "";
     const videoFormat = fields.videoFormat || "short";
     const accountId = fields.accountId;
+    const historyId = fields.historyId;
 
-    // SECURITY: Verify account ownership before proceeding
+    // 2.5 OPTIMIZATION LAYER (FFMPEG)
+    let activeFilePath = filePath;
+    try {
+      const stagedFileId = fields.stagedFileId || path.basename(filePath);
+      activeFilePath = await getOptimizedVideoPath(stagedFileId, platform, historyId);
+    } catch (transError) {
+      console.warn(`⚠️ [${platform}] Optimization failed, falling back to original:`, transError);
+    }
+
+    // 3. SECURITY: Verify account ownership before proceeding
     if (accountId) {
       const account = await prisma.account.findFirst({
         where: { id: accountId, userId: session.user.id }
@@ -131,7 +141,7 @@ export async function handlePlatformUploadRequest({
     try {
       const result = await uploadLogic({
         userId: session.user.id,
-        filePath,
+        filePath: activeFilePath,
         title: enrichedContent.title,
         description: finalCaption,
         videoFormat,
