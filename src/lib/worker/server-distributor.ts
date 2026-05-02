@@ -38,7 +38,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
   for (const p of platforms) {
     try {
-      // 1. Fetch existing result to see if we have a resumable session
+      // 1. Fetch existing result to see if we have a resumable session or cancellation
       const existingResult = await prisma.postPlatformResult.findUnique({
         where: {
           postHistoryId_platform_accountId: {
@@ -48,6 +48,12 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           }
         }
       });
+
+      if (existingResult?.status === 'cancelled') {
+        console.log(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
+        results.push(existingResult as any);
+        continue;
+      }
 
       let finalTitle = title;
       let finalDesc = description;
@@ -82,6 +88,12 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           resumableUrl: existingResult?.resumableUrl,
           videoId: existingResult?.videoId,
           creationId: existingResult?.creationId
+        },
+        onProgress: async (percent) => {
+          await prisma.postPlatformResult.update({
+            where: { id: existingResult!.id },
+            data: { progress: Math.round(percent) }
+          });
         }
       });
 
@@ -127,9 +139,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       await prisma.postPlatformResult.upsert({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         },
         update: { 

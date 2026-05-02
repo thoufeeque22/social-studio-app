@@ -70,8 +70,13 @@ export const uploadToYouTube = async ({
   privacy = "private",
   musicId,
   accountId,
-  resumableUrl, // Optional URL to resume an existing session
-}: UploadParams & { accountId?: string; resumableUrl?: string }): Promise<YouTubeUploadResult> => {
+  resumableUrl,
+  onProgress,
+}: UploadParams & { 
+  accountId?: string; 
+  resumableUrl?: string;
+  onProgress?: (percent: number) => void;
+}): Promise<YouTubeUploadResult> => {
   const youtube = await getYouTubeClient(userId, accountId);
   const stats = await fs.promises.stat(filePath);
   const fileSize = stats.size;
@@ -155,22 +160,34 @@ export const uploadToYouTube = async ({
   // 3. Upload the remaining data
   console.log(`📺 [YT-UPLOAD] Uploading ${fileSize - startByte} bytes...`);
   
-  // Use a stream or buffer. For Node.js fetch, we can use a ReadStream starting at startByte
   const fileStream = fs.createReadStream(filePath, { start: startByte });
+  let bytesUploaded = startByte;
+
+  // Use a simple transform to track progress
+  const { Transform } = await import('stream');
+  const progressStream = new Transform({
+    transform(chunk, encoding, callback) {
+      bytesUploaded += chunk.length;
+      if (onProgress) {
+        onProgress((bytesUploaded / fileSize) * 100);
+      }
+      this.push(chunk);
+      callback();
+    }
+  });
   
   const uploadRes = await fetch(uploadUrl!, {
     method: "PUT",
     headers: {
       "Content-Range": `bytes ${startByte}-${fileSize - 1}/${fileSize}`,
     },
-    body: fileStream as any,
+    body: fileStream.pipe(progressStream) as any,
     // @ts-ignore
     duplex: 'half'
   });
 
   if (!uploadRes.ok && uploadRes.status !== 308) {
     const err = await uploadRes.text();
-    // Return the result with the session URL so it can be resumed later
     throw { message: `YT Upload Failed: ${err}`, resumableUrl: uploadUrl, status: "failed" };
   }
 

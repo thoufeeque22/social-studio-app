@@ -158,25 +158,22 @@ export default function DashboardClient({
       setIsUploading(true);
       setUploadStatus("⚙️ Preparing video...");
 
-      const mappedPlatforms = (targetAccountIds || selectedAccountIds).map(id => {
+      const targetPlatforms = (targetAccountIds || selectedAccountIds).map(id => {
         const isSplit = id.includes(':');
         const platformKey = isSplit ? id.split(':')[0] : null;
         const actualAccountId = isSplit ? id.split(':')[1] : id;
         
         const account = accounts.find(a => a.id === actualAccountId);
-        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : (platformKey || 'unknown');
+        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
         
-        if (provider === 'unknown' && platformKey) provider = platformKey;
+        // If it's a split ID (FB/IG), the first part IS the provider
+        if (isSplit && platformKey) provider = platformKey;
         
         return {
           platform: provider,
           accountId: actualAccountId
         };
       });
-
-      const uniquePlatforms = mappedPlatforms.filter((p, index, self) =>
-        index === self.findIndex((t) => t.accountId === p.accountId)
-      );
 
       if (!stagedFileId && draftFileRef.current) {
         const stageResult = await stageVideoFile({
@@ -189,7 +186,7 @@ export default function DashboardClient({
             scheduledAt: isScheduled ? scheduledAt : undefined,
             isPublished: false 
           },
-          platforms: uniquePlatforms,
+          platforms: targetPlatforms,
           resumeHistoryId: resumeHistoryId || undefined
         });
         stagedFileId = stageResult.stagedFileId;
@@ -205,7 +202,7 @@ export default function DashboardClient({
           (formData.get('description') as string) || '', 
           aiTier, 
           contentMode, 
-          uniquePlatforms.map(p => p.platform),
+          targetPlatforms.map(p => p.platform),
           undefined,
           customStyleText
         );

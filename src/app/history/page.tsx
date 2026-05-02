@@ -1,10 +1,12 @@
 'use client';
 
 /**
- * HISTORY PAGE
+ * HISTORY PAGE - Activity Hub
  * Displays a list of all past uploads and their platform links.
  * Supports:
  * - Single platform retries (Cloud retry)
+ * - Single platform cancellation
+ * - Stop All functionality
  * - In-place physical upload resumption (Chunk retry)
  */
 
@@ -23,6 +25,7 @@ interface PlatformResult {
   platformPostId: string | null;
   permalink: string | null;
   status: string;
+  progress: number;
   errorMessage: string | null;
   accountId: string | null;
 }
@@ -93,7 +96,7 @@ export default function HistoryPage() {
   }, [fetchHistory]);
 
   const hasActivePosts = posts.some(post => 
-    post.platforms.some(p => p.status === 'pending' || p.status === 'retrying')
+    post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status))
   );
 
   usePolling({
@@ -101,7 +104,7 @@ export default function HistoryPage() {
       const data = await fetchHistory();
       setPosts(data.data || []);
     },
-    interval: hasActivePosts ? 5000 : 60000,
+    interval: hasActivePosts ? 5000 : 15000, // Faster polling for Activity Hub
     isActive: posts.length > 0
   });
 
@@ -114,19 +117,18 @@ export default function HistoryPage() {
     setLoadingMore(false);
   };
 
-  const [retryingIds, setRetryingIds] = useState<string[]>([]);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
 
   const handleRetry = async (e: React.MouseEvent, p: PlatformResult) => {
     e.preventDefault();
     e.stopPropagation();
-    if (retryingIds.includes(p.id)) return;
+    if (processingIds.includes(p.id)) return;
 
-    setRetryingIds(prev => [...prev, p.id]);
+    setProcessingIds(prev => [...prev, p.id]);
     try {
       const { retryUploadAction } = await import('@/app/actions/history');
       const res = await retryUploadAction(p.id);
       if (res.success) {
-        // Refresh history to see updating status
         const data = await fetchHistory();
         setPosts(data.data || []);
       } else {
@@ -135,7 +137,39 @@ export default function HistoryPage() {
     } catch (err: any) {
       alert(`Retry error: ${err.message}`);
     } finally {
-      setRetryingIds(prev => prev.filter(id => id !== p.id));
+      setProcessingIds(prev => prev.filter(id => id !== p.id));
+    }
+  };
+
+  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (processingIds.includes(resultId)) return;
+
+    setProcessingIds(prev => [...prev, resultId]);
+    try {
+      const { cancelPlatformUploadAction } = await import('@/app/actions/history');
+      await cancelPlatformUploadAction(resultId);
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    } catch (err: any) {
+      console.error("Cancel error:", err);
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== resultId));
+    }
+  };
+
+  const handleCancelAll = async (e: React.MouseEvent, historyId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const { cancelAllUploadsAction } = await import('@/app/actions/history');
+      await cancelAllUploadsAction(historyId);
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    } catch (err: any) {
+      console.error("Cancel All error:", err);
     }
   };
 
@@ -212,37 +246,34 @@ export default function HistoryPage() {
   };
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
-    // Resolve platform meta (Support for 'google' and legacy CUIDs)
     let resolvedPlatform = p.platform;
     if (resolvedPlatform === 'google') resolvedPlatform = 'youtube';
     
-    // If it's a CUID (long string not in meta), try to find a match or use default
     if (!PLATFORM_META[resolvedPlatform] && resolvedPlatform.length > 15) {
-      // Heuristic: If we don't know it, it might be an old record with a CUID
-      // For this user's specific case, we'll try to show 'YouTube' as a safe default for unknown IDs
       resolvedPlatform = 'youtube';
     }
 
     const meta = PLATFORM_META[resolvedPlatform] || {
       icon: '🔗',
-      label: p.platform.length > 15 ? 'External' : p.platform,
+      label: p.platform === 'unknown' ? 'Platform' : (p.platform.length > 15 ? 'External' : p.platform),
       className: styles.platformDefault,
     };
 
     const isFailed = p.status === 'failed';
-    const isRetrying = p.status === 'retrying' || retryingIds.includes(p.id);
-    const isPending = p.status === 'pending';
+    const isCancelled = p.status === 'cancelled';
+    const isRetrying = p.status === 'retrying' || processingIds.includes(p.id);
+    const isPending = p.status === 'pending' || p.status === 'uploading' || p.status === 'processing';
     
-    // Stale check for the WHOLE POST: if pending and older than 20s (unlikely to still be active in same session)
     const postCreatedAt = new Date(post.createdAt).getTime();
-    const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+    const isPostStale = p.status === 'pending' && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
     
-    const hasLink = !isFailed && !isRetrying && !isPending && !isPostStale && p.permalink;
+    const hasLink = !isFailed && !isRetrying && !isPending && !isCancelled && !isPostStale && p.permalink;
 
     const pillClasses = [
       styles.platformPill,
       meta.className,
       isFailed ? styles.platformPillFailed : 
+      isCancelled ? styles.platformPillCancelled :
       isRetrying ? styles.platformPillRetrying : 
       (isPending && !isPostStale) ? styles.platformPillPending :
       isPostStale ? styles.platformPillStale :
@@ -250,23 +281,51 @@ export default function HistoryPage() {
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
+    const progressStyle = (isPending && !isPostStale && p.progress > 0) ? {
+      background: `linear-gradient(90deg, hsla(var(--primary) / 0.15) ${p.progress}%, transparent ${p.progress}%)`,
+    } : {};
+
     const content = (
       <>
         <span className={styles.pillIcon}>
-          {isRetrying || (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : meta.icon}
+          {isRetrying || (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : isCancelled ? '⏹️' : meta.icon}
         </span>
         <span className={styles.pillLabel}>
-          {isPostStale ? `${meta.label} (Incomplete)` : meta.label}
+          {isPostStale ? `${meta.label} (Stalled)` : isCancelled ? `${meta.label} (Stopped)` : meta.label}
         </span>
-        {isFailed && (
-          <button 
-            className={styles.retryButton} 
-            onClick={(e) => handleRetry(e, p)}
-            title="Retry Upload"
-          >
-            🔄
-          </button>
-        )}
+        
+        {/* ACTION BUTTONS */}
+        <div className={styles.pillActions}>
+          {isFailed && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleRetry(e, p)}
+              title="Retry Upload"
+            >
+              🔄
+            </button>
+          )}
+          {isPending && !isPostStale && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleCancelPlatform(e, p.id)}
+              title="Stop Platform Upload"
+              style={{ color: '#EF4444' }}
+            >
+              ⏹️
+            </button>
+          )}
+          {isCancelled && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleRetry(e, p)}
+              title="Resume Stopped Upload"
+            >
+              ▶️
+            </button>
+          )}
+        </div>
+
         {hasLink && <span className={styles.pillLink}>↗</span>}
       </>
     );
@@ -279,6 +338,7 @@ export default function HistoryPage() {
           target="_blank"
           rel="noopener noreferrer"
           className={pillClasses}
+          style={progressStyle}
           title={`View on ${meta.label}`}
         >
           {content}
@@ -290,8 +350,9 @@ export default function HistoryPage() {
       <span
         key={p.id}
         className={pillClasses}
+        style={progressStyle}
         data-error={isFailed ? p.errorMessage || 'Upload failed' : undefined}
-        title={isFailed ? (p.errorMessage || 'Upload failed') : isRetrying ? 'Retrying upload...' : `Posted to ${meta.label}`}
+        title={isFailed ? (p.errorMessage || 'Upload failed') : isRetrying ? 'Retrying upload...' : `Status: ${p.status}${p.progress > 0 ? ` (${p.progress}%)` : ''}`}
       >
         {content}
       </span>
@@ -301,7 +362,7 @@ export default function HistoryPage() {
   if (isLoading) {
     return (
       <div className={styles.historyPage}>
-        <div className={styles.loading}>Loading post history...</div>
+        <div className={styles.loading}>Loading Activity Hub...</div>
       </div>
     );
   }
@@ -313,9 +374,8 @@ export default function HistoryPage() {
           <h1 className={styles.title}>Activity Hub</h1>
         </div>
         <p className={styles.subtitle}>
-          A timeline of all your published content with direct links
+          Track and manage your video distribution in real-time.
         </p>
-        {/* Hidden file input for file selection during in-place resumption */}
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/*" />
       </div>
 
@@ -323,26 +383,25 @@ export default function HistoryPage() {
         <GlassCard>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>📜</div>
-            <h3 className={styles.emptyTitle}>No posts yet</h3>
+            <h3 className={styles.emptyTitle}>No activity yet</h3>
             <p className={styles.emptyDescription}>
-              When you publish content from the dashboard, it will appear here with direct links to each platform.
+              Upload a video from the dashboard to see its distribution status here.
             </p>
           </div>
         </GlassCard>
       ) : (
         <div className={styles.timeline}>
           {posts.map((post) => {
-            const successCount = post.platforms.filter(p => p.status === 'success').length;
-            const failedCount = post.platforms.filter(p => p.status === 'failed').length;
+            const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
 
             return (
-              <div key={post.id} className={`${styles.postCard} ${post.platforms.some(p => p.status === 'pending') ? styles.activePost : ''}`}>
+              <div key={post.id} className={`${styles.postCard} ${isActive ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
                 <GlassCard className={styles.cardInner}>
                   <div className={styles.cardHeader}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {post.platforms.some(p => p.status === 'pending') && <span className={styles.processingDot} />}
+                        {isActive && <span className={styles.processingDot} />}
                         {post.title}
                       </h3>
                       {post.description && (
@@ -356,10 +415,20 @@ export default function HistoryPage() {
                       <span className={styles.timestamp}>
                         {formatRelativeDate(post.createdAt)}
                       </span>
-                      {/* Post-level Resume Button if Stale */}
+                      
+                      {isActive && (
+                        <button 
+                          className={styles.stopAllButton}
+                          onClick={(e) => handleCancelAll(e, post.id)}
+                          title="Stop All active distributions for this post"
+                        >
+                          ⏹️ STOP ALL
+                        </button>
+                      )}
+
                       {(() => {
                         const postCreatedAt = new Date(post.createdAt).getTime();
-                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
                         if (isPostStale) {
                           return (
                             <button 
@@ -368,7 +437,7 @@ export default function HistoryPage() {
                               disabled={activeResumingId === post.id}
                               style={{ marginLeft: '1rem' }}
                             >
-                              {activeResumingId === post.id ? '⌛ Processing' : '🚀 Resume Upload'}
+                              {activeResumingId === post.id ? '⌛ Processing' : '🚀 Manual Resume'}
                             </button>
                           );
                         }

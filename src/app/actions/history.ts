@@ -9,13 +9,15 @@ import {
 import { distributeSinglePlatform } from '@/lib/core/distributor-server';
 import path from 'path';
 import fs from 'fs';
+import { AIWriteResult } from '@/lib/utils/ai-writer';
 
 export interface PlatformResultInput {
   platform: string;
+  accountId?: string;
   accountName?: string | null;
   platformPostId?: string | null;
   permalink?: string | null;
-  status: 'success' | 'failed' | 'retrying' | 'pending';
+  status: 'success' | 'failed' | 'retrying' | 'pending' | 'cancelled';
   errorMessage?: string | null;
   resumableUrl?: string | null;
   videoId?: string | null;
@@ -77,6 +79,7 @@ export async function savePostHistory(data: SavePostHistoryInput) {
         platforms: {
           create: data.platforms.map((p) => ({
             platform: p.platform,
+            accountId: p.accountId,
             accountName: p.accountName || null,
             platformPostId: p.platformPostId || null,
             permalink: p.permalink || null,
@@ -100,7 +103,6 @@ export async function savePostHistory(data: SavePostHistoryInput) {
 
 /**
  * Retries a failed upload attempt for a specific platform.
- * NOW USES CENTRALIZED DISTRIBUTION LOGIC.
  */
 export async function retryUploadAction(resultId: string) {
   return protectedAction(async (userId) => {
@@ -177,6 +179,59 @@ export async function retryUploadAction(resultId: string) {
       });
       return { success: false, error: err.message };
     }
+  });
+}
+
+/**
+ * Cancels a platform distribution task.
+ */
+export async function cancelPlatformUploadAction(resultId: string) {
+  return protectedAction(async (userId) => {
+    const result = await prisma.postPlatformResult.findUnique({
+      where: { id: resultId },
+      include: { postHistory: true }
+    });
+
+    if (!result || result.postHistory.userId !== userId) {
+      throw new Error('Upload result not found.');
+    }
+
+    await prisma.postPlatformResult.update({
+      where: { id: resultId },
+      data: { 
+        status: 'cancelled',
+        errorMessage: 'Stopped by user'
+      }
+    });
+
+    return { success: true };
+  });
+}
+
+/**
+ * Cancels all platform distribution tasks for a specific post.
+ */
+export async function cancelAllUploadsAction(historyId: string) {
+  return protectedAction(async (userId) => {
+    const history = await prisma.postHistory.findUnique({
+      where: { id: historyId, userId },
+      include: { platforms: true }
+    });
+
+    if (!history) throw new Error('Post history not found.');
+
+    await prisma.postPlatformResult.updateMany({
+      where: { 
+        postHistoryId: historyId,
+        status: { in: ['pending', 'uploading', 'processing', 'retrying'] }
+      },
+      data: { 
+        status: 'cancelled',
+        errorMessage: 'Stopped by user'
+      }
+    });
+
+    return { success: true };
   });
 }
 
@@ -270,8 +325,6 @@ export async function deleteScheduledPost(id: string) {
     return deleted;
   });
 }
-
-import { AIWriteResult } from '@/lib/utils/ai-writer';
 
 /**
  * Saves AI-reviewed platform metadata for scheduled/pending posts.

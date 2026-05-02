@@ -19,8 +19,6 @@ interface UploadFormProps {
   accounts: Account[];
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
-  successfulAccountIds: string[];
-  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
   contentMode: StyleMode;
   aiTier: AITier;
   videoFormat: 'short' | 'long';
@@ -31,17 +29,13 @@ interface UploadFormProps {
   onModeChange: (mode: StyleMode) => void;
   onFormatChange: (format: 'short' | 'long') => void;
   onToggleAccount: (id: string) => void;
-  onAbort: (id: string) => void;
-  onAbortAll: () => void;
   onFileChange: (file: File) => void;
   onGallerySelect: (fileId: string, fileName: string) => void;
   onSubmit: (formData: FormData) => Promise<void>;
   isScheduled: boolean;
   scheduledAt: string;
   onSchedulingChange: (isScheduled: boolean, date: string) => void;
-  hasFailures?: boolean;
   isComplete: boolean;
-  platformErrors?: Record<string, string>;
   customStyleText: string;
   onCustomStyleChange: (text: string) => void;
 }
@@ -52,8 +46,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   accounts,
   preferences,
   selectedAccountIds,
-  successfulAccountIds,
-  platformStatuses,
   contentMode,
   aiTier,
   videoFormat,
@@ -64,16 +56,13 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onModeChange,
   onFormatChange,
   onToggleAccount,
-  onAbort,
-  onAbortAll,
   onFileChange,
+  onGallerySelect,
   onSubmit,
   isScheduled,
   scheduledAt,
   onSchedulingChange,
-  hasFailures = false,
   isComplete,
-  platformErrors = {},
   customStyleText,
   onCustomStyleChange
 }) => {
@@ -115,7 +104,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
               <span style={{ fontSize: '1.1rem' }}>✨</span>
-              <div>{uploadStatus}</div>
+              <div style={{ fontWeight: 600 }}>{uploadStatus}</div>
             </div>
             <Link 
               href="/history" 
@@ -303,11 +292,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           accounts={accounts} 
           preferences={preferences}
           selectedAccountIds={selectedAccountIds} 
-          successfulAccountIds={successfulAccountIds}
-          platformStatuses={platformStatuses}
-          platformErrors={platformErrors}
           onToggleAccount={onToggleAccount} 
-          onAbort={onAbort}
         />
 
         <SchedulingSelector isScheduled={isScheduled} scheduledAt={scheduledAt} onChange={onSchedulingChange} />
@@ -317,7 +302,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           disabled={isUploading}
           style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
         >
-          {isUploading ? '📤 Processing...' : (hasFailures ? '🚀 Post to Remaining' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video'))}
+          {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video')}
         </button>
 
         {aiTier !== 'Manual' && !isUploading && (

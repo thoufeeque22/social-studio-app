@@ -100,6 +100,7 @@ model PostPlatformResult {
   optimizedFileId String?
   metadata       Json?
   lastOffset     Int         @default(0)
+  progress       Int         @default(0)
   retryCount     Int         @default(0)
   lastRetryAt    DateTime?
   createdAt      DateTime    @default(now())

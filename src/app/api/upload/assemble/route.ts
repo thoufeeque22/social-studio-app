@@ -202,6 +202,8 @@ export async function POST(req: NextRequest) {
           stagedFileId: fileId,
           title: title || undefined,
           description: description || undefined,
+          isPublished: false,
+          scheduledAt: new Date(),
           platforms: {
             upsert: initialPlatformData.map(p => ({
               where: { 

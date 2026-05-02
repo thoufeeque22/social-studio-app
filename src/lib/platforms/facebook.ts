@@ -117,12 +117,14 @@ export const publishFacebookReel = async ({
   filePath,
   accountId,
   videoId: existingVideoId,
+  onProgress,
 }: {
   userId: string;
   filePath: string;
   description: string;
   accountId?: string;
   videoId?: string;
+  onProgress?: (percent: number) => void;
 }) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
   let videoId = existingVideoId;
@@ -152,6 +154,19 @@ export const publishFacebookReel = async ({
     // 2. BINARY PUSH Step (to rupload)
     const fileStream = fsSync.createReadStream(filePath);
     const fileStats = await fs.stat(filePath);
+    let bytesUploaded = 0;
+
+    const { Transform } = await import('stream');
+    const progressStream = new Transform({
+      transform(chunk, encoding, callback) {
+        bytesUploaded += chunk.length;
+        if (onProgress) {
+          onProgress((bytesUploaded / fileStats.size) * 100);
+        }
+        this.push(chunk);
+        callback();
+      }
+    });
 
     const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
       method: "POST",
@@ -161,7 +176,7 @@ export const publishFacebookReel = async ({
         "X-Entity-Length": fileStats.size.toString(),
         "X-Entity-Type": "video/mp4",
       },
-      body: fileStream as any,
+      body: fileStream.pipe(progressStream) as any,
       // @ts-ignore - duplex is required for streaming bodies in some fetch implementations
       duplex: 'half'
     });

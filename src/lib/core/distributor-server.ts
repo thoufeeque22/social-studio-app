@@ -17,7 +17,8 @@ export async function distributeSinglePlatform({
   description,
   videoFormat,
   accountId,
-  fields = {}
+  fields = {},
+  onProgress
 }: {
   platform: string;
   userId: string;
@@ -27,6 +28,7 @@ export async function distributeSinglePlatform({
   videoFormat: 'short' | 'long';
   accountId?: string;
   fields?: Record<string, any>;
+  onProgress?: (percent: number) => void;
 }) {
   const finalCaption = formatPlatformCaption({
     title,
@@ -49,7 +51,8 @@ export async function distributeSinglePlatform({
       description: finalCaption,
       privacy: (fields.privacy as any) || 'public',
       accountId,
-      resumableUrl: fields.resumableUrl
+      resumableUrl: fields.resumableUrl,
+      onProgress
     });
     return result.data;
   } 
@@ -57,7 +60,7 @@ export async function distributeSinglePlatform({
   if (platform === 'facebook') {
     const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
     if (videoFormat === 'short') {
-      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId });
+      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId, onProgress });
     } else {
       return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId });
     }
