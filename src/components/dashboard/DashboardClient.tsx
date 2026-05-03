@@ -143,97 +143,86 @@ export default function DashboardClient({
     }
   }, [stagedFileIdParam, setUploadStatus]);
 
+  // Broadcast status for Cross-Tab HUD sync
+  useEffect(() => {
+    if (isUploading && uploadStatus && globalThis.localStorage) {
+      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
+        status: uploadStatus,
+        timestamp: Date.now(),
+        active: true
+      }));
+    } else if (!isUploading && globalThis.localStorage) {
+       // Only remove if it was us who put it there
+       const staging = localStorage.getItem('SS_STAGING_STATUS');
+       if (staging && !JSON.parse(staging).status.includes('Chunk')) {
+         localStorage.removeItem('SS_STAGING_STATUS');
+       }
+    }
+  }, [isUploading, uploadStatus]);
+
   // 4. HANDLERS: Orchestrating the flows
   const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
-    if (!draftFileRef.current && !galleryFileId) {
-      setUploadStatus("⚠️ Please select a video file first.");
-      return;
-    }
-
-    let stagedFileId = galleryFileId;
-    let fileName = galleryFileName || '';
-    let historyId = resumeHistoryId || '';
-
     try {
-      setIsUploading(true);
-      setUploadStatus("⚙️ Preparing video...");
-
+      // 1. Prepare Metadata for Cockpit Mode
       const targetPlatforms = (targetAccountIds || selectedAccountIds)
         .map(id => {
           const isSplit = id.includes(':');
           const platformKey = isSplit ? id.split(':')[0] : null;
           const actualAccountId = isSplit ? id.split(':')[1] : id;
-          
           const account = accounts.find(a => a.id === actualAccountId);
           let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
-          
           if (isSplit && platformKey) provider = platformKey;
-          
-          return {
-            platform: provider,
-            accountId: actualAccountId
-          };
+          return { platform: provider, accountId: actualAccountId };
         })
-        .filter(p => p.platform !== 'unknown'); // 🛡️ FILTER GHOSTS
+        .filter(p => p.platform !== 'unknown');
 
       if (targetPlatforms.length === 0) {
         setUploadStatus("⚠️ No valid platforms selected.");
-        setIsUploading(false);
         return;
       }
 
-      if (!stagedFileId && draftFileRef.current) {
-        const stageResult = await stageVideoFile({
-          file: draftFileRef.current,
-          onStatusUpdate: setUploadStatus,
-          metadata: {
-            title: formData.get('title') as string,
-            description: formData.get('description') as string,
-            videoFormat,
-            scheduledAt: isScheduled ? scheduledAt : undefined,
-            isPublished: false 
-          },
-          platforms: targetPlatforms,
-          resumeHistoryId: resumeHistoryId || undefined
-        });
-        stagedFileId = stageResult.stagedFileId;
-        fileName = stageResult.fileName;
-        historyId = stageResult.historyId;
-      }
-
-      if (aiTier !== 'Manual' && formData.get('skipReview') !== 'true') {
-        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-        setUploadStatus("🪄 Generating AI options...");
-        const previews = await getMultiPlatformAIPreviews(
-          formData.get('title') as string, 
-          (formData.get('description') as string) || '', 
-          aiTier, 
-          contentMode, 
-          targetPlatforms.map(p => p.platform),
-          undefined,
-          customStyleText
-        );
-        setAiPreviews(previews);
-        setReviewContext({ stagedFileId: stagedFileId!, fileName, historyId, formData, targetAccountIds });
-        setIsReviewing(true);
-        setIsUploading(false); 
-        return;
-      }
-
-      setUploadStatus("✨ Upload received! Finalizing in Activity Hub...");
-      setIsComplete(true);
+      // 2. Pre-Initialize in Database (So it appears in Activity Hub immediately)
+      setUploadStatus("🛰️ Initializing Cockpit...");
+      const initRes = await fetch('/api/upload/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.get('title') as string,
+          description: formData.get('description') as string,
+          videoFormat,
+          platforms: targetPlatforms
+        })
+      });
       
+      const initData = await initRes.json();
+      const actualHistoryId = initData.data?.historyId || resumeHistoryId;
+
+      // 3. Save everything to localStorage for the Activity Hub Cockpit
+      const pendingPost = {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        videoFormat,
+        aiTier,
+        contentMode,
+        customStyleText,
+        platforms: targetPlatforms,
+        isScheduled,
+        scheduledAt,
+        galleryFileId,
+        galleryFileName,
+        resumeHistoryId: actualHistoryId
+      };
+
+      localStorage.setItem('SS_PENDING_POST', JSON.stringify(pendingPost));
       localStorage.removeItem('SS_DRAFT_TITLE');
       localStorage.removeItem('SS_DRAFT_DESC');
-      
-      setTimeout(() => {
-        window.location.href = '/history';
-      }, 1500);
+
+      // 4. TELEPORT TO COCKPIT
+      window.location.href = '/history?action=distribute';
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setUploadStatus(`❌ Error: ${message}`);
-      setIsUploading(false);
     }
   };
 
@@ -281,6 +270,8 @@ export default function DashboardClient({
     handleFileChange(null);
     setUploadStatus(`✅ Selected: ${fileName}`);
   };
+
+  const showHUD = isUploading && uploadStatus && (typeof uploadStatus === 'string' ? !uploadStatus.includes('Complete') : true);
 
   return (
     <>
@@ -342,7 +333,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {isUploading && uploadStatus && (typeof uploadStatus === 'string' ? !uploadStatus.includes('Complete') : true) && (
+      {showHUD && (
         <div style={{
           position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
           width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',

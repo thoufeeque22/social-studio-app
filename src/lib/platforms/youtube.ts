@@ -48,6 +48,23 @@ export const getYouTubeClient = async (userId: string, accountId?: string) => {
   return google.youtube({ version: "v3", auth });
 };
 
+export const updatePlatformProgress = async (historyId: string, platform: string, accountId: string, progress: number) => {
+  try {
+    await prisma.postPlatformResult.update({
+      where: {
+        postHistoryId_platform_accountId: {
+          postHistoryId: historyId,
+          platform,
+          accountId
+        }
+      },
+      data: { progress }
+    });
+  } catch (err) {
+    // Silent fail for progress updates to avoid crashing the upload
+  }
+};
+
 interface UploadParams {
   userId: string;
   filePath: string;
@@ -55,6 +72,7 @@ interface UploadParams {
   description: string;
   privacy: "private" | "public" | "unlisted";
   musicId?: string;
+  historyId?: string;
 }
 
 export interface YouTubeUploadResult {
@@ -71,6 +89,7 @@ export const uploadToYouTube = async ({
   musicId,
   accountId,
   resumableUrl,
+  historyId,
   onProgress,
 }: UploadParams & { 
   accountId?: string; 
@@ -162,14 +181,23 @@ export const uploadToYouTube = async ({
   
   const fileStream = fs.createReadStream(filePath, { start: startByte });
   let bytesUploaded = startByte;
+  let lastReportedPercent = -1;
 
   // Use a simple transform to track progress
   const { Transform } = await import('stream');
   const progressStream = new Transform({
     transform(chunk, encoding, callback) {
       bytesUploaded += chunk.length;
-      if (onProgress) {
-        onProgress((bytesUploaded / fileSize) * 100);
+      const currentPercent = Math.floor((bytesUploaded / fileSize) * 100);
+      
+      if (currentPercent > lastReportedPercent) {
+        lastReportedPercent = currentPercent;
+        if (onProgress) onProgress(currentPercent);
+        
+        // Throttled DB update for performance
+        if (historyId && accountId) {
+          updatePlatformProgress(historyId, 'youtube', accountId, currentPercent);
+        }
       }
       this.push(chunk);
       callback();

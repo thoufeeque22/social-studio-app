@@ -71,7 +71,19 @@ export async function stageVideoFile({
   const fingerprint = `${file.name}-${file.size}-${file.type}`.replace(/[^a-zA-Z0-9]/g, '_');
   const uploadId = resumeHistoryId || `up_${fingerprint}`;
   
-  onStatusUpdate("🔍 Checking for existing chunks...");
+  const broadcast = (status: string, percent?: number) => {
+    onStatusUpdate(status);
+    if (globalThis.localStorage) {
+       localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
+         status, 
+         percent, 
+         active: true,
+         timestamp: Date.now() 
+       }));
+    }
+  };
+
+  broadcast("🔍 Synchronizing cockpit state...");
   let existingChunks: number[] = [];
   try {
     const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });
@@ -85,11 +97,18 @@ export async function stageVideoFile({
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   
   for (let i = 0; i < totalChunks; i++) {
-    if (existingChunks.includes(i)) continue;
+    if (existingChunks.includes(i)) {
+      const progress = Math.round(((i + 1) / totalChunks) * 100);
+      broadcast(`🚀 Resuming stream: ${progress}%`, progress);
+      continue;
+    }
     
     const start = i * CHUNK_SIZE;
     const end = Math.min(file.size, start + CHUNK_SIZE);
     const chunk = file.slice(start, end);
+
+    const progress = Math.round((i / totalChunks) * 100);
+    broadcast(`📤 Streaming to Cloud: ${progress}%`, progress);
 
     let success = false;
     for (let retry = 0; retry < 3; retry++) {
@@ -108,13 +127,13 @@ export async function stageVideoFile({
           break;
         }
       } catch (e) {
-        console.warn(`Chunk ${i} upload failed (attempt ${retry + 1})`, e);
+        console.warn(`Part ${i} stream failed (attempt ${retry + 1})`, e);
       }
     }
-    if (!success) throw new Error(`Chunk ${i + 1}/${totalChunks} upload failed after 3 attempts.`);
+    if (!success) throw new Error(`Stream interrupted at ${progress}%. Please check your connection.`);
   }
 
-  onStatusUpdate("🔗 Assembling video...");
+  broadcast("🔗 Finalizing for launch...", 99);
   const assembleResponse = await fetch(`/api/upload/assemble`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -132,6 +151,11 @@ export async function stageVideoFile({
 
   const stageResult = await assembleResponse.json();
   if (!assembleResponse.ok) throw new Error(stageResult.error || "Assembly failed");
+
+  // Cleanup broadcast on success
+  if (globalThis.localStorage) {
+    localStorage.removeItem('SS_STAGING_STATUS');
+  }
 
   return { 
     stagedFileId: stageResult.data.fileId, 
