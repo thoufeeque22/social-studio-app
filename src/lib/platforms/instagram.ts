@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/core/prisma";
+import { createReadStream } from "fs";
+import fsSync from "fs";
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -83,6 +85,7 @@ export const publishInstagramReel = async ({
       });
 
       const containerData = await containerRes.json();
+      console.log(`📦 [IG-REEL-STEP1] Container Response:`, JSON.stringify(containerData));
 
       if (containerData.error) {
         console.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
@@ -157,6 +160,7 @@ export const publishInstagramReel = async ({
             timeout: 300000 // 5 minute timeout
           }
         );
+        console.log(`📤 [IG-REEL-PUSH] Binary Push Response:`, JSON.stringify(uploadRes.data));
 
         if (!uploadRes.data || uploadRes.data.success === false) {
           console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadRes.data, null, 2));
@@ -173,82 +177,82 @@ export const publishInstagramReel = async ({
       console.log(`🚀 [IG-REEL-PUSH] File already fully uploaded. Proceeding to processing check...`);
     }
 
-  // STEP 2: Poll for Processing Status
-  let status = "IN_PROGRESS";
-  const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
+    // STEP 3: Poll for Processing Status
+    let status = "IN_PROGRESS";
+    const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
 
-  // Poll every 5 seconds, max 60 times (5 minutes total)
-  // Licensed music or high-quality video can take longer to process on Meta's side.
-  for (let i = 0; i < 60; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    
-    const statusRes = await fetch(statusUrl);
-    const statusData = await statusRes.json();
-    
-    status = statusData.status_code;
-    console.log(`Polling status: ${status}...`);
+    // Poll every 5 seconds, max 60 times (5 minutes total)
+    // Licensed music or high-quality video can take longer to process on Meta's side.
+    for (let i = 0; i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
+      const statusRes = await fetch(statusUrl);
+      const statusData = await statusRes.json();
+      console.log(`🔍 [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
+      
+      status = statusData.status_code;
+      console.log(`Polling status: ${status}...`);
 
-    if (status === "FINISHED") break;
-    if (status === "ERROR") {
-      throw new Error("Instagram video processing failed. This usually indicates an issue with the Meta API or file format. Please check the logs.");
-    }
-  }
-
-  if (status !== "FINISHED") {
-    throw new Error("Instagram processing timed out. Please try again later.");
-  }
-
-  // STEP 3: Publish Media
-  console.log("Publishing Reel...");
-  const publishUrl = `https://graph.facebook.com/v20.0/${igUserId}/media_publish`;
-  const publishRes = await fetch(publishUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      creation_id: creationId,
-      access_token: userAccessToken,
-    }),
-  });
-
-  const publishData = await publishRes.json();
-
-  if (publishData.error) {
-    throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
-  }
-
-  const publishedMediaId = publishData.id;
-  console.log(`Reel successfully published! ID: ${publishedMediaId}`);
-
-  // STEP 4: Fetch Official Permalink & Shortcode
-  console.log(`🚀 [IG-REEL-HANDSHAKE] Step 4: Fetching final permalink (with 2s grace)...`);
-  await new Promise(r => setTimeout(r, 2000));
-  
-  try {
-    const permalinkRes = await fetch(`https://graph.facebook.com/v20.0/${publishedMediaId}?fields=permalink,shortcode&access_token=${userAccessToken}`);
-    const permalinkData = await permalinkRes.json();
-    
-    // Prioritize official permalink, then shortcode-based link
-    let finalPermalink = permalinkData.permalink;
-    if (!finalPermalink && permalinkData.shortcode) {
-      finalPermalink = `https://www.instagram.com/reel/${permalinkData.shortcode}/`;
+      if (status === "FINISHED") break;
+      if (status === "ERROR") {
+        throw new Error("Instagram video processing failed. This usually indicates an issue with the Meta API or file format. Please check the logs.");
+      }
     }
 
-    if (finalPermalink) {
-      console.log(`✅ [IG-REEL] Final Permalink: ${finalPermalink}`);
-      return { 
-        ...publishData, 
-        creationId, 
-        permalink: finalPermalink 
-      };
+    if (status !== "FINISHED") {
+      throw new Error("Instagram processing timed out. Please try again later.");
     }
-  } catch (e) {
-    console.warn("⚠️ Failed to fetch Instagram permalink, falling back to ID-based link.", e);
-  }
 
-  return { ...publishData, creationId };
+    // STEP 4: Finalize/Publish
+    console.log(`🚀 [IG-REEL-STEP4] Publishing Reel ${creationId}...`);
+    const publishRes = await fetch(`https://graph.facebook.com/v20.0/${igUserId}/media_publish?creation_id=${creationId}&access_token=${userAccessToken}`, {
+      method: "POST"
+    });
+    const publishData = await publishRes.json();
+    console.log(`🎬 [IG-REEL-STEP4] Publish Response:`, JSON.stringify(publishData));
+
+    if (publishData.error) {
+      throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
+    }
+
+    const publishedMediaId = publishData.id;
+    console.log(`Reel successfully published! ID: ${publishedMediaId}`);
+
+    // STEP 5: Handshake for Gold Standard Link
+    console.log(`🚀 [IG-REEL-STEP5] Fetching final permalink (with 4s grace)...`);
+    await new Promise(r => setTimeout(r, 4000));
+    
+    try {
+      const permalinkRes = await fetch(`https://graph.facebook.com/v20.0/${publishedMediaId}?fields=permalink,shortcode&access_token=${userAccessToken}`);
+      const permalinkData = await permalinkRes.json();
+      console.log(`🔗 [IG-REEL-STEP5] Handshake Response:`, JSON.stringify(permalinkData));
+      
+      // Prioritize official permalink, then shortcode-based link
+      let finalPermalink = permalinkData.permalink;
+      if (!finalPermalink && permalinkData.shortcode) {
+        finalPermalink = `https://www.instagram.com/reel/${permalinkData.shortcode}/`;
+      }
+
+      if (finalPermalink) {
+        console.log(`✅ [IG-REEL] Final Handshake Success: ${finalPermalink}`);
+        return { 
+          ...publishData, 
+          creationId, 
+          permalink: finalPermalink 
+        };
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to fetch Instagram permalink, falling back to ID-based link.", e);
+    }
+
+    return { 
+      ...publishData, 
+      creationId, 
+      permalink: `https://www.instagram.com/reel/${publishedMediaId}/` 
+    };
+
   } catch (error: any) {
-    console.error("Instagram Upload Error:", error);
-    // Wrap error to include creationId if we have one
+    console.error("❌ Instagram Distribution Failed:", error);
     throw { message: error.message, creationId, status: "failed" };
   }
 };
