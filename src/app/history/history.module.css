@@ -191,6 +191,8 @@
   text-decoration: none;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 .platformPill:hover {

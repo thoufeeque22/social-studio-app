@@ -89,6 +89,7 @@ export async function startPublishingWorker() {
       const pending = await prisma.postHistory.findMany({
         where: {
           isPublished: false,
+          stagedFileId: { not: null },
           scheduledAt: {
             lte: now
           }
