@@ -149,13 +149,56 @@ export async function handlePlatformUploadRequest({
         fields,
       });
 
+      // 6. PERSIST SUCCESS TO DATABASE
+      if (historyId && accountId) {
+        const { extractPlatformPostId, generatePermalink } = await import("./distributor-utils");
+        const platformPostId = extractPlatformPostId(platform, result);
+        const permalink = generatePermalink(platform, result);
+
+        await prisma.postPlatformResult.update({
+          where: {
+            postHistoryId_platform_accountId: {
+              postHistoryId: historyId,
+              platform,
+              accountId
+            }
+          },
+          data: {
+            status: 'success',
+            platformPostId,
+            permalink,
+            progress: 100
+          }
+        });
+        console.log(`✅ [${platform}] Database updated to success for history: ${historyId}`);
+      }
+
       return NextResponse.json({ success: true, data: result });
     } catch (apiError: unknown) {
       console.error(`❌ [${platform}] API Error:`, apiError);
-      const e = apiError as Record<string, unknown>;
+      const e = apiError as Record<string, any>;
+      const errorMessage = e.message || String(e);
+
+      // PERSIST FAILURE TO DATABASE
+      if (historyId && accountId) {
+        await prisma.postPlatformResult.update({
+          where: {
+            postHistoryId_platform_accountId: {
+              postHistoryId: historyId,
+              platform,
+              accountId
+            }
+          },
+          data: {
+            status: 'failed',
+            errorMessage
+          }
+        });
+      }
+
       return NextResponse.json({ 
         success: false, 
-        error: e.message || String(e),
+        error: errorMessage,
         // Carry over resumable hints if available
         resumableUrl: e.resumableUrl,
         videoId: e.videoId,

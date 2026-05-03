@@ -312,7 +312,7 @@ export default function HistoryPage() {
   };
 
   const executeCockpitDistribution = async (stagedFileId: string, fileName: string, historyId: string, post: any, reviewedContent?: any) => {
-    setInPlaceStatus("🚀 Starting Final Distribution...");
+    setInPlaceStatus("🚀 Launching Mission...");
     
     try {
       if (reviewedContent) {
@@ -326,6 +326,7 @@ export default function HistoryPage() {
          return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
       }).filter(Boolean);
 
+      setInPlaceStatus("🛰️ Distributing to Platforms...");
       await distributeToPlatforms({
         stagedFileId,
         fileName,
@@ -496,7 +497,10 @@ export default function HistoryPage() {
           {isRetrying ? '⏳' : isUploading ? '📤' : (isPending && !isPostStale) ? '⏳' : isPostStale ? '⏳' : isCancelled ? '⏹️' : meta.icon}
         </span>
         <span className={styles.pillLabel}>
-          {isPostStale ? `${meta.label} (Waiting for Video)` : isCancelled ? `${meta.label} (Stopped)` : (isPending && !isPostStale) ? `${meta.label} (In Queue)` : meta.label}
+          {isPostStale ? `${meta.label} (Waiting for Video)` : 
+           isCancelled ? `${meta.label} (Stopped)` : 
+           (isPending && !isPostStale) ? (p.progress > 0 ? `${meta.label} (Distributing)` : `${meta.label} (In Queue)`) : 
+           meta.label}
           {showProgress && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
         </span>
         
@@ -666,10 +670,6 @@ export default function HistoryPage() {
                       })()}
                     </div>
                   </div>
-                  <div className={styles.platformRow}>
-                    {post.platforms.map(p => renderPlatformPill(p, post))}
-                  </div>
-
                   {activeResumingId === post.id && (
                     <div className={styles.inPlaceUploadProgress}>
                       <div className={styles.progressBarWrapper}>
@@ -681,6 +681,10 @@ export default function HistoryPage() {
                       <p className={styles.progressBarStatus}>{inPlaceStatus}</p>
                     </div>
                   )}
+
+                  <div className={styles.platformRow}>
+                    {post.platforms.map(p => renderPlatformPill(p, post))}
+                  </div>
                 </GlassCard>
               </div>
             );
