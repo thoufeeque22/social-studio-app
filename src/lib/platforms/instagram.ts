@@ -182,7 +182,6 @@ export const publishInstagramReel = async ({
     const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
 
     // Poll every 5 seconds, max 60 times (5 minutes total)
-    // Licensed music or high-quality video can take longer to process on Meta's side.
     for (let i = 0; i < 60; i++) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       
@@ -195,7 +194,7 @@ export const publishInstagramReel = async ({
 
       if (status === "FINISHED") break;
       if (status === "ERROR") {
-        throw new Error("Instagram video processing failed. This usually indicates an issue with the Meta API or file format. Please check the logs.");
+        throw new Error("Instagram video processing failed. Please check the logs.");
       }
     }
 
@@ -227,7 +226,6 @@ export const publishInstagramReel = async ({
       const permalinkData = await permalinkRes.json();
       console.log(`🔗 [IG-REEL-STEP5] Handshake Response:`, JSON.stringify(permalinkData));
       
-      // Prioritize official permalink, then shortcode-based link
       let finalPermalink = permalinkData.permalink;
       if (!finalPermalink && permalinkData.shortcode) {
         finalPermalink = `https://www.instagram.com/reel/${permalinkData.shortcode}/`;
@@ -235,14 +233,10 @@ export const publishInstagramReel = async ({
 
       if (finalPermalink) {
         console.log(`✅ [IG-REEL] Final Handshake Success: ${finalPermalink}`);
-        return { 
-          ...publishData, 
-          creationId, 
-          permalink: finalPermalink 
-        };
+        return { ...publishData, creationId, permalink: finalPermalink };
       }
     } catch (e) {
-      console.warn("⚠️ Failed to fetch Instagram permalink, falling back to ID-based link.", e);
+      console.warn("⚠️ Failed to fetch Instagram permalink.", e);
     }
 
     return { 
@@ -257,22 +251,13 @@ export const publishInstagramReel = async ({
   }
 };
 
-/**
- * Fetches account statistics for the given user's Instagram account.
- */
 export const getInstagramStats = async (userId: string, accountId?: string) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
-  
   const url = `https://graph.facebook.com/v20.0/${igUserId}?fields=followers_count,media_count,name&access_token=${userAccessToken}`;
   const res = await fetch(url);
   const data = await res.json();
+  if (data.error) return null;
 
-  if (data.error) {
-    console.error("Instagram Stats Error:", data.error);
-    return null;
-  }
-
-  // Also try to get reach (insights) for the last 30 days
   const insightsUrl = `https://graph.facebook.com/v20.0/${igUserId}/insights?metric=reach,impressions&period=days_28&access_token=${userAccessToken}`;
   const insightsRes = await fetch(insightsUrl);
   const insightsData = await insightsRes.json();
