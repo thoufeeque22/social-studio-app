@@ -2,6 +2,7 @@ import { prisma } from "@/lib/core/prisma";
 import * as Sentry from "@sentry/nextjs";
 import path from "path";
 import { readFileSync, existsSync, promises as fs } from "fs";
+import { logger } from "@/lib/core/logger";
 
 /**
  * PURGE EXPIRED ASSETS
@@ -19,14 +20,14 @@ async function purgeExpiredAssets() {
     });
 
     if (expired.length > 0) {
-      console.log(`🧹 [WORKER] Found ${expired.length} expired gallery assets to purge.`);
+      logger.info(`🧹 [WORKER] Found ${expired.length} expired gallery assets to purge.`);
       
       for (const asset of expired) {
         try {
           const filePath = path.join(process.cwd(), "src/tmp", asset.fileId);
           if (existsSync(filePath)) {
             await fs.unlink(filePath);
-            console.log(`🗑️ [WORKER] Deleted physical file: ${asset.fileId}`);
+            logger.info(`🗑️ [WORKER] Deleted physical file: ${asset.fileId}`);
           }
           
           const metadataPath = path.join(process.cwd(), "src/tmp", `${asset.fileId}.metadata.json`);
@@ -38,12 +39,12 @@ async function purgeExpiredAssets() {
             where: { id: asset.id }
           });
         } catch (err: any) {
-          console.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, err.message);
+          logger.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, err.message);
         }
       }
     }
   } catch (err) {
-    console.error("🧹 [WORKER] Asset purge failed:", err);
+    logger.error("🧹 [WORKER] Asset purge failed:", err);
   }
 }
 
@@ -55,7 +56,7 @@ export async function startPublishingWorker() {
   const currentVersion = Date.now();
   
   if ((global as any)._ss_worker_started) {
-    console.log("♻️ [WORKER] Restarting worker with new logic...");
+    logger.info("♻️ [WORKER] Restarting worker with new logic...");
     if ((global as any)._ss_worker_interval) {
         clearInterval((global as any)._ss_worker_interval);
     }
@@ -67,7 +68,7 @@ export async function startPublishingWorker() {
   (global as any)._ss_worker_started = true;
   (global as any)._ss_worker_version = currentVersion;
 
-  console.log("👷 [WORKER] Scheduled Publishing Worker Started...");
+  logger.info("👷 [WORKER] Scheduled Publishing Worker Started...");
 
   const interval = setInterval(async () => {
     // Safety check: if a newer version started, stop this one
@@ -78,7 +79,13 @@ export async function startPublishingWorker() {
 
     try {
       const now = new Date();
+      logger.info(`💓 [WORKER-HEARTBEAT] Checking for overdue posts at ${now.toISOString()}...`);
       
+      const totalPendingCount = await prisma.postHistory.count({ where: { isPublished: false } });
+      if (totalPendingCount > 0) {
+        logger.info(`🔍 [WORKER-DEBUG] Found ${totalPendingCount} total non-published posts in DB.`);
+      }
+
       const pending = await prisma.postHistory.findMany({
         where: {
           isPublished: false,
@@ -97,10 +104,10 @@ export async function startPublishingWorker() {
       });
 
       if (pending.length > 0) {
-        console.log(`👷 [WORKER] Found ${pending.length} overdue posts to publish. Processing in parallel...`);
+        logger.info(`👷 [WORKER] Found ${pending.length} overdue posts to publish. Processing in parallel...`);
 
         await Promise.allSettled(pending.map(async (post) => {
-          console.log(`🚀 [WORKER] Attempting to publish: "${post.title}" (ID: ${post.id})`);
+          logger.info(`🚀 [WORKER] Attempting to publish: "${post.title}" (ID: ${post.id})`);
           
           // Mark as published immediately so other worker ticks don't pick it up
           await prisma.postHistory.update({
@@ -148,7 +155,7 @@ export async function startPublishingWorker() {
               reviewedContent
             });
 
-            console.log(`✅ [WORKER] Published successfully: ${post.title}`);
+            logger.info(`✅ [WORKER] Published successfully: ${post.title}`);
           } catch (err: any) {
             console.error(`❌ [WORKER] Failed to publish ${post.title}:`, err.message);
             Sentry.captureException(err, {

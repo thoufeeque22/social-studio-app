@@ -86,8 +86,8 @@ export async function savePostHistory(data: SavePostHistoryInput) {
         description: data.description,
         videoFormat: data.videoFormat,
         stagedFileId: data.stagedFileId,
-        scheduledAt: data.scheduledAt,
-        isPublished: data.isPublished ?? true,
+        scheduledAt: data.scheduledAt ?? new Date(),
+        isPublished: data.isPublished ?? false,
         platforms: {
           create: data.platforms.map((p) => ({
             platform: p.platform,

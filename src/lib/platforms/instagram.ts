@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/core/prisma";
 import { createReadStream } from "fs";
 import fsSync from "fs";
+import { logger } from "@/lib/core/logger";
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -54,7 +55,7 @@ export const publishInstagramReel = async ({
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
   let creationId = existingCreationId;
 
-  console.log(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
+  logger.info(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
 
   try {
     let offset = 0;
@@ -85,17 +86,17 @@ export const publishInstagramReel = async ({
       });
 
       const containerData = await containerRes.json();
-      console.log(`📦 [IG-REEL-STEP1] Container Response:`, JSON.stringify(containerData));
+      logger.info(`📦 [IG-REEL-STEP1] Container Response:`, JSON.stringify(containerData));
 
       if (containerData.error) {
-        console.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
+        logger.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
         throw new Error(`Instagram Step 1 Failed: ${containerData.error.message}`);
       }
 
       creationId = containerData.id;
-      console.log(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Proceeding to binary push...`);
+      logger.info(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Proceeding to binary push...`);
     } else {
-      console.log(`🚀 [IG-REEL-RESUME] Checking offset for existing Creation ID: ${creationId}`);
+      logger.info(`🚀 [IG-REEL-RESUME] Checking offset for existing Creation ID: ${creationId}`);
       
       const offsetRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
         method: "GET",
@@ -117,7 +118,7 @@ export const publishInstagramReel = async ({
 
     if (offset < fileSize) {
       // STEP 2: Binary Push to rupload
-      console.log(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
+      logger.info(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
       
       const fileStream = createReadStream(filePath, { start: offset });
       let bytesUploaded = offset;
@@ -131,7 +132,7 @@ export const publishInstagramReel = async ({
             onProgress(percent);
 
             if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileSize) {
-               console.log(`📤 [IG-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
+               logger.info(`📤 [IG-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
             }
           }
           callback(null, chunk);
@@ -160,7 +161,7 @@ export const publishInstagramReel = async ({
             timeout: 300000 // 5 minute timeout
           }
         );
-        console.log(`📤 [IG-REEL-PUSH] Binary Push Response:`, JSON.stringify(uploadRes.data));
+        logger.info(`📤 [IG-REEL-PUSH] Binary Push Response:`, JSON.stringify(uploadRes.data));
 
         if (!uploadRes.data || uploadRes.data.success === false) {
           console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadRes.data, null, 2));
@@ -187,7 +188,7 @@ export const publishInstagramReel = async ({
       
       const statusRes = await fetch(statusUrl);
       const statusData = await statusRes.json();
-      console.log(`🔍 [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
+      logger.info(`🔍 [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
       
       status = statusData.status_code;
       console.log(`Polling status: ${status}...`);
@@ -208,23 +209,23 @@ export const publishInstagramReel = async ({
       method: "POST"
     });
     const publishData = await publishRes.json();
-    console.log(`🎬 [IG-REEL-STEP4] Publish Response:`, JSON.stringify(publishData));
+    logger.info(`🎬 [IG-REEL-STEP4] Publish Response:`, JSON.stringify(publishData));
 
     if (publishData.error) {
       throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
     }
 
     const publishedMediaId = publishData.id;
-    console.log(`Reel successfully published! ID: ${publishedMediaId}`);
+    logger.info(`Reel successfully published! ID: ${publishedMediaId}`);
 
     // STEP 5: Handshake for Gold Standard Link
-    console.log(`🚀 [IG-REEL-STEP5] Fetching final permalink (with 4s grace)...`);
+    logger.info(`🚀 [IG-REEL-STEP5] Fetching final permalink (with 4s grace)...`);
     await new Promise(r => setTimeout(r, 4000));
     
     try {
       const permalinkRes = await fetch(`https://graph.facebook.com/v20.0/${publishedMediaId}?fields=permalink,shortcode&access_token=${userAccessToken}`);
       const permalinkData = await permalinkRes.json();
-      console.log(`🔗 [IG-REEL-STEP5] Handshake Response:`, JSON.stringify(permalinkData));
+      logger.info(`🔗 [IG-REEL-STEP5] Handshake Response:`, JSON.stringify(permalinkData));
       
       let finalPermalink = permalinkData.permalink;
       if (!finalPermalink && permalinkData.shortcode) {

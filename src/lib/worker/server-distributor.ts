@@ -38,7 +38,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
   await Promise.allSettled(platforms.map(async (p) => {
     try {
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform}`);
+      console.log(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform} for History ID: ${historyId}`);
       
       // 1. Fetch existing result to see if we have a resumable session or cancellation
       const existingResult = await prisma.postPlatformResult.findUnique({

@@ -76,7 +76,7 @@ model PostHistory {
   description  String?
   videoFormat  String               @default("short")
   scheduledAt  DateTime?
-  isPublished  Boolean              @default(true)
+  isPublished  Boolean              @default(false)
   stagedFileId String?
   createdAt    DateTime             @default(now())
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
