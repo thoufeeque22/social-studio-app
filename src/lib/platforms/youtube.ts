@@ -48,37 +48,6 @@ export const getYouTubeClient = async (userId: string, accountId?: string) => {
   return google.youtube({ version: "v3", auth });
 };
 
-export const updatePlatformProgress = async (historyId: string, platform: string, accountId: string, progress: number) => {
-  try {
-    // First, check the current progress to ensure we only move forward
-    const current = await prisma.postPlatformResult.findUnique({
-      where: {
-        postHistoryId_platform_accountId: {
-          postHistoryId: historyId,
-          platform,
-          accountId
-        }
-      },
-      select: { progress: true }
-    });
-
-    if (!current || progress > current.progress) {
-      await prisma.postPlatformResult.update({
-        where: {
-          postHistoryId_platform_accountId: {
-            postHistoryId: historyId,
-            platform,
-            accountId
-          }
-        },
-        data: { progress }
-      });
-    }
-  } catch (err) {
-    // Silent fail for progress updates to avoid crashing the upload
-  }
-};
-
 interface UploadParams {
   userId: string;
   filePath: string;
@@ -86,7 +55,6 @@ interface UploadParams {
   description: string;
   privacy: "private" | "public" | "unlisted";
   musicId?: string;
-  historyId?: string;
 }
 
 export interface YouTubeUploadResult {
@@ -103,7 +71,6 @@ export const uploadToYouTube = async ({
   musicId,
   accountId,
   resumableUrl,
-  historyId,
   onProgress,
 }: UploadParams & { 
   accountId?: string; 
@@ -207,11 +174,6 @@ export const uploadToYouTube = async ({
       if (currentPercent > lastReportedPercent) {
         lastReportedPercent = currentPercent;
         if (onProgress) onProgress(currentPercent);
-        
-        // Throttled DB update for performance
-        if (historyId && accountId) {
-          updatePlatformProgress(historyId, 'youtube', accountId, currentPercent);
-        }
       }
       this.push(chunk);
       callback();

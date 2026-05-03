@@ -76,7 +76,8 @@ export async function distributeSinglePlatform({
       caption: finalCaption,
       accountId,
       creationId: fields.creationId,
-      musicId: fields.musicId
+      musicId: fields.musicId,
+      onProgress: progressCallback
     });
   } 
   

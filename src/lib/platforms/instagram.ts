@@ -47,7 +47,8 @@ export const publishInstagramReel = async ({
   musicId,
   accountId,
   creationId: existingCreationId,
-}: PublishReelParams & { accountId?: string; creationId?: string }) => {
+  onProgress,
+}: PublishReelParams & { accountId?: string; creationId?: string; onProgress?: (percent: number) => void; }) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
   let creationId = existingCreationId;
 
@@ -125,6 +126,7 @@ export const publishInstagramReel = async ({
           if (onProgress) {
             const percent = (bytesUploaded / fileSize) * 100;
             onProgress(percent);
+
             if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileSize) {
                console.log(`📤 [IG-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
             }
@@ -214,8 +216,36 @@ export const publishInstagramReel = async ({
     throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
   }
 
-    console.log("Reel successfully published!");
-    return { ...publishData, creationId };
+  const publishedMediaId = publishData.id;
+  console.log(`Reel successfully published! ID: ${publishedMediaId}`);
+
+  // STEP 4: Fetch Official Permalink & Shortcode
+  console.log(`🚀 [IG-REEL-HANDSHAKE] Step 4: Fetching final permalink (with 2s grace)...`);
+  await new Promise(r => setTimeout(r, 2000));
+  
+  try {
+    const permalinkRes = await fetch(`https://graph.facebook.com/v20.0/${publishedMediaId}?fields=permalink,shortcode&access_token=${userAccessToken}`);
+    const permalinkData = await permalinkRes.json();
+    
+    // Prioritize official permalink, then shortcode-based link
+    let finalPermalink = permalinkData.permalink;
+    if (!finalPermalink && permalinkData.shortcode) {
+      finalPermalink = `https://www.instagram.com/reel/${permalinkData.shortcode}/`;
+    }
+
+    if (finalPermalink) {
+      console.log(`✅ [IG-REEL] Final Permalink: ${finalPermalink}`);
+      return { 
+        ...publishData, 
+        creationId, 
+        permalink: finalPermalink 
+      };
+    }
+  } catch (e) {
+    console.warn("⚠️ Failed to fetch Instagram permalink, falling back to ID-based link.", e);
+  }
+
+  return { ...publishData, creationId };
   } catch (error: any) {
     console.error("Instagram Upload Error:", error);
     // Wrap error to include creationId if we have one

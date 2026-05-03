@@ -137,8 +137,19 @@ export async function handlePlatformUploadRequest({
         platform
     });
 
-    // 5. Execute Platform-Specific SDK Logic
+    // 5. Execute Platform-Specific SDK Logic with Unified Heartbeat
     try {
+      // Create a unified progress reporter that heartbeats to the DB
+      let lastReported = -1;
+      const wrappedOnProgress = async (percent: number) => {
+        const currentPercent = Math.floor(percent);
+        if (currentPercent > lastReported && historyId && accountId) {
+          lastReported = currentPercent;
+          const { updatePlatformProgress } = await import("./heartbeat-server");
+          await updatePlatformProgress(historyId, platform, accountId, currentPercent);
+        }
+      };
+
       const result = await uploadLogic({
         userId: session.user.id,
         filePath: activeFilePath,
@@ -147,6 +158,7 @@ export async function handlePlatformUploadRequest({
         videoFormat,
         accountId,
         fields,
+        onProgress: wrappedOnProgress
       });
 
       // 6. PERSIST SUCCESS TO DATABASE

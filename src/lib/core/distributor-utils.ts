@@ -46,8 +46,8 @@ export function generatePermalink(platform: string, data: any): string | null {
     }
     case 'instagram': {
       const mediaId = data.id || data.videoId;
-      // Instagram Reels specific link pattern
-      return mediaId ? `https://www.instagram.com/reels/${mediaId}/` : null;
+      // Instagram Reels specific link pattern (singular reel/ is more modern)
+      return mediaId ? `https://www.instagram.com/reel/${mediaId}/` : null;
     }
     case 'tiktok': {
       const publishId = data.publish_id || data.id;

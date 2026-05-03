@@ -165,6 +165,7 @@ export const publishFacebookReel = async ({
         if (onProgress) {
           const percent = (bytesUploaded / fileStats.size) * 100;
           onProgress(percent);
+
           if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileStats.size) { // Log every 1MB
              console.log(`📤 [FB-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileStats.size / 1024 / 1024).toFixed(1)}MB)`);
           }
