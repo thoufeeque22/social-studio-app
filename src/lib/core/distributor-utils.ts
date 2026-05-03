@@ -23,6 +23,9 @@ export function extractPlatformPostId(platform: string, data: any): string | nul
  */
 export function generatePermalink(platform: string, data: any): string | null {
   if (!data) return null;
+  
+  // Use official platform permalink if provided (Gold Standard)
+  if (data.permalink) return data.permalink;
 
   switch (platform) {
     case 'youtube': {
@@ -31,8 +34,8 @@ export function generatePermalink(platform: string, data: any): string | null {
     }
     case 'facebook': {
       const videoId = data.videoId || data.id;
-      // Facebook Reels and Videos can often be accessed via /watch/?v=
-      return videoId ? `https://facebook.com/watch/?v=${videoId}` : null;
+      // Use the modern Reels format for Facebook vertical videos
+      return videoId ? `https://www.facebook.com/reel/${videoId}` : null;
     }
     case 'instagram': {
       const mediaId = data.id || data.videoId;

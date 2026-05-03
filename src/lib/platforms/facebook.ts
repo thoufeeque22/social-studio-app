@@ -263,5 +263,23 @@ export const publishFacebookReel = async ({
     throw new Error(`Reel Finish Failed: ${finishData.error.message}`);
   }
 
+  // 5. GET FINAL PERMALINK (Meta Gold Standard)
+  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 5: Fetching final permalink...`);
+  try {
+    const permalinkRes = await fetch(`https://graph.facebook.com/v22.0/${videoId}?fields=permalink_url&access_token=${pageAccessToken}`);
+    const permalinkData = await permalinkRes.json();
+    if (permalinkData.permalink_url) {
+      console.log(`✅ [FB-REEL] Final Permalink: ${permalinkData.permalink_url}`);
+      return { 
+        success: true, 
+        videoId, 
+        pageName, 
+        permalink: permalinkData.permalink_url 
+      };
+    }
+  } catch (err) {
+    console.warn("⚠️ [FB-REEL] Failed to fetch final permalink, falling back to ID-based link.", err);
+  }
+
   return { success: true, videoId, pageName };
 };
