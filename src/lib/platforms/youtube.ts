@@ -50,7 +50,8 @@ export const getYouTubeClient = async (userId: string, accountId?: string) => {
 
 export const updatePlatformProgress = async (historyId: string, platform: string, accountId: string, progress: number) => {
   try {
-    await prisma.postPlatformResult.update({
+    // First, check the current progress to ensure we only move forward
+    const current = await prisma.postPlatformResult.findUnique({
       where: {
         postHistoryId_platform_accountId: {
           postHistoryId: historyId,
@@ -58,8 +59,21 @@ export const updatePlatformProgress = async (historyId: string, platform: string
           accountId
         }
       },
-      data: { progress }
+      select: { progress: true }
     });
+
+    if (!current || progress > current.progress) {
+      await prisma.postPlatformResult.update({
+        where: {
+          postHistoryId_platform_accountId: {
+            postHistoryId: historyId,
+            platform,
+            accountId
+          }
+        },
+        data: { progress }
+      });
+    }
   } catch (err) {
     // Silent fail for progress updates to avoid crashing the upload
   }

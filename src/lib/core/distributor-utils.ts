@@ -25,7 +25,14 @@ export function generatePermalink(platform: string, data: any): string | null {
   if (!data) return null;
   
   // Use official platform permalink if provided (Gold Standard)
-  if (data.permalink) return data.permalink;
+  if (data.permalink) {
+    let link = data.permalink;
+    // Force Facebook vertical video format if Meta returns the legacy watch URL
+    if (platform === 'facebook' && link.includes('facebook.com/watch/?v=')) {
+      link = link.replace('facebook.com/watch/?v=', 'facebook.com/reel/');
+    }
+    return link;
+  }
 
   switch (platform) {
     case 'youtube': {

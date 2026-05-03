@@ -116,27 +116,56 @@ export const publishInstagramReel = async ({
       console.log(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
       
       const fileStream = createReadStream(filePath, { start: offset });
-      
-      const uploadRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `OAuth ${userAccessToken}`,
-          "Offset": offset.toString(),
-          "Content-Length": (fileSize - offset).toString(),
-          "X-Entity-Length": fileSize.toString(),
-          "X-Entity-Name": `video_${Date.now()}.mp4`,
-          "X-Entity-Type": "video/mp4",
-        },
-        body: fileStream as any,
-        // @ts-ignore
-        duplex: 'half'
+      let bytesUploaded = offset;
+
+      const { Transform } = await import('stream');
+      const progressStream = new Transform({
+        transform(chunk, encoding, callback) {
+          bytesUploaded += chunk.length;
+          if (onProgress) {
+            const percent = (bytesUploaded / fileSize) * 100;
+            onProgress(percent);
+            if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileSize) {
+               console.log(`📤 [IG-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
+            }
+          }
+          callback(null, chunk);
+        }
       });
 
-      if (!uploadRes.ok) {
-        const uploadData = await uploadRes.json().catch(() => null);
-        console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadData, null, 2) || uploadRes.statusText);
-        throw new Error(`Instagram Binary Push Failed: ${uploadData?.error?.message || uploadRes.statusText}`);
+      console.log(`📡 [IG-UPLOAD] Starting axios binary push to Meta (Size: ${((fileSize - offset) / 1024 / 1024).toFixed(2)} MB)`);
+      const axios = (await import('axios')).default;
+      
+      try {
+        const uploadRes = await axios.post(
+          `https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, 
+          fileStream.pipe(progressStream), 
+          {
+            headers: {
+              "Authorization": `OAuth ${userAccessToken}`,
+              "Offset": offset.toString(),
+              "Content-Length": (fileSize - offset).toString(),
+              "X-Entity-Length": fileSize.toString(),
+              "X-Entity-Name": `video_${Date.now()}.mp4`,
+              "X-Entity-Type": "video/mp4",
+              "Content-Type": "application/octet-stream"
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 300000 // 5 minute timeout
+          }
+        );
+
+        if (!uploadRes.data || uploadRes.data.success === false) {
+          console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadRes.data, null, 2));
+          throw new Error(`Instagram Binary Push Failed: ${JSON.stringify(uploadRes.data)}`);
+        }
+      } catch (axiosError: any) {
+        const errorData = axiosError.response?.data;
+        console.error("❌ Instagram Axios Push Error:", JSON.stringify(errorData, null, 2) || axiosError.message);
+        throw new Error(`Instagram Binary Push Failed: ${errorData?.error?.message || axiosError.message}`);
       }
+
       console.log(`🚀 [IG-REEL-PUSH] Binary push complete for ${creationId}. Waiting for processing...`);
     } else {
       console.log(`🚀 [IG-REEL-PUSH] File already fully uploaded. Proceeding to processing check...`);

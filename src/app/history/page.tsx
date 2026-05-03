@@ -683,7 +683,9 @@ export default function HistoryPage() {
                   )}
 
                   <div className={styles.platformRow}>
-                    {post.platforms.map(p => renderPlatformPill(p, post))}
+                    {[...post.platforms]
+                      .sort((a, b) => a.platform.localeCompare(b.platform))
+                      .map(p => renderPlatformPill(p, post))}
                   </div>
                 </GlassCard>
               </div>
