@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/core/prisma';
 import path from 'path';
+import { logger } from '@/lib/core/logger';
 import { 
   extractPlatformPostId, 
   generatePermalink, 
@@ -31,14 +32,14 @@ export interface ServerDistributeParams {
 export async function distributeToPlatformsServer(params: ServerDistributeParams) {
   const { stagedFileId, userId, historyId, title, description, videoFormat, platforms } = params;
 
-  console.log(`👷 [SERVER-DISTRIBUTOR] Starting distribution for post ${historyId}`);
+      logger.info(`👷 [SERVER-DISTRIBUTOR] Starting distribution for post ${historyId}`);
 
   const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
   const results: any[] = [];
 
   await Promise.allSettled(platforms.map(async (p) => {
     try {
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform} for History ID: ${historyId}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform} for History ID: ${historyId}`);
       
       // 1. Fetch existing result to see if we have a resumable session or cancellation
       const existingResult = await prisma.postPlatformResult.findUnique({
@@ -51,10 +52,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         }
       });
 
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Existing result status for ${p.platform}: ${existingResult?.status || 'none'}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Existing result status for ${p.platform}: ${existingResult?.status || 'none'}`);
 
       if (existingResult?.status === 'cancelled') {
-        console.log(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
+        logger.info(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
         results.push(existingResult as any);
         return;
       }
@@ -70,10 +71,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         finalDesc = (customContent.description || description) + hashText;
       }
 
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
       
       // 1.5 Ensure the record exists for onProgress updates
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Updating status to uploading for ${p.platform}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Updating status to uploading for ${p.platform}`);
       const currentResult = await prisma.postPlatformResult.upsert({
         where: {
           postHistoryId_platform_accountId: {
@@ -93,15 +94,15 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       });
       
       // 2. Optimization check
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Starting optimization check for ${p.platform}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Starting optimization check for ${p.platform}`);
       let activeFilePath = filePath;
       try {
         activeFilePath = await getOptimizedVideoPath(stagedFileId, p.platform, historyId, p.accountId);
       } catch (optErr) {
-        console.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`, optErr);
+        logger.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`);
       }
 
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Calling distributeSinglePlatform for ${p.platform}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Calling distributeSinglePlatform for ${p.platform}`);
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
         userId,
@@ -150,7 +151,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       results.push(platformResult);
 
     } catch (err: any) {
-      console.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}:`, err.message);
+      logger.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}: ${err.message}`);
       
       const errorPayload = {
         platform: p.platform,

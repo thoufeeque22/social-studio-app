@@ -79,7 +79,7 @@ export async function startPublishingWorker() {
 
     try {
       const now = new Date();
-      logger.info(`💓 [WORKER-HEARTBEAT] Checking for overdue posts at ${now.toISOString()}...`);
+      logger.info(`💓 [WORKER-HEARTBEAT] [PULSE-CHECK-V1] Checking at ${now.toISOString()}...`);
       
       const totalPendingCount = await prisma.postHistory.count({ where: { isPublished: false } });
       if (totalPendingCount > 0) {
@@ -118,7 +118,7 @@ export async function startPublishingWorker() {
           try {
             const stagedFileId = post.stagedFileId;
             if (!stagedFileId) {
-               console.warn(`⚠️ [WORKER] Post "${post.title}" has no stagedFileId. Skipping.`);
+               logger.warn(`⚠️ [WORKER] Post "${post.title}" has no stagedFileId. Skipping.`);
                return;
             }
 
@@ -133,7 +133,7 @@ export async function startPublishingWorker() {
                try {
                   reviewedContent = JSON.parse(readFileSync(metadataPath, "utf8"));
                } catch (e) {
-                  console.warn("⚠️ [WORKER] Failed to parse metadata sidecar", e);
+                  logger.warn("⚠️ [WORKER] Failed to parse metadata sidecar");
                }
             }
 
@@ -157,7 +157,7 @@ export async function startPublishingWorker() {
 
             logger.info(`✅ [WORKER] Published successfully: ${post.title}`);
           } catch (err: any) {
-            console.error(`❌ [WORKER] Failed to publish ${post.title}:`, err.message);
+            logger.error(`❌ [WORKER] Failed to publish ${post.title}: ${err.message}`);
             Sentry.captureException(err, {
               extra: { postId: post.id, title: post.title }
             });
@@ -170,7 +170,7 @@ export async function startPublishingWorker() {
         }));
       }
     } catch (err) {
-      console.error("👷 [WORKER] Polling failed:", err);
+      logger.error(`👷 [WORKER] Polling failed: ${err}`);
       Sentry.captureException(err);
     }
   }, 10000); // Check every 10 seconds

@@ -4,6 +4,7 @@ import {
   formatPlatformCaption, 
   constructPublicVideoUrl 
 } from './distributor-utils';
+import { logger } from '@/lib/core/logger';
 
 /**
  * ORCHESTRATES PUBLISHING TO A SINGLE PLATFORM.
@@ -36,9 +37,8 @@ export async function distributeSinglePlatform({
     platform
   });
 
-  // MOCK_UPLOAD Check
   if (process.env.MOCK_UPLOAD === "true") {
-    console.log(`🚀 [DISTRIBUTOR-SERVER] [MOCK MODE] Skipping real ${platform} distribution.`);
+    logger.info(`🚀 [DISTRIBUTOR-SERVER] [MOCK MODE] Skipping real ${platform} distribution.`);
     return { id: `mock-${platform}-${Date.now()}`, success: true };
   }
 

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/core/prisma";
 import { checkTranscodeRequirement, transcodeForPlatform } from "./processor";
 import path from "path";
 import fs from "fs";
+import { logger } from "@/lib/core/logger";
 
 /**
  * Ensures a video is optimized for a specific platform.
@@ -30,7 +31,7 @@ export async function getOptimizedVideoPath(
     if (result?.optimizedFileId) {
       const optimizedPath = path.join(process.cwd(), "src/tmp", result.optimizedFileId);
       if (fs.existsSync(optimizedPath)) {
-        console.log(`♻️ [TRANSCODER] Reusing optimized file: ${result.optimizedFileId}`);
+        logger.info(`♻️ [TRANSCODER] Reusing optimized file: ${result.optimizedFileId}`);
         return optimizedPath;
       }
     }
@@ -41,11 +42,11 @@ export async function getOptimizedVideoPath(
   const platformResult = results[platform];
 
   if (!platformResult || !platformResult.needsTranscode) {
-    console.log(`✅ [TRANSCODER] No transcoding needed for ${platform}`);
+    logger.info(`✅ [TRANSCODER] No transcoding needed for ${platform}`);
     return originalPath;
   }
 
-  console.log(`⚙️ [TRANSCODER] Starting optimization for ${platform}: ${platformResult.reason}`);
+  logger.info(`⚙️ [TRANSCODER] Starting optimization for ${platform}: ${platformResult.reason}`);
 
   // 3. Mark as processing in DB (if postHistoryId provided)
   if (postHistoryId && accountId) {
@@ -73,7 +74,7 @@ export async function getOptimizedVideoPath(
     const optimizedPath = await transcodeForPlatform(originalPath, platform);
     const optimizedFileId = path.basename(optimizedPath);
 
-    console.log(`✨ [TRANSCODER] Optimization complete: ${optimizedFileId}`);
+    logger.info(`✨ [TRANSCODER] Optimization complete: ${optimizedFileId}`);
 
     // 5. Update DB
     if (postHistoryId && accountId) {
@@ -94,7 +95,7 @@ export async function getOptimizedVideoPath(
 
     return optimizedPath;
   } catch (err: any) {
-    console.error(`❌ [TRANSCODER] Optimization failed for ${platform}:`, err.message);
+    logger.error(`❌ [TRANSCODER] Optimization failed for ${platform}: ${err.message}`);
     
     if (postHistoryId && accountId) {
       await prisma.postPlatformResult.update({
