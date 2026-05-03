@@ -91,5 +91,15 @@ export async function distributeSinglePlatform({
     });
   }
 
+  if (platform === 'local') {
+    const { publishLocalReel } = await import('@/lib/platforms/local');
+    return await publishLocalReel({
+      userId,
+      filePath,
+      caption: finalCaption,
+      onProgress: progressCallback
+    });
+  }
+
   throw new Error(`Platform ${platform} not supported for direct distribution.`);
 }

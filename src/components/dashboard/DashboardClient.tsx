@@ -49,6 +49,20 @@ export default function DashboardClient({
   // 1. MODULAR LOGIC: Hooks handle the heavy lifting
   const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
   
+  // Inject Local Simulator for Dev Env
+  const devAccounts = React.useMemo(() => {
+    if (process.env.NODE_ENV !== 'development') return accounts;
+    if (accounts.some(a => a.provider === 'local')) return accounts;
+    return [...accounts, { 
+      id: 'local-dev-id', 
+      provider: 'local', 
+      name: 'Local Simulator', 
+      email: 'dev@local.host', 
+      image: null, 
+      isDistributionEnabled: true 
+    }];
+  }, [accounts]);
+
   const {
     draftFileRef,
     draftFileName,
@@ -62,7 +76,7 @@ export default function DashboardClient({
     selectedAccountIds,
     setSelectedAccountIds,
     handleToggleAccount
-  } = usePlatformSelection(accounts, preferences, isLoading);
+  } = usePlatformSelection(devAccounts, preferences, isLoading);
 
   const {
     isUploading,
@@ -74,7 +88,7 @@ export default function DashboardClient({
     successfulAccountIds,
     handleAbortPlatform,
     handleAbortAll
-  } = useDistributionEngine(accounts);
+  } = useDistributionEngine(devAccounts);
 
   // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
   const [aiTier, setAiTier] = useState<AITier>(initialAITier || 'Manual');
@@ -169,7 +183,7 @@ export default function DashboardClient({
           const isSplit = id.includes(':');
           const platformKey = isSplit ? id.split(':')[0] : null;
           const actualAccountId = isSplit ? id.split(':')[1] : id;
-          const account = accounts.find(a => a.id === actualAccountId);
+          const account = devAccounts.find(a => a.id === actualAccountId);
           let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
           if (isSplit && platformKey) provider = platformKey;
           return { platform: provider, accountId: actualAccountId };
@@ -291,7 +305,7 @@ export default function DashboardClient({
             <UploadForm 
               isUploading={isUploading}
               uploadStatus={uploadStatus}
-              accounts={accounts}
+              accounts={devAccounts}
               preferences={preferences}
               selectedAccountIds={selectedAccountIds}
               successfulAccountIds={successfulAccountIds}
@@ -329,7 +343,7 @@ export default function DashboardClient({
               onCustomStyleChange={setCustomStyleText}
             />
           )}
-          <SidebarInfo accounts={accounts} />
+          <SidebarInfo accounts={devAccounts} />
         </div>
       </div>
 

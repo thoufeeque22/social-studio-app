@@ -47,6 +47,7 @@ const PLATFORM_META: Record<string, { icon: string; label: string; className: st
   instagram: { icon: '📸', label: 'Instagram', className: styles.platformInstagram },
   facebook:  { icon: '👥', label: 'Facebook',  className: styles.platformFacebook },
   tiktok:    { icon: '🎵', label: 'TikTok',    className: styles.platformTiktok },
+  local:     { icon: '💻', label: 'Local Dev',  className: styles.platformLocal },
 };
 
 function formatRelativeDate(dateStr: string): string {
@@ -622,7 +623,7 @@ export default function HistoryPage() {
                       <span className={styles.globalPrepText}>⚙️ Preparing for distribution...</span>
                     </div>
                   )}
-                  
+
                   <div className={styles.cardHeader} style={allPending && isActive ? { paddingTop: '1.75rem' } : {}}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
@@ -670,17 +671,6 @@ export default function HistoryPage() {
                       })()}
                     </div>
                   </div>
-                  {activeResumingId === post.id && (
-                    <div className={styles.inPlaceUploadProgress}>
-                      <div className={styles.progressBarWrapper}>
-                        <div 
-                          className={styles.progressBarFill} 
-                          style={{ width: inPlaceStatus?.includes('%') ? inPlaceStatus.match(/(\d+)%/)?.[1] + '%' : '100%' }}
-                        />
-                      </div>
-                      <p className={styles.progressBarStatus}>{inPlaceStatus}</p>
-                    </div>
-                  )}
 
                   <div className={styles.platformRow}>
                     {[...post.platforms]

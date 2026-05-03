@@ -249,6 +249,15 @@
   background: hsla(170, 80%, 50%, 0.2);
 }
 
+.platformLocal {
+  background: hsla(240, 80%, 60%, 0.12);
+  color: hsl(240, 80%, 75%);
+  border-color: hsla(240, 80%, 60%, 0.2);
+}
+.platformLocal:hover {
+  background: hsla(240, 80%, 60%, 0.2);
+}
+
 .platformDefault {
   background: hsla(250, 30%, 40%, 0.12);
   color: hsl(250, 30%, 70%);
@@ -257,10 +266,14 @@
 
 .pillIcon {
   font-size: 0.9rem;
+  position: relative;
+  z-index: 1;
 }
 
 .pillLabel {
   font-size: 0.75rem;
+  position: relative;
+  z-index: 1;
 }
 
 .pillLink {
@@ -330,8 +343,12 @@
   top: 0;
   left: 0;
   bottom: 0;
-  background: hsla(var(--primary) / 0.15);
-  border-right: 1px solid hsla(var(--primary) / 0.3);
+  background: linear-gradient(90deg, 
+    hsla(var(--primary) / 0.1), 
+    hsla(var(--primary) / 0.25)
+  );
+  backdrop-filter: blur(4px);
+  border-right: 1px solid hsla(var(--primary) / 0.4);
   z-index: 0;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -345,6 +362,8 @@
   padding: 1px 4px;
   border-radius: 4px;
   border: 1px solid hsla(var(--primary) / 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes heartbeat {
