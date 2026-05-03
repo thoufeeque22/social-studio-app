@@ -86,6 +86,7 @@ export async function handlePlatformUploadRequest({
     }
 
     // 3. SECURITY: Verify account ownership before proceeding
+    let accountName = 'Unknown Account';
     if (accountId) {
       const account = await prisma.account.findFirst({
         where: { id: accountId, userId: session.user.id }
@@ -95,14 +96,13 @@ export async function handlePlatformUploadRequest({
           error: "Unauthorized: Account not found or not owned by user" 
         }, { status: 403 });
       }
-      console.log(`🔐 [SECURITY] Account ownership verified for ${platform}: ${accountId}`);
+      accountName = account.name || 'Unknown Account';
+      console.log(`🔐 [SECURITY] Account ownership verified for ${platform}: ${accountId} (${accountName})`);
     }
 
     // 3. MOCK_UPLOAD Check
     if (process.env.MOCK_UPLOAD === "true") {
       console.log(`🚀 [MOCK MODE] Skipping actual ${platform} API upload.`);
-      // Optional: Cleanup temp files immediately if they weren't staged
-      // (Staged files should stay for 24h as per scrub logic)
       return NextResponse.json({ 
         success: true, 
         data: { id: `mock-${platform}-${Date.now()}` } 
@@ -128,7 +128,6 @@ export async function handlePlatformUploadRequest({
         hashtags: []
       };
     }
-
     // Standard formatting for Caption/Description
     const finalCaption = formatPlatformCaption({
         title: enrichedContent.title,
@@ -136,6 +135,27 @@ export async function handlePlatformUploadRequest({
         hashtags: enrichedContent.hashtags,
         platform
     });
+
+    // 1.5 Ensure the record exists for onProgress updates
+    if (historyId && accountId) {
+      await prisma.postPlatformResult.upsert({
+        where: {
+          postHistoryId_platform_accountId: {
+            postHistoryId: historyId,
+            platform,
+            accountId
+          }
+        },
+        update: { status: 'uploading' },
+        create: {
+          postHistoryId: historyId,
+          platform,
+          accountId,
+          accountName,
+          status: 'uploading'
+        }
+      });
+    }
 
     // 5. Execute Platform-Specific SDK Logic with Unified Heartbeat
     try {
@@ -145,6 +165,7 @@ export async function handlePlatformUploadRequest({
         const currentPercent = Math.floor(percent);
         if (currentPercent > lastReported && historyId && accountId) {
           lastReported = currentPercent;
+          console.log(`💓 [HEARTBEAT] ${platform} (${accountId}): ${currentPercent}%`);
           const { updatePlatformProgress } = await import("./heartbeat-server");
           await updatePlatformProgress(historyId, platform, accountId, currentPercent);
         }
