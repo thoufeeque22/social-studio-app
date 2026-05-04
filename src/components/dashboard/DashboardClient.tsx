@@ -260,6 +260,29 @@ export default function DashboardClient({
       const initData = await initRes.json();
       const actualHistoryId = initData.data?.historyId || resumeHistoryId;
 
+      if (aiTier !== 'Manual') {
+        setUploadStatus("🪄 Generating AI Strategy...");
+        const title = formData.get('title') as string;
+        const description = formData.get('description') as string;
+        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+        const targetPlatformNames = targetPlatforms.map(p => p.platform);
+        
+        const previews = await getMultiPlatformAIPreviews(
+          title, 
+          description, 
+          aiTier, 
+          contentMode, 
+          targetPlatformNames, 
+          [], 
+          customStyleText
+        );
+        
+        setAiPreviews(previews);
+        setReviewContext({ historyId: actualHistoryId });
+        setIsReviewing(true);
+        return; // Pause the flow, wait for user confirmation
+      }
+
       // 3. Save everything to localStorage for the Activity Hub Cockpit
       const pendingPost = {
         title: formData.get('title') as string,
@@ -301,9 +324,39 @@ export default function DashboardClient({
       
       setUploadStatus("✨ AI Content saved! Finalizing in Activity Hub...");
       setIsComplete(true);
+
+      // Reconstruct the pending post for the Cockpit UI
+      const targetPlatforms = selectedAccountIds.map(id => {
+        const isSplit = id.includes(':');
+        const platformKey = isSplit ? id.split(':')[0] : null;
+        const actualAccountId = isSplit ? id.split(':')[1] : id;
+        const account = devAccounts.find(a => a.id === actualAccountId);
+        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
+        if (isSplit && platformKey) provider = platformKey;
+        return { platform: provider, accountId: actualAccountId };
+      }).filter(p => p.platform !== 'unknown');
+
+      const pendingPost = {
+        title: "AI Optimized Post", // Cockpit uses DB anyway, this is just for UI placeholder
+        description: "",
+        videoFormat,
+        aiTier,
+        contentMode,
+        customStyleText,
+        platforms: targetPlatforms,
+        isScheduled,
+        scheduledAt,
+        galleryFileId,
+        galleryFileName,
+        resumeHistoryId: reviewContext.historyId
+      };
+
+      localStorage.setItem('SS_PENDING_POST', JSON.stringify(pendingPost));
+      localStorage.removeItem('SS_DRAFT_TITLE');
+      localStorage.removeItem('SS_DRAFT_DESC');
       
       setTimeout(() => {
-        window.location.href = '/history';
+        window.location.href = '/history?action=distribute';
       }, 1500);
       
       handleFileChange(null);
