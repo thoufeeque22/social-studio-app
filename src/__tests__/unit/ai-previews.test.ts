@@ -51,7 +51,7 @@ describe('getMultiPlatformAIPreviews', () => {
       'My Video',
       '',
       'Basic',
-      'Hook',
+      'Smart',
       ['youtube', 'instagram'],
       undefined,
       undefined

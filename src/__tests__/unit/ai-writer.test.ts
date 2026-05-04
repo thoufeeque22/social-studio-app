@@ -51,7 +51,8 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     };
     global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
 
-    const result = await generatePostContent('Generate', 'Hook', 'Hello', 'World', 'instagram');
+    const result = await generatePostContent('Generate', 'Smart', 'Hello', 'World', 'instagram');
+
     
     expect(result.title).toBe("Ollama Title");
     expect(global.fetch).toHaveBeenCalled();
@@ -63,7 +64,7 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     vi.stubEnv('GEMINI_API_KEY', '');
     vi.stubEnv('NODE_ENV', 'production');
 
-    await expect(generatePostContent('Generate', 'Hook', 'Hello', 'World', 'instagram'))
+    await expect(generatePostContent('Generate', 'Smart', 'Hello', 'World', 'instagram'))
       .rejects.toThrow('GEMINI_API_KEY is not configured for production use.');
   });
 

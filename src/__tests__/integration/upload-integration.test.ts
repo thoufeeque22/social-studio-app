@@ -38,9 +38,15 @@ vi.mock('fs', () => {
   return {
     promises,
     createReadStream: vi.fn().mockReturnValue({}),
+    existsSync: vi.fn().mockReturnValue(true),
+    mkdirSync: vi.fn(),
+    appendFileSync: vi.fn(),
     default: {
       promises,
       createReadStream: vi.fn().mockReturnValue({}),
+      existsSync: vi.fn().mockReturnValue(true),
+      mkdirSync: vi.fn(),
+      appendFileSync: vi.fn(),
     },
   };
 });

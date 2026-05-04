@@ -71,7 +71,7 @@ describe('Project Management & UI Humanization', () => {
       selectedAccountIds: [],
       successfulAccountIds: [],
       platformStatuses: {},
-      contentMode: 'Hook',
+      contentMode: 'Smart',
       aiTier: 'Manual',
       videoFormat: 'short',
       videoDuration: 45, // 45 seconds

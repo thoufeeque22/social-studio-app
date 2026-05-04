@@ -56,9 +56,10 @@ describe('History Actions (Internal)', () => {
     // Verify upsert
     expect(prisma.postPlatformResult.upsert).toHaveBeenCalledWith(expect.objectContaining({
       where: {
-        postHistoryId_platform: {
+        postHistoryId_platform_accountId: {
           postHistoryId: historyId,
-          platform: 'youtube'
+          platform: 'youtube',
+          accountId: ''
         }
       },
       update: expect.objectContaining({
