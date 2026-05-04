@@ -1,9 +1,10 @@
-"use server";
+"use strict";
 import path from 'path';
 import { 
   formatPlatformCaption, 
   constructPublicVideoUrl 
 } from './distributor-utils';
+import { logger } from '@/lib/core/logger';
 
 /**
  * ORCHESTRATES PUBLISHING TO A SINGLE PLATFORM.
@@ -17,7 +18,8 @@ export async function distributeSinglePlatform({
   description,
   videoFormat,
   accountId,
-  fields = {}
+  fields = {},
+  onProgress: progressCallback
 }: {
   platform: string;
   userId: string;
@@ -27,6 +29,7 @@ export async function distributeSinglePlatform({
   videoFormat: 'short' | 'long';
   accountId?: string;
   fields?: Record<string, any>;
+  onProgress?: (percent: number) => void;
 }) {
   const finalCaption = formatPlatformCaption({
     title,
@@ -34,9 +37,8 @@ export async function distributeSinglePlatform({
     platform
   });
 
-  // MOCK_UPLOAD Check
   if (process.env.MOCK_UPLOAD === "true") {
-    console.log(`🚀 [DISTRIBUTOR-SERVER] [MOCK MODE] Skipping real ${platform} distribution.`);
+    logger.info(`🚀 [DISTRIBUTOR-SERVER] [MOCK MODE] Skipping real ${platform} distribution.`);
     return { id: `mock-${platform}-${Date.now()}`, success: true };
   }
 
@@ -49,7 +51,8 @@ export async function distributeSinglePlatform({
       description: finalCaption,
       privacy: (fields.privacy as any) || 'public',
       accountId,
-      resumableUrl: fields.resumableUrl
+      resumableUrl: fields.resumableUrl,
+      onProgress: progressCallback
     });
     return result.data;
   } 
@@ -57,7 +60,7 @@ export async function distributeSinglePlatform({
   if (platform === 'facebook') {
     const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
     if (videoFormat === 'short') {
-      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId });
+      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId, onProgress: progressCallback });
     } else {
       return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId });
     }
@@ -73,7 +76,8 @@ export async function distributeSinglePlatform({
       caption: finalCaption,
       accountId,
       creationId: fields.creationId,
-      musicId: fields.musicId
+      musicId: fields.musicId,
+      onProgress: progressCallback
     });
   } 
   
@@ -84,6 +88,16 @@ export async function distributeSinglePlatform({
       videoPath: filePath,
       title: finalCaption,
       accountId
+    });
+  }
+
+  if (platform.startsWith('local')) {
+    const { publishLocalReel } = await import('@/lib/platforms/local');
+    return await publishLocalReel({
+      userId,
+      filePath,
+      caption: finalCaption,
+      onProgress: progressCallback
     });
   }
 

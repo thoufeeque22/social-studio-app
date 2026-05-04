@@ -71,6 +71,48 @@
   transition: border-color 0.2s ease;
 }
 
+.globalPrepBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: hsla(var(--primary) / 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid hsla(var(--primary) / 0.15);
+  overflow: hidden;
+}
+
+.globalPrepProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background: hsla(var(--primary) / 0.25);
+  animation: fillProgress 15s cubic-bezier(0.1, 0, 0.2, 1) forwards;
+}
+
+@keyframes fillProgress {
+  0% { width: 5%; }
+  30% { width: 45%; }
+  100% { width: 92%; }
+}
+
+.globalPrepText {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: hsl(var(--primary));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+/* fillProgress handled above */
+
 .cardHeader {
   display: flex;
   align-items: flex-start;
@@ -148,6 +190,8 @@
   text-decoration: none;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 .platformPill:hover {
@@ -206,6 +250,15 @@
   background: hsla(170, 80%, 50%, 0.2);
 }
 
+.platformLocal {
+  background: hsla(240, 80%, 60%, 0.12);
+  color: hsl(240, 80%, 75%);
+  border-color: hsla(240, 80%, 60%, 0.2);
+}
+.platformLocal:hover {
+  background: hsla(240, 80%, 60%, 0.2);
+}
+
 .platformDefault {
   background: hsla(250, 30%, 40%, 0.12);
   color: hsl(250, 30%, 70%);
@@ -214,10 +267,14 @@
 
 .pillIcon {
   font-size: 0.9rem;
+  position: relative;
+  z-index: 1;
 }
 
 .pillLabel {
   font-size: 0.75rem;
+  position: relative;
+  z-index: 1;
 }
 
 .pillLink {
@@ -254,8 +311,22 @@
   cursor: wait;
 }
 
+.platformPillCancelled {
+  background: hsla(0, 0%, 20%, 0.12);
+  color: hsl(0, 0%, 60%);
+  border-color: hsla(0, 0%, 30%, 0.3);
+}
+
 .platformPillRetrying .pillIcon {
   animation: rotate 2s linear infinite;
+}
+
+.platformPillUploading {
+  background: hsla(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  border-color: hsla(var(--primary) / 0.3);
+  cursor: progress;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .platformPillPending {
@@ -263,7 +334,48 @@
   color: hsl(200, 80%, 75%);
   border-color: hsla(200, 80%, 60%, 0.3);
   cursor: wait;
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: heartbeat 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.pillProgressBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    hsla(var(--primary) / 0.1), 
+    hsla(var(--primary) / 0.25)
+  );
+  backdrop-filter: blur(4px);
+  border-right: 1px solid hsla(var(--primary) / 0.4);
+  z-index: 0;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressPercent {
+  font-size: 0.65rem;
+  margin-left: 0.4rem;
+  font-weight: 800;
+  color: hsl(var(--primary));
+  background: hsla(var(--primary) / 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid hsla(var(--primary) / 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .platformPillStale {
@@ -304,6 +416,53 @@
 @keyframes rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.pillActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+  border-left: 1px solid hsla(var(--border) / 0.3);
+  padding-left: 0.4rem;
+}
+
+.pillActionButton {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pillActionButton:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.stopAllButton {
+  background: hsla(0, 80%, 60%, 0.1);
+  border: 1px solid hsla(0, 80%, 60%, 0.3);
+  color: hsl(0, 80%, 70%);
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.stopAllButton:hover {
+  background: hsla(0, 80%, 60%, 0.2);
+  border-color: hsla(0, 80%, 60%, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsla(0, 80%, 60%, 0.2);
 }
 
 .inPlaceUploadProgress {

@@ -152,7 +152,7 @@ export default function SchedulePage() {
       const currentDesc = formData?.get('description') as string || editingPost.description || '';
 
       const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-      const previews = await getMultiPlatformAIPreviews(currentTitle, currentDesc, 'Enrich', 'Hook', pNames);
+      const previews = await getMultiPlatformAIPreviews(currentTitle, currentDesc, 'Enrich', 'Smart', pNames);
       
       if (previews) {
         setAiPreviews(previews);

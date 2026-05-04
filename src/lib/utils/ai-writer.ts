@@ -22,7 +22,7 @@ interface Part {
   };
 }
 
-function buildSystemPrompt(platform: Platform, tier: AITier, mode: StyleMode, hasVisualData: boolean): string {
+function buildSystemPrompt(platform: Platform, tier: AITier, mode: StyleMode, hasVisualData: boolean, customStyleText?: string): string {
   let prompt = `You are a social media copywriter expert. 
 Target Platform: ${(platform || "general").toUpperCase()}.
 AI Strategy: ${(tier || "generate").toUpperCase()} mode.
@@ -46,23 +46,47 @@ Always generate exactly 5 hashtags by default.`;
   }
 
   const platformConstraints: Record<Platform, string> = {
-    youtube: `\nConstraints: The title MUST be under 60 characters for YouTube Shorts. The description should be engaging and SEO-rich.`,
-    tiktok: `\nConstraints: Trendy, fast-paced language. Use trending TikTok hashtags. Description should be short and punchy. Maximum 5 hashtags allowed.`,
-    instagram: `\nConstraints: Aesthetic vibe, emojis allowed, use strategic niche hashtags. Modest description length. Maximum 5 hashtags allowed.`
+    youtube: `\nConstraints: 
+- YouTube is a SEARCH engine. Prioritize SEO and Search Intent.
+- The Title MUST be under 60 characters and lead with high-volume keywords.
+- The Description must be keyword-dense, include a summary of the video, and use searchable phrases.
+- Tone: Informative, authoritative, yet engaging.`,
+    tiktok: `\nConstraints: 
+- TikTok is an ATTENTION engine. Prioritize the HOOK.
+- The Description must start with a scroll-stopping statement or a curiosity gap.
+- Use trendy, high-energy language and Gen-Z appropriate slang if it fits the vibe.
+- Keep the caption short; the visuals do the talking. Maximum 5 hashtags.
+- Tone: High-energy, raw, authentic, and fast-paced.`,
+    instagram: `\nConstraints: 
+- Instagram is a LIFESTYLE engine. Prioritize Aesthetics and Community.
+- Use emojis strategically to break up text and add personality.
+- Captions should be relatable, storyteller-focused, or highly curated.
+- Include a clear 'Link in Bio' or 'Save for Later' call to action.
+- Tone: Aesthetic, aspirational, relatable, and community-driven.`
   };
   
   if (platformConstraints[platform]) {
     prompt += platformConstraints[platform];
   }
 
+  let activeMode = mode;
+  if (mode === 'Smart') {
+    if (platform === 'youtube') activeMode = 'SEO';
+    else if (platform === 'tiktok') activeMode = 'Gen-Z';
+    else if (platform === 'instagram') activeMode = 'Story';
+    else activeMode = 'Story'; // Default fallback
+  }
+
   const styleConstraints: Record<StyleMode, string> = {
-    Hook: `\nStyle: High-adrenaline, click-inducing, FOMO-driven hook. Make it impossible not to click.`,
-    SEO: `\nStyle: Search-optimized, informative, keyword-dense but readable.`,
-    "Gen-Z": `\nStyle: Authentic, low-caps, gen-z slang, ironically detached but engaging. No cap.`
+    Smart: `\nStyle: PLATFORM-OPTIMIZED. You are in 'Smart Mode'. Switch your strategy dynamically to the absolute best cultural fit for ${platform}.`,
+    "Gen-Z": `\nStyle: ADRENALINE & AUTHENTICITY. Use a 'pattern interrupt' hook to stop the scroll. Use lowercase, ironical detachment, and specific slang like 'no cap', 'bet', or 'fr'. High energy, trendy, and raw.`,
+    SEO: `\nStyle: DISCOVERABILITY. Focus on semantic keywords and phrases that people actually type into search bars. Structure content logically for search intent.`,
+    Story: `\nStyle: NARRATIVE. Use the 'Hero's Journey' or a simple 'Problem-Agitation-Solution' framework. Focus on building a human connection.`,
+    Custom: `\nStyle: USER-DEFINED. Use the following specific tone and style as your primary constraint: ${customStyleText || 'Be helpful and engaging.'}`
   };
 
-  if (styleConstraints[mode]) {
-    prompt += styleConstraints[mode];
+  if (styleConstraints[activeMode]) {
+    prompt += styleConstraints[activeMode];
   }
 
   return prompt;
@@ -156,7 +180,8 @@ export async function generatePostContent(
   rawText: string,
   videoContext: string,
   platform: Platform,
-  visualData?: string[]
+  visualData?: string[],
+  customStyleText?: string
 ): Promise<AIWriteResult> {
   const isProduction = process.env.NODE_ENV === 'production';
   if (tier === 'Manual') {
@@ -168,7 +193,7 @@ export async function generatePostContent(
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const systemPrompt = buildSystemPrompt(platform, tier, mode, !!visualData && visualData.length > 0);
+  const systemPrompt = buildSystemPrompt(platform, tier, mode, !!visualData && visualData.length > 0, customStyleText);
   const prompt = tier === 'Enrich' 
     ? `Draft Title: ${rawText}\nDraft Description: ${videoContext}`
     : `User Prompt: ${rawText}\nAdditional Context: ${videoContext}`;

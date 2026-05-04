@@ -7,7 +7,7 @@ export type PlatformStatus = 'pending' | 'uploading' | 'processing' | 'success' 
 
 export function useDistributionEngine(accounts: Account[]) {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | React.ReactNode | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<Record<string, PlatformStatus>>({});
   const [platformErrors, setPlatformErrors] = useState<Record<string, string>>({});
   const [successfulAccountIds, setSuccessfulAccountIds] = useState<string[]>([]);
@@ -103,7 +103,7 @@ export function useDistributionEngine(accounts: Account[]) {
         formData,
         accounts,
         selectedAccountIds: activeTargets,
-        contentMode: (formData.get('contentMode') as any) || 'Hook',
+        contentMode: (formData.get('contentMode') as any) || 'Smart',
         videoFormat: (formData.get('videoFormat') as any) || 'short',
         onStatusUpdate: setUploadStatus,
         onPlatformStatus: (id, status, error) => {
@@ -154,6 +154,7 @@ export function useDistributionEngine(accounts: Account[]) {
 
   return {
     isUploading,
+    setIsUploading,
     uploadStatus,
     setUploadStatus,
     platformStatuses,

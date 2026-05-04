@@ -4,6 +4,7 @@ import { prisma } from "@/lib/core/prisma";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
+import { getVideoMetadata, checkTranscodeRequirement } from "@/lib/video/processor";
 
 export const maxDuration = 300; 
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   // ------------------------------
 
   try {
-    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId } = await req.json();
+    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId, platforms } = await req.json();
     
     if (!uploadId || !fileName || totalChunks === undefined) {
       return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
@@ -145,6 +146,15 @@ export async function POST(req: NextRequest) {
         }
       });
 
+      // 1. EXTRACT METADATA (FFMPEG PRE-FLIGHT)
+      let videoMetadata = null;
+      try {
+        videoMetadata = await getVideoMetadata(finalPath);
+        console.log(`🎬 [METADATA] Extracted for ${fileName}: ${videoMetadata.width}x${videoMetadata.height}`);
+      } catch (me) {
+        console.warn("⚠️ [METADATA] Extraction failed (non-critical):", me);
+      }
+
       if (existingAsset) {
         console.log(`🔄 [GALLERY] Updating existing asset to prevent duplicate: ${fileName}`);
         await prisma.galleryAsset.update({
@@ -152,7 +162,8 @@ export async function POST(req: NextRequest) {
           data: {
             fileId: fileId, // Point to the newest version
             expiresAt: sevenDaysFromNow,
-            createdAt: new Date() // Reset creation date for sorting
+            createdAt: new Date(), // Reset creation date for sorting
+            metadata: videoMetadata as any
           }
         });
       } else {
@@ -161,9 +172,10 @@ export async function POST(req: NextRequest) {
             userId: session.user.id,
             fileId: fileId,
             fileName: fileName,
-          fileSize: BigInt(stats.size),
+            fileSize: BigInt(stats.size),
             mimeType: "video/mp4", // Default
-            expiresAt: sevenDaysFromNow
+            expiresAt: sevenDaysFromNow,
+            metadata: videoMetadata as any
           }
         });
       }
@@ -173,18 +185,44 @@ export async function POST(req: NextRequest) {
 
     // UPSERT POST HISTORY RECORD (RELIABILITY FIX V4)
     let history;
+    const initialPlatformData = platforms ? await Promise.all((platforms as any[]).map(async (p) => {
+      const { results } = await checkTranscodeRequirement(finalPath, [p.platform]);
+      return {
+        platform: p.platform,
+        accountId: p.accountId,
+        status: 'pending',
+        transcodeStatus: results[p.platform]?.needsTranscode ? 'pending' : 'skipped'
+      };
+    })) : [];
+
     if (historyId) {
       history = await prisma.postHistory.update({
         where: { id: historyId, userId: session.user.id },
         data: {
           stagedFileId: fileId,
-          // metadata might have changed slightly or we just ensure it is set
           title: title || undefined,
           description: description || undefined,
+          isPublished: false,
+          scheduledAt: new Date(),
+          platforms: {
+            upsert: initialPlatformData.map(p => ({
+              where: { 
+                postHistoryId_platform_accountId: { 
+                  postHistoryId: historyId, 
+                  platform: p.platform,
+                  accountId: p.accountId 
+                } 
+              },
+              update: { 
+                accountId: p.accountId, 
+                transcodeStatus: p.transcodeStatus 
+              },
+              create: p
+            }))
+          }
         }
       });
     } else {
-      // Fallback for legacy flows
       history = await prisma.postHistory.create({
         data: {
           userId: session.user.id,
@@ -192,8 +230,10 @@ export async function POST(req: NextRequest) {
           description: description || null,
           videoFormat: videoFormat || "short",
           stagedFileId: fileId,
+          isPublished: false, // Background worker will pick this up
+          scheduledAt: new Date(), // Publish ASAP
           platforms: {
-            create: []
+            create: initialPlatformData
           }
         }
       });

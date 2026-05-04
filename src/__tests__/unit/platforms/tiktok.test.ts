@@ -26,11 +26,15 @@ vi.mock('@/lib/core/prisma', () => ({
 vi.mock('fs', () => ({
   promises: {
     readFile: vi.fn().mockResolvedValue(Buffer.from('video_data')),
+    stat: vi.fn().mockResolvedValue({ size: 1024 }),
   },
+  createReadStream: vi.fn().mockReturnValue(Buffer.from('video_data')),
   default: {
     promises: {
       readFile: vi.fn().mockResolvedValue(Buffer.from('video_data')),
-    }
+      stat: vi.fn().mockResolvedValue({ size: 1024 }),
+    },
+    createReadStream: vi.fn().mockReturnValue(Buffer.from('video_data')),
   }
 }));
 

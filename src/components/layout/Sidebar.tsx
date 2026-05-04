@@ -12,7 +12,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
     { name: 'Dashboard', icon: '📊', path: '/' },
     { name: 'Schedule', icon: '📅', path: '/schedule' },
     { name: 'Media Gallery', icon: '🖼️', path: '/media' },
-    { name: 'History', icon: '📜', path: '/history' },
+    { name: 'Activity Hub', icon: '⚡', path: '/history' },
     ...(process.env.NODE_ENV !== 'production' ? [
       { name: 'Roadmap', icon: '🗺️', path: '/roadmap' },
       { name: 'Launch', icon: '🚀', path: '/launch' },

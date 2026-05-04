@@ -71,7 +71,19 @@ export async function stageVideoFile({
   const fingerprint = `${file.name}-${file.size}-${file.type}`.replace(/[^a-zA-Z0-9]/g, '_');
   const uploadId = resumeHistoryId || `up_${fingerprint}`;
   
-  onStatusUpdate("🔍 Checking for existing chunks...");
+  const broadcast = (status: string, percent?: number) => {
+    onStatusUpdate(status);
+    if (globalThis.localStorage) {
+       localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
+         status, 
+         percent, 
+         active: true,
+         timestamp: Date.now() 
+       }));
+    }
+  };
+
+  broadcast("🔍 Synchronizing cockpit state...");
   let existingChunks: number[] = [];
   try {
     const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });
@@ -85,27 +97,43 @@ export async function stageVideoFile({
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   
   for (let i = 0; i < totalChunks; i++) {
-    if (existingChunks.includes(i)) continue;
+    if (existingChunks.includes(i)) {
+      const progress = Math.round(((i + 1) / totalChunks) * 100);
+      broadcast(`🚀 Resuming stream: ${progress}%`, progress);
+      continue;
+    }
     
     const start = i * CHUNK_SIZE;
     const end = Math.min(file.size, start + CHUNK_SIZE);
     const chunk = file.slice(start, end);
 
-    onStatusUpdate(`📤 Uploading chunk ${i + 1}/${totalChunks}...`);
-    const chunkResponse = await fetch(`/api/upload/chunk`, {
-      method: 'POST',
-      headers: {
-        'x-upload-id': uploadId,
-        'x-chunk-index': i.toString(),
-      },
-      body: chunk,
-      signal
-    });
+    const progress = Math.round((i / totalChunks) * 100);
+    broadcast(`📤 Streaming to Cloud: ${progress}%`, progress);
 
-    if (!chunkResponse.ok) throw new Error("Chunk upload failed");
+    let success = false;
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        const chunkResponse = await fetch(`/api/upload/chunk`, {
+          method: 'POST',
+          headers: {
+            'x-upload-id': uploadId,
+            'x-chunk-index': i.toString(),
+          },
+          body: chunk,
+          signal
+        });
+        if (chunkResponse.ok) {
+          success = true;
+          break;
+        }
+      } catch (e) {
+        console.warn(`Part ${i} stream failed (attempt ${retry + 1})`, e);
+      }
+    }
+    if (!success) throw new Error(`Stream interrupted at ${progress}%. Please check your connection.`);
   }
 
-  onStatusUpdate("🔗 Assembling video...");
+  broadcast("🔗 Finalizing for launch...", 99);
   const assembleResponse = await fetch(`/api/upload/assemble`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -115,6 +143,7 @@ export async function stageVideoFile({
       totalChunks,
       totalSize: file.size,
       ...metadata,
+      platforms,
       historyId: resumeHistoryId
     }),
     signal
@@ -122,6 +151,11 @@ export async function stageVideoFile({
 
   const stageResult = await assembleResponse.json();
   if (!assembleResponse.ok) throw new Error(stageResult.error || "Assembly failed");
+
+  // Cleanup broadcast on success
+  if (globalThis.localStorage) {
+    localStorage.removeItem('SS_STAGING_STATUS');
+  }
 
   return { 
     stagedFileId: stageResult.data.fileId, 
@@ -165,6 +199,11 @@ export async function distributeToPlatforms({
 
     if (selectionId.includes(':')) {
       [platform, realAccountId] = selectionId.split(':');
+    } else if (selectionId.startsWith('local-dev-')) {
+      // Local simulated platforms map to 'local1', 'local2', etc. based on their number
+      const num = selectionId.split('-').pop();
+      platform = `local${num}`;
+      realAccountId = selectionId;
     } else {
       const account = accounts.find(a => a.id === selectionId);
       if (!account) return;
@@ -177,6 +216,8 @@ export async function distributeToPlatforms({
 
     try {
       const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);
+      const endpointPlatform = platform.startsWith('local') ? 'local' : platform;
+      
       const payload = {
         stagedFileId,
         fileName,
@@ -185,10 +226,12 @@ export async function distributeToPlatforms({
         videoFormat,
         accountId: realAccountId,
         contentMode,
+        historyId,
         reviewedContent: reviewedContent ? reviewedContent[platform] : undefined,
+        actualPlatform: platform, // Pass the specific local platform
       };
 
-      const response = await fetch(`/api/upload/${platform}`, {
+      const response = await fetch(`/api/upload/${endpointPlatform}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

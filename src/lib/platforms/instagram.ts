@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/core/prisma";
+import { createReadStream } from "fs";
+import fsSync from "fs";
+import { logger } from "@/lib/core/logger";
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -47,11 +50,12 @@ export const publishInstagramReel = async ({
   musicId,
   accountId,
   creationId: existingCreationId,
-}: PublishReelParams & { accountId?: string; creationId?: string }) => {
+  onProgress,
+}: PublishReelParams & { accountId?: string; creationId?: string; onProgress?: (percent: number) => void; }) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
   let creationId = existingCreationId;
 
-  console.log(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
+  logger.info(`Starting Instagram Reel upload for IG ID: ${igUserId}`);
 
   try {
     let offset = 0;
@@ -82,16 +86,17 @@ export const publishInstagramReel = async ({
       });
 
       const containerData = await containerRes.json();
+      logger.info(`📦 [IG-REEL-STEP1] Container Response:`, JSON.stringify(containerData));
 
       if (containerData.error) {
-        console.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
+        logger.error("❌ Instagram Container Creation Failed:", JSON.stringify(containerData.error, null, 2));
         throw new Error(`Instagram Step 1 Failed: ${containerData.error.message}`);
       }
 
       creationId = containerData.id;
-      console.log(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Proceeding to binary push...`);
+      logger.info(`🚀 [IG-REEL-PUSH] Container created: ${creationId}. Proceeding to binary push...`);
     } else {
-      console.log(`🚀 [IG-REEL-RESUME] Checking offset for existing Creation ID: ${creationId}`);
+      logger.info(`🚀 [IG-REEL-RESUME] Checking offset for existing Creation ID: ${creationId}`);
       
       const offsetRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
         method: "GET",
@@ -113,103 +118,147 @@ export const publishInstagramReel = async ({
 
     if (offset < fileSize) {
       // STEP 2: Binary Push to rupload
-      console.log(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
+      logger.info(`🚀 [IG-REEL-PUSH] Uploading ${fileSize - offset} bytes starting at offset ${offset}...`);
       
       const fileStream = createReadStream(filePath, { start: offset });
-      
-      const uploadRes = await fetch(`https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `OAuth ${userAccessToken}`,
-          "Offset": offset.toString(),
-          "Content-Length": (fileSize - offset).toString(),
-          "X-Entity-Length": fileSize.toString(),
-          "X-Entity-Name": `video_${Date.now()}.mp4`,
-          "X-Entity-Type": "video/mp4",
-        },
-        body: fileStream as any,
-        // @ts-ignore
-        duplex: 'half'
+      let bytesUploaded = offset;
+
+      const { Transform } = await import('stream');
+      const progressStream = new Transform({
+        transform(chunk, encoding, callback) {
+          bytesUploaded += chunk.length;
+          if (onProgress) {
+            const percent = (bytesUploaded / fileSize) * 100;
+            onProgress(percent);
+
+            if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileSize) {
+               logger.info(`📤 [IG-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileSize / 1024 / 1024).toFixed(1)}MB)`);
+            }
+          }
+          callback(null, chunk);
+        }
       });
 
-      if (!uploadRes.ok) {
-        const uploadData = await uploadRes.json().catch(() => null);
-        console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadData, null, 2) || uploadRes.statusText);
-        throw new Error(`Instagram Binary Push Failed: ${uploadData?.error?.message || uploadRes.statusText}`);
+      console.log(`📡 [IG-UPLOAD] Starting axios binary push to Meta (Size: ${((fileSize - offset) / 1024 / 1024).toFixed(2)} MB)`);
+      const axios = (await import('axios')).default;
+      
+      try {
+        const uploadRes = await axios.post(
+          `https://rupload.facebook.com/ig-api-upload/v20.0/${creationId}`, 
+          fileStream.pipe(progressStream), 
+          {
+            headers: {
+              "Authorization": `OAuth ${userAccessToken}`,
+              "Offset": offset.toString(),
+              "Content-Length": (fileSize - offset).toString(),
+              "X-Entity-Length": fileSize.toString(),
+              "X-Entity-Name": `video_${Date.now()}.mp4`,
+              "X-Entity-Type": "video/mp4",
+              "Content-Type": "application/octet-stream"
+            },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 300000 // 5 minute timeout
+          }
+        );
+        logger.info(`📤 [IG-REEL-PUSH] Binary Push Response:`, JSON.stringify(uploadRes.data));
+
+        if (!uploadRes.data || uploadRes.data.success === false) {
+          console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadRes.data, null, 2));
+          throw new Error(`Instagram Binary Push Failed: ${JSON.stringify(uploadRes.data)}`);
+        }
+      } catch (axiosError: any) {
+        const errorData = axiosError.response?.data;
+        console.error("❌ Instagram Axios Push Error:", JSON.stringify(errorData, null, 2) || axiosError.message);
+        throw new Error(`Instagram Binary Push Failed: ${errorData?.error?.message || axiosError.message}`);
       }
+
       console.log(`🚀 [IG-REEL-PUSH] Binary push complete for ${creationId}. Waiting for processing...`);
     } else {
       console.log(`🚀 [IG-REEL-PUSH] File already fully uploaded. Proceeding to processing check...`);
     }
 
-  // STEP 2: Poll for Processing Status
-  let status = "IN_PROGRESS";
-  const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
+    // STEP 3: Poll for Processing Status
+    let status = "IN_PROGRESS";
+    const statusUrl = `https://graph.facebook.com/v20.0/${creationId}?fields=status_code&access_token=${userAccessToken}`;
 
-  // Poll every 5 seconds, max 60 times (5 minutes total)
-  // Licensed music or high-quality video can take longer to process on Meta's side.
-  for (let i = 0; i < 60; i++) {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    
-    const statusRes = await fetch(statusUrl);
-    const statusData = await statusRes.json();
-    
-    status = statusData.status_code;
-    console.log(`Polling status: ${status}...`);
+    // Poll every 5 seconds, max 60 times (5 minutes total)
+    for (let i = 0; i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
+      const statusRes = await fetch(statusUrl);
+      const statusData = await statusRes.json();
+      logger.info(`🔍 [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
+      
+      status = statusData.status_code;
+      console.log(`Polling status: ${status}...`);
 
-    if (status === "FINISHED") break;
-    if (status === "ERROR") {
-      throw new Error("Instagram video processing failed. This usually indicates an issue with the Meta API or file format. Please check the logs.");
+      if (status === "FINISHED") break;
+      if (status === "ERROR") {
+        throw new Error("Instagram video processing failed. Please check the logs.");
+      }
     }
-  }
 
-  if (status !== "FINISHED") {
-    throw new Error("Instagram processing timed out. Please try again later.");
-  }
+    if (status !== "FINISHED") {
+      throw new Error("Instagram processing timed out. Please try again later.");
+    }
 
-  // STEP 3: Publish Media
-  console.log("Publishing Reel...");
-  const publishUrl = `https://graph.facebook.com/v20.0/${igUserId}/media_publish`;
-  const publishRes = await fetch(publishUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      creation_id: creationId,
-      access_token: userAccessToken,
-    }),
-  });
+    // STEP 4: Finalize/Publish
+    console.log(`🚀 [IG-REEL-STEP4] Publishing Reel ${creationId}...`);
+    const publishRes = await fetch(`https://graph.facebook.com/v20.0/${igUserId}/media_publish?creation_id=${creationId}&access_token=${userAccessToken}`, {
+      method: "POST"
+    });
+    const publishData = await publishRes.json();
+    logger.info(`🎬 [IG-REEL-STEP4] Publish Response:`, JSON.stringify(publishData));
 
-  const publishData = await publishRes.json();
+    if (publishData.error) {
+      throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
+    }
 
-  if (publishData.error) {
-    throw new Error(`Instagram Step 3 Failed: ${publishData.error.message}`);
-  }
+    const publishedMediaId = publishData.id;
+    logger.info(`Reel successfully published! ID: ${publishedMediaId}`);
 
-    console.log("Reel successfully published!");
-    return { ...publishData, creationId };
+    // STEP 5: Handshake for Gold Standard Link
+    logger.info(`🚀 [IG-REEL-STEP5] Fetching final permalink (with 4s grace)...`);
+    await new Promise(r => setTimeout(r, 4000));
+    
+    try {
+      const permalinkRes = await fetch(`https://graph.facebook.com/v20.0/${publishedMediaId}?fields=permalink,shortcode&access_token=${userAccessToken}`);
+      const permalinkData = await permalinkRes.json();
+      logger.info(`🔗 [IG-REEL-STEP5] Handshake Response:`, JSON.stringify(permalinkData));
+      
+      let finalPermalink = permalinkData.permalink;
+      if (!finalPermalink && permalinkData.shortcode) {
+        finalPermalink = `https://www.instagram.com/reel/${permalinkData.shortcode}/`;
+      }
+
+      if (finalPermalink) {
+        console.log(`✅ [IG-REEL] Final Handshake Success: ${finalPermalink}`);
+        return { ...publishData, creationId, permalink: finalPermalink };
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to fetch Instagram permalink.", e);
+    }
+
+    return { 
+      ...publishData, 
+      creationId, 
+      permalink: `https://www.instagram.com/reel/${publishedMediaId}/` 
+    };
+
   } catch (error: any) {
-    console.error("Instagram Upload Error:", error);
-    // Wrap error to include creationId if we have one
+    console.error("❌ Instagram Distribution Failed:", error);
     throw { message: error.message, creationId, status: "failed" };
   }
 };
 
-/**
- * Fetches account statistics for the given user's Instagram account.
- */
 export const getInstagramStats = async (userId: string, accountId?: string) => {
   const { igUserId, userAccessToken } = await getInstagramAccount(userId, accountId);
-  
   const url = `https://graph.facebook.com/v20.0/${igUserId}?fields=followers_count,media_count,name&access_token=${userAccessToken}`;
   const res = await fetch(url);
   const data = await res.json();
+  if (data.error) return null;
 
-  if (data.error) {
-    console.error("Instagram Stats Error:", data.error);
-    return null;
-  }
-
-  // Also try to get reach (insights) for the last 30 days
   const insightsUrl = `https://graph.facebook.com/v20.0/${igUserId}/insights?metric=reach,impressions&period=days_28&access_token=${userAccessToken}`;
   const insightsRes = await fetch(insightsUrl);
   const insightsData = await insightsRes.json();

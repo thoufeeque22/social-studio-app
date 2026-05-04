@@ -19,8 +19,6 @@ interface UploadFormProps {
   accounts: Account[];
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
-  successfulAccountIds: string[];
-  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
   contentMode: StyleMode;
   aiTier: AITier;
   videoFormat: 'short' | 'long';
@@ -31,17 +29,21 @@ interface UploadFormProps {
   onModeChange: (mode: StyleMode) => void;
   onFormatChange: (format: 'short' | 'long') => void;
   onToggleAccount: (id: string) => void;
-  onAbort: (id: string) => void;
-  onAbortAll: () => void;
   onFileChange: (file: File) => void;
   onGallerySelect: (fileId: string, fileName: string) => void;
   onSubmit: (formData: FormData) => Promise<void>;
   isScheduled: boolean;
   scheduledAt: string;
   onSchedulingChange: (isScheduled: boolean, date: string) => void;
-  hasFailures?: boolean;
   isComplete: boolean;
-  platformErrors?: Record<string, string>;
+  customStyleText: string;
+  onCustomStyleChange: (text: string) => void;
+  successfulAccountIds: string[];
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
+  platformErrors: Record<string, string>;
+  onAbort: (id: string) => void;
+  onAbortAll: () => void;
+  hasFailures: boolean;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -50,8 +52,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   accounts,
   preferences,
   selectedAccountIds,
-  successfulAccountIds,
-  platformStatuses,
   contentMode,
   aiTier,
   videoFormat,
@@ -62,16 +62,21 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onModeChange,
   onFormatChange,
   onToggleAccount,
-  onAbort,
-  onAbortAll,
   onFileChange,
+  onGallerySelect,
   onSubmit,
   isScheduled,
   scheduledAt,
   onSchedulingChange,
-  hasFailures = false,
   isComplete,
-  platformErrors = {},
+  customStyleText,
+  onCustomStyleChange,
+  successfulAccountIds,
+  platformStatuses,
+  platformErrors,
+  onAbort,
+  onAbortAll,
+  hasFailures
 }) => {
   const {
     title,
@@ -111,7 +116,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
               <span style={{ fontSize: '1.1rem' }}>✨</span>
-              <span>{uploadStatus}</span>
+              <div style={{ fontWeight: 600 }}>{uploadStatus}</div>
             </div>
             <Link 
               href="/history" 
@@ -149,6 +154,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             <label htmlFor="file-upload" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Select Video File</label>
             {!isUploading && (
               <button 
+                id="browse-gallery-btn"
                 type="button"
                 onClick={() => setShowGallery(true)}
                 style={{ 
@@ -276,7 +282,14 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           </div>
         </div>
 
-        {aiTier !== 'Manual' && <AIStyleSelector contentMode={contentMode} onModeChange={onModeChange} />}
+        {aiTier !== 'Manual' && (
+          <AIStyleSelector 
+            contentMode={contentMode} 
+            onModeChange={onModeChange} 
+            customStyleText={customStyleText}
+            onCustomStyleChange={onCustomStyleChange}
+          />
+        )}
         
         {aiTier !== 'Manual' && (
           <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'hsla(var(--primary)/0.05)', border: '1px solid hsla(var(--primary)/0.15)' }}>
@@ -291,11 +304,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           accounts={accounts} 
           preferences={preferences}
           selectedAccountIds={selectedAccountIds} 
-          successfulAccountIds={successfulAccountIds}
-          platformStatuses={platformStatuses}
-          platformErrors={platformErrors}
           onToggleAccount={onToggleAccount} 
-          onAbort={onAbort}
         />
 
         <SchedulingSelector isScheduled={isScheduled} scheduledAt={scheduledAt} onChange={onSchedulingChange} />
@@ -305,7 +314,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           disabled={isUploading}
           style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
         >
-          {isUploading ? '📤 Processing...' : (hasFailures ? '🚀 Post to Remaining' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video'))}
+          {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video')}
         </button>
 
         {aiTier !== 'Manual' && !isUploading && (
@@ -319,7 +328,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               hidden.value = 'true';
               form.appendChild(hidden);
               form.requestSubmit();
-              hidden.remove();
+              setTimeout(() => hidden.remove(), 100);
             }}
             style={{ background: 'transparent', border: '1px solid hsla(var(--border)/0.5)', color: 'hsl(var(--muted-foreground))', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', cursor: 'pointer' }}
           >

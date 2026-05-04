@@ -76,7 +76,7 @@ model PostHistory {
   description  String?
   videoFormat  String               @default("short")
   scheduledAt  DateTime?
-  isPublished  Boolean              @default(true)
+  isPublished  Boolean              @default(false)
   stagedFileId String?
   createdAt    DateTime             @default(now())
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -96,13 +96,17 @@ model PostPlatformResult {
   resumableUrl   String?
   videoId        String?
   creationId     String?
+  transcodeStatus String?    @default("skipped") // pending, processing, completed, failed, skipped
+  optimizedFileId String?
+  metadata       Json?
   lastOffset     Int         @default(0)
+  progress       Int         @default(0)
   retryCount     Int         @default(0)
   lastRetryAt    DateTime?
   createdAt      DateTime    @default(now())
   postHistory    PostHistory  @relation(fields: [postHistoryId], references: [id], onDelete: Cascade)
 
-  @@unique([postHistoryId, platform])
+  @@unique([postHistoryId, platform, accountId], name: "postHistoryId_platform_accountId")
 }
 
 model RoadmapTask {
@@ -138,6 +142,8 @@ model GalleryAsset {
   fileName     String
   fileSize     BigInt?
   mimeType     String?
+  processingStatus String?  @default("ready") // ready, processing, failed
+  metadata     Json?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)

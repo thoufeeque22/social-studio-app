@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/core/prisma";
 import { promises as fs } from "fs";
 import fsSync from "fs";
+import path from "path";
+import { constructPublicVideoUrl } from "@/lib/core/distributor-utils";
 
 export const getFacebookPageAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -12,7 +14,7 @@ export const getFacebookPageAccount = async (userId: string, accountId?: string)
   }
 
   // Fetch the list of pages the user manages
-  const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?fields=name,access_token&access_token=${account.access_token}`;
+  const pagesUrl = `https://graph.facebook.com/v22.0/me/accounts?fields=name,access_token&access_token=${account.access_token}`;
   
   const pagesRes = await fetch(pagesUrl);
   const pagesData = await pagesRes.json();
@@ -38,7 +40,7 @@ const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
  */
 export const getFacebookVideoStatus = async (videoId: string, accessToken: string) => {
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/${videoId}?fields=status&access_token=${accessToken}`);
+    const res = await fetch(`https://graph.facebook.com/v22.0/${videoId}?fields=status&access_token=${accessToken}`);
     const data = await res.json();
     if (data.error) return `Unknown (Status Check Failed: ${data.error.message})`;
     
@@ -80,15 +82,16 @@ export const publishFacebookVideo = async ({
   console.log(`🚀 [FB-PUSH] Initializing Feed Binary Push for: ${pageName}`);
 
   // 1. UPLOAD Phase (Binary Push)
-  const fileBuffer = await fs.readFile(filePath);
+  const fileStream = fsSync.createReadStream(filePath);
   const formData = new FormData();
   
-  formData.append("source", new Blob([fileBuffer]) as any, "video.mp4");
+  // Note: Standard Web fetch in Node 18+ supports streams in FormData
+  formData.append("source", fileStream as any, "video.mp4");
   formData.append("title", title);
   formData.append("description", description);
   formData.append("access_token", pageAccessToken);
 
-  const res = await fetch(`https://graph-video.facebook.com/v20.0/${pageId}/videos`, {
+  const res = await fetch(`https://graph-video.facebook.com/v22.0/${pageId}/videos`, {
     method: "POST",
     body: formData,
   });
@@ -116,12 +119,14 @@ export const publishFacebookReel = async ({
   filePath,
   accountId,
   videoId: existingVideoId,
+  onProgress,
 }: {
   userId: string;
   filePath: string;
   description: string;
   accountId?: string;
   videoId?: string;
+  onProgress?: (percent: number) => void;
 }) => {
   const { pageId, pageAccessToken, pageName } = await getFacebookPageAccount(userId, accountId);
   let videoId = existingVideoId;
@@ -129,12 +134,13 @@ export const publishFacebookReel = async ({
   if (!videoId) {
     console.log(`🚀 [FB-REEL-HANDSHAKE] Step 1: Initializing for ${pageName}`);
 
-    // 1. START Step
-    const initRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
+    // 1. START Step (Declaring video_state early sometimes fixes the "Missing" error)
+    const initRes = await fetch(`https://graph.facebook.com/v22.0/${pageId}/video_reels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         upload_phase: "start",
+        video_state: "PUBLISHED", 
         access_token: pageAccessToken,
       }),
     });
@@ -145,60 +151,102 @@ export const publishFacebookReel = async ({
       throw new Error(`Reel Handshake Step 1 Failed: ${initData.error.message}`);
     }
     videoId = initData.video_id;
-
     console.log(`🚀 [FB-REEL-PUSH] Step 2: Pushing Binary Data for ${videoId}`);
 
-    // 2. BINARY PUSH Step (to rupload)
-    const fileBuffer = await fs.readFile(filePath);
+    // 2. BINARY PUSH Step
     const fileStats = await fs.stat(filePath);
+    const fileStream = fsSync.createReadStream(filePath);
+    let bytesUploaded = 0;
 
-    const uploadRes = await fetch(`https://rupload.facebook.com/video-upload/v20.0/${videoId}`, {
-      method: "POST",
-      headers: {
-        "Authorization": `OAuth ${pageAccessToken}`,
-        "Offset": "0",
-        "X-Entity-Length": fileStats.size.toString(),
-        "X-Entity-Type": "video/mp4",
-      },
-      body: fileBuffer,
+    const { Transform } = await import('stream');
+    const progressStream = new Transform({
+      transform(chunk, encoding, callback) {
+        bytesUploaded += chunk.length;
+        if (onProgress) {
+          const percent = (bytesUploaded / fileStats.size) * 100;
+          onProgress(percent);
+
+          if (bytesUploaded % (1024 * 1024) === 0 || bytesUploaded === fileStats.size) { // Log every 1MB
+             console.log(`📤 [FB-UPLOAD-PROGRESS] ${percent.toFixed(1)}% (${(bytesUploaded / 1024 / 1024).toFixed(1)}MB / ${(fileStats.size / 1024 / 1024).toFixed(1)}MB)`);
+          }
+        }
+        callback(null, chunk);
+      }
     });
 
-    const uploadData = await uploadRes.json();
-    if (!uploadData || uploadData.success === false || uploadData.error) {
-      console.error("❌ Facebook Reel Step 2 (Binary Push) Failed:", JSON.stringify(uploadData, null, 2));
-      throw new Error(`Reel Push Failed: ${uploadData.error?.message || JSON.stringify(uploadData)}`);
+    console.log(`📡 [FB-UPLOAD] Starting axios binary push to Meta (Size: ${(fileStats.size / 1024 / 1024).toFixed(2)} MB)`);
+    const axios = (await import('axios')).default;
+    
+    const uploadRes = await axios.post(
+      `https://rupload.facebook.com/video-upload/v22.0/${videoId}`, 
+      fileStream.pipe(progressStream), 
+      {
+        headers: {
+          "Authorization": `OAuth ${pageAccessToken}`,
+          "Offset": "0",
+          "Content-Length": fileStats.size.toString(),
+          "X-Entity-Length": fileStats.size.toString(),
+          "X-Entity-Name": `video_${Date.now()}.mp4`,
+          "X-Entity-Type": "video/mp4",
+          "Content-Type": "application/octet-stream"
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        timeout: 300000 // 5 minute timeout
+      }
+    );
+
+    if (!uploadRes.data || uploadRes.data.success === false) {
+      console.error("❌ Facebook Reel Step 2 (Binary Push) Failed:", JSON.stringify(uploadRes.data, null, 2));
+      throw new Error(`Reel Push Failed: ${JSON.stringify(uploadRes.data)}`);
     }
-  } else {
-    console.log(`🚀 [FB-REEL-RESUME] Resuming from polling/finish for Video ID: ${videoId}`);
+    
+    if (onProgress) onProgress(100);
+    console.log(`🚀 [FB-REEL-PUSH] Step 2 Success for ${videoId}. Meta has the bits.`);
   }
 
-  if (!videoId) throw new Error("Failed to acquire Video ID for polling");
+  // 3. POLLING Step (Wait for Meta to index the bits)
+  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Waiting for Meta to index video bits...`);
+  await sleep(15000); 
 
-  // 3. POLLING Step (5 Minutes Max)
-  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 3: Polling for ingestion...`);
-  let videoReady = false;
-  for (let i = 0; i < 60; i++) {
-    await sleep(10000); // Check every 10s
-    const statusReport = await getFacebookVideoStatus(videoId, pageAccessToken);
-    console.log(`[FB-POLL] ${statusReport}`);
+  let status = "IN_PROGRESS";
+  for (let i = 0; i < 15; i++) {
+    // Attempt a lightweight status check
+    const statusRes = await fetch(`https://graph.facebook.com/v20.0/${videoId}?fields=status&access_token=${pageAccessToken}`);
+    const statusData = await statusRes.json();
     
-    // Proceed if State is 'ready' OR 'upload_complete' (Meta has the bytes)
-    if (statusReport.includes('ready') || statusReport.includes('upload_complete')) {
-      videoReady = true;
+    const s = statusData.status || {};
+    const vStatus = s.video_status?.status || s.video_status;
+    
+    console.log(`[FB-POLL] Iteration ${i}: Video Status: ${vStatus || 'n/a'}`);
+
+    if (vStatus === 'ready' || vStatus === 'upload_complete') {
+      status = "FINISHED";
       break;
     }
-    if (statusReport.includes('error')) {
-      throw new Error(`Meta Ingestion Failed: ${statusReport}`);
+
+    // FALLBACK: If we've waited long enough and Step 2 was a success, 
+    // we proceed to finalize as Meta's status API can be delayed.
+    if (i >= 6) {
+       console.log("⚠️ [FB-POLL] Status indexing is taking long. Proceeding to finalize based on Step 2 success.");
+       status = "FINISHED";
+       break;
     }
+
+    if (vStatus === 'error') {
+      throw new Error(`Meta Video Processing Failed: ${JSON.stringify(statusData)}`);
+    }
+
+    await sleep(10000);
   }
 
-  if (!videoReady) {
-    throw new Error("Facebook Reel processing timed out (5m). File might still be fetching.");
+  if (status !== "FINISHED") {
+    console.warn("⚠️ Facebook Reel processing timed out, attempting finalize...");
   }
 
   // 4. FINISH Step
   console.log(`🚀 [FB-REEL-HANDSHAKE] Step 4: Finalizing...`);
-  const finishRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/video_reels`, {
+  const finishRes = await fetch(`https://graph.facebook.com/v22.0/${pageId}/video_reels`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -211,7 +259,28 @@ export const publishFacebookReel = async ({
   });
 
   const finishData = await finishRes.json();
-  if (finishData.error) throw new Error(`Reel Finish Failed: ${finishData.error.message}`);
+  if (finishData.error) {
+    console.error("❌ Facebook Reel Finalize Failed:", JSON.stringify(finishData.error, null, 2));
+    throw new Error(`Reel Finish Failed: ${finishData.error.message}`);
+  }
+
+  // 5. GET FINAL PERMALINK (Meta Gold Standard)
+  console.log(`🚀 [FB-REEL-HANDSHAKE] Step 5: Fetching final permalink...`);
+  try {
+    const permalinkRes = await fetch(`https://graph.facebook.com/v22.0/${videoId}?fields=permalink_url&access_token=${pageAccessToken}`);
+    const permalinkData = await permalinkRes.json();
+    if (permalinkData.permalink_url) {
+      console.log(`✅ [FB-REEL] Final Permalink: ${permalinkData.permalink_url}`);
+      return { 
+        success: true, 
+        videoId, 
+        pageName, 
+        permalink: permalinkData.permalink_url 
+      };
+    }
+  } catch (err) {
+    console.warn("⚠️ [FB-REEL] Failed to fetch final permalink, falling back to ID-based link.", err);
+  }
 
   return { success: true, videoId, pageName };
 };

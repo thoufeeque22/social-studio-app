@@ -18,6 +18,7 @@ vi.mock('../../lib/core/prisma', () => ({
     postHistory: {
       findMany: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
   },
 }));

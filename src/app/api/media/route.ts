@@ -56,19 +56,23 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { fileIds, deleteAll } = await req.json();
+    console.log(`🗑️ [GALLERY] Bulk Delete Request: deleteAll=${!!deleteAll}, count=${fileIds?.length || 0}`);
     
-    let targetIds = fileIds || [];
+    let targetIds: string[] = fileIds || [];
 
     if (deleteAll) {
+      // 1. Get ALL IDs first so we know what to delete from disk
       const userAssets = await prisma.galleryAsset.findMany({
         where: { userId: session.user.id },
         select: { fileId: true }
       });
       targetIds = userAssets.map(a => a.fileId);
       
+      // 2. Wipe DB records
       await prisma.galleryAsset.deleteMany({
         where: { userId: session.user.id }
       });
+      console.log(`🧹 [GALLERY] Wiped ${targetIds.length} DB records for user ${session.user.id}`);
     } else {
       if (!Array.isArray(fileIds) || fileIds.length === 0) {
         return NextResponse.json({ error: "No file IDs provided" }, { status: 400 });
@@ -81,21 +85,24 @@ export async function DELETE(req: NextRequest) {
           userId: session.user.id
         }
       });
+      console.log(`🧹 [GALLERY] Deleted ${fileIds.length} DB records.`);
     }
 
-    // 2. Physical cleanup
+    // 2. Physical cleanup (Always do this, even if DB failed or IDs were already missing)
     const tempDir = path.join(process.cwd(), "src/tmp");
+    let deletedCount = 0;
     for (const fileId of targetIds) {
       const filePath = path.join(tempDir, fileId);
       if (fsSync.existsSync(filePath)) {
-        await fs.unlink(filePath).catch(e => console.warn(`Failed to delete ${fileId}:`, e));
+        await fs.unlink(filePath).catch(e => console.warn(`⚠️ [GALLERY] Failed to delete ${fileId} from disk:`, e));
+        deletedCount++;
       }
     }
 
-    console.log(`🗑️ [GALLERY] Deleted ${targetIds.length} assets for user ${session.user.id} (deleteAll: ${!!deleteAll})`);
-    return NextResponse.json({ success: true, count: targetIds.length });
+    console.log(`✅ [GALLERY] Bulk Cleanup Success. Disk files removed: ${deletedCount}/${targetIds.length}`);
+    return NextResponse.json({ success: true, dbCount: targetIds.length, diskCount: deletedCount });
   } catch (error: any) {
-    console.error("Bulk Delete Error:", error);
+    console.error("❌ [GALLERY] Bulk Delete Error:", error);
     return NextResponse.json({ error: "Failed to delete assets" }, { status: 500 });
   }
 }

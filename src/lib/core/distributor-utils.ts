@@ -10,10 +10,10 @@
 export function extractPlatformPostId(platform: string, data: any): string | null {
   if (!data) return null;
   switch (platform) {
-    case 'youtube': return data.id || null;
+    case 'youtube': return data.id || data.data?.id || null;
     case 'facebook': return data.videoId || data.id || null;
     case 'instagram': return data.id || data.videoId || null;
-    case 'tiktok': return data.publish_id || null;
+    case 'tiktok': return data.publish_id || data.id || null;
     default: return null;
   }
 }
@@ -23,6 +23,19 @@ export function extractPlatformPostId(platform: string, data: any): string | nul
  */
 export function generatePermalink(platform: string, data: any): string | null {
   if (!data) return null;
+  
+  // Use official platform permalink if provided (Gold Standard)
+  if (data.permalink) {
+    let link = data.permalink;
+    // Force modern vertical video format if Meta returns the legacy URL
+    if (platform === 'facebook' && link.includes('facebook.com/watch/?v=')) {
+      link = link.replace('facebook.com/watch/?v=', 'facebook.com/reel/');
+    }
+    if (platform === 'instagram' && link.includes('instagram.com/reels/')) {
+      link = link.replace('instagram.com/reels/', 'instagram.com/reel/');
+    }
+    return link;
+  }
 
   switch (platform) {
     case 'youtube': {
@@ -31,11 +44,19 @@ export function generatePermalink(platform: string, data: any): string | null {
     }
     case 'facebook': {
       const videoId = data.videoId || data.id;
-      return videoId ? `https://facebook.com/${videoId}` : null;
+      // Use the modern Reels format for Facebook vertical videos
+      return videoId ? `https://www.facebook.com/reel/${videoId}` : null;
     }
     case 'instagram': {
-      const mediaId = data.id;
-      return mediaId ? `https://instagram.com/p/${mediaId}` : null;
+      const mediaId = data.id || data.videoId;
+      // Instagram Reels specific link pattern (singular reel/ is more modern)
+      return mediaId ? `https://www.instagram.com/reel/${mediaId}/` : null;
+    }
+    case 'tiktok': {
+      const publishId = data.publish_id || data.id;
+      // TikTok doesn't easily give a direct video URL from publish_id, 
+      // but we can link to the user's profile or a generic search
+      return publishId ? `https://www.tiktok.com/` : null;
     }
     default:
       return null;

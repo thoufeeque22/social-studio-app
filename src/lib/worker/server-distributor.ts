@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/core/prisma';
 import path from 'path';
+import { logger } from '@/lib/core/logger';
 import { 
   extractPlatformPostId, 
   generatePermalink, 
@@ -7,6 +8,7 @@ import {
   formatPlatformCaption
 } from '@/lib/core/distributor-utils';
 import { distributeSinglePlatform } from '@/lib/core/distributor-server';
+import { getOptimizedVideoPath } from '@/lib/video/transcode-manager';
 
 export interface ServerDistributeParams {
   stagedFileId: string;
@@ -30,39 +32,81 @@ export interface ServerDistributeParams {
 export async function distributeToPlatformsServer(params: ServerDistributeParams) {
   const { stagedFileId, userId, historyId, title, description, videoFormat, platforms } = params;
 
-  console.log(`👷 [SERVER-DISTRIBUTOR] Starting distribution for post ${historyId}`);
+      logger.info(`👷 [SERVER-DISTRIBUTOR] Starting distribution for post ${historyId}`);
 
   const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
   const results: any[] = [];
 
-  for (const p of platforms) {
+  await Promise.allSettled(platforms.map(async (p) => {
     try {
-      // 1. Fetch existing result to see if we have a resumable session
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Processing platform: ${p.platform} for History ID: ${historyId}`);
+      
+      // 1. Fetch existing result to see if we have a resumable session or cancellation
       const existingResult = await prisma.postPlatformResult.findUnique({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         }
       });
 
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Existing result status for ${p.platform}: ${existingResult?.status || 'none'}`);
+
+      if (existingResult?.status === 'cancelled') {
+        logger.info(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
+        results.push(existingResult as any);
+        return;
+      }
+
       let finalTitle = title;
       let finalDesc = description;
       
-      if (params.reviewedContent && params.reviewedContent[p.platform]) {
-        const custom = params.reviewedContent[p.platform];
-        finalTitle = custom.title || title;
-        const hashText = custom.hashtags && custom.hashtags.length > 0 ? `\n\n${custom.hashtags.join(' ')}` : '';
-        finalDesc = (custom.description || description) + hashText;
+      const customContent = (existingResult?.metadata as any)?.customContent || params.reviewedContent?.[p.platform];
+      
+      if (customContent) {
+        finalTitle = customContent.title || title;
+        const hashText = customContent.hashtags && customContent.hashtags.length > 0 ? `\n\n${customContent.hashtags.join(' ')}` : '';
+        finalDesc = (customContent.description || description) + hashText;
       }
 
-      console.log(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Publishing to ${p.platform} (${p.accountName || p.accountId}) ${existingResult?.resumableUrl ? '[RESUMING]' : ''}`);
       
+      // 1.5 Ensure the record exists for onProgress updates
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Updating status to uploading for ${p.platform}`);
+      const currentResult = await prisma.postPlatformResult.upsert({
+        where: {
+          postHistoryId_platform_accountId: {
+            postHistoryId: historyId,
+            platform: p.platform,
+            accountId: p.accountId
+          }
+        },
+        update: { status: 'uploading' },
+        create: {
+          postHistoryId: historyId,
+          platform: p.platform,
+          accountId: p.accountId,
+          accountName: p.accountName,
+          status: 'uploading'
+        }
+      });
+      
+      // 2. Optimization check
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Starting optimization check for ${p.platform}`);
+      let activeFilePath = filePath;
+      try {
+        activeFilePath = await getOptimizedVideoPath(stagedFileId, p.platform, historyId, p.accountId);
+      } catch (optErr) {
+        logger.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`);
+      }
+
+      logger.info(`🚀 [SERVER-DISTRIBUTOR] Calling distributeSinglePlatform for ${p.platform}`);
       const rawData = await distributeSinglePlatform({
         platform: p.platform,
         userId,
-        filePath,
+        filePath: activeFilePath,
         title: finalTitle,
         description: finalDesc,
         videoFormat,
@@ -71,11 +115,18 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           resumableUrl: existingResult?.resumableUrl,
           videoId: existingResult?.videoId,
           creationId: existingResult?.creationId
+        },
+        onProgress: async (percent) => {
+          await prisma.postPlatformResult.update({
+            where: { id: currentResult.id },
+            data: { progress: Math.round(percent) }
+          }).catch(e => console.error("Failed to update progress:", e));
         }
       });
 
       const platformResult = {
         platform: p.platform,
+        accountId: p.accountId,
         accountName: p.accountName,
         platformPostId: extractPlatformPostId(p.platform, rawData),
         permalink: generatePermalink(p.platform, rawData),
@@ -87,9 +138,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       // In-lined database logic to avoid importing from Server Actions files
       await prisma.postPlatformResult.upsert({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         },
         update: { ...platformResult, postHistoryId: historyId },
@@ -99,10 +151,11 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       results.push(platformResult);
 
     } catch (err: any) {
-      console.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}:`, err.message);
+      logger.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}: ${err.message}`);
       
       const errorPayload = {
         platform: p.platform,
+        accountId: p.accountId,
         status: 'failed' as const,
         errorMessage: err.message,
         resumableUrl: err.resumableUrl,
@@ -113,9 +166,10 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       await prisma.postPlatformResult.upsert({
         where: {
-          postHistoryId_platform: {
+          postHistoryId_platform_accountId: {
             postHistoryId: historyId,
-            platform: p.platform
+            platform: p.platform,
+            accountId: p.accountId
           }
         },
         update: { 
@@ -129,7 +183,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         }
       });
     }
-  }
+  }));
 
   return results;
 }

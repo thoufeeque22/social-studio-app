@@ -9,13 +9,15 @@ import {
 import { distributeSinglePlatform } from '@/lib/core/distributor-server';
 import path from 'path';
 import fs from 'fs';
+import { AIWriteResult } from '@/lib/utils/ai-writer';
 
 export interface PlatformResultInput {
   platform: string;
+  accountId?: string;
   accountName?: string | null;
   platformPostId?: string | null;
   permalink?: string | null;
-  status: 'success' | 'failed' | 'retrying' | 'pending';
+  status: 'success' | 'failed' | 'retrying' | 'pending' | 'cancelled';
   errorMessage?: string | null;
   resumableUrl?: string | null;
   videoId?: string | null;
@@ -33,9 +35,10 @@ export async function upsertPlatformResultInternal(userId: string, historyId: st
 
   return await prisma.postPlatformResult.upsert({
     where: {
-      postHistoryId_platform: {
+      postHistoryId_platform_accountId: {
         postHistoryId: historyId,
-        platform: result.platform
+        platform: result.platform,
+        accountId: result.accountId || ''
       }
     },
     update: { ...result, postHistoryId: historyId },
@@ -64,18 +67,31 @@ export interface SavePostHistoryInput {
 
 export async function savePostHistory(data: SavePostHistoryInput) {
   return protectedAction(async (userId) => {
+    // 🛠️ DEVELOPMENTAL AUTO-TITLE LOGIC
+    let finalTitle = data.title;
+    if (!finalTitle || finalTitle.trim() === "" || /^\d+$/.test(finalTitle)) {
+      const lastPost = await prisma.postHistory.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      });
+      const lastNum = parseInt(lastPost?.title.match(/\d+/)?.[0] || "0", 10);
+      finalTitle = `${lastNum + 1}`;
+      console.log(`🪄 [DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
+    }
+
     const postHistory = await prisma.postHistory.create({
       data: {
         userId,
-        title: data.title,
+        title: finalTitle,
         description: data.description,
         videoFormat: data.videoFormat,
         stagedFileId: data.stagedFileId,
-        scheduledAt: data.scheduledAt,
-        isPublished: data.isPublished ?? true,
+        scheduledAt: data.scheduledAt ?? new Date(),
+        isPublished: data.isPublished ?? false,
         platforms: {
           create: data.platforms.map((p) => ({
             platform: p.platform,
+            accountId: p.accountId,
             accountName: p.accountName || null,
             platformPostId: p.platformPostId || null,
             permalink: p.permalink || null,
@@ -99,7 +115,6 @@ export async function savePostHistory(data: SavePostHistoryInput) {
 
 /**
  * Retries a failed upload attempt for a specific platform.
- * NOW USES CENTRALIZED DISTRIBUTION LOGIC.
  */
 export async function retryUploadAction(resultId: string) {
   return protectedAction(async (userId) => {
@@ -176,6 +191,59 @@ export async function retryUploadAction(resultId: string) {
       });
       return { success: false, error: err.message };
     }
+  });
+}
+
+/**
+ * Cancels a platform distribution task.
+ */
+export async function cancelPlatformUploadAction(resultId: string) {
+  return protectedAction(async (userId) => {
+    const result = await prisma.postPlatformResult.findUnique({
+      where: { id: resultId },
+      include: { postHistory: true }
+    });
+
+    if (!result || result.postHistory.userId !== userId) {
+      throw new Error('Upload result not found.');
+    }
+
+    await prisma.postPlatformResult.update({
+      where: { id: resultId },
+      data: { 
+        status: 'cancelled',
+        errorMessage: 'Stopped by user'
+      }
+    });
+
+    return { success: true };
+  });
+}
+
+/**
+ * Cancels all platform distribution tasks for a specific post.
+ */
+export async function cancelAllUploadsAction(historyId: string) {
+  return protectedAction(async (userId) => {
+    const history = await prisma.postHistory.findUnique({
+      where: { id: historyId, userId },
+      include: { platforms: true }
+    });
+
+    if (!history) throw new Error('Post history not found.');
+
+    await prisma.postPlatformResult.updateMany({
+      where: { 
+        postHistoryId: historyId,
+        status: { in: ['pending', 'uploading', 'processing', 'retrying'] }
+      },
+      data: { 
+        status: 'cancelled',
+        errorMessage: 'Stopped by user'
+      }
+    });
+
+    return { success: true };
   });
 }
 
@@ -270,15 +338,49 @@ export async function deleteScheduledPost(id: string) {
   });
 }
 
-import { AIWriteResult } from '@/lib/utils/ai-writer';
-
 /**
- * Saves AI-reviewed platform metadata for scheduled posts.
+ * Saves AI-reviewed platform metadata for scheduled/pending posts.
  */
 export async function saveStagedMetadata(stagedFileId: string, reviewedContent: Record<string, AIWriteResult>) {
   return protectedAction(async (userId) => {
     const metadataPath = path.join(process.cwd(), "src/tmp", `${stagedFileId}.metadata.json`);
     fs.writeFileSync(metadataPath, JSON.stringify(reviewedContent, null, 2), "utf8");
+    return { success: true };
+  });
+}
+
+/**
+ * Updates platform-specific results with custom AI content.
+ */
+export async function updatePlatformResultsAction(historyId: string, reviewedContent: Record<string, AIWriteResult>) {
+  return protectedAction(async (userId) => {
+    const history = await prisma.postHistory.findUnique({
+      where: { id: historyId, userId },
+      include: { platforms: true }
+    });
+
+    if (!history) throw new Error("History record not found.");
+
+    // Update each platform result with its specific custom content
+    await Promise.all(history.platforms.map(p => {
+      const custom = reviewedContent[p.platform];
+      if (!custom) return Promise.resolve();
+
+      return prisma.postPlatformResult.update({
+        where: { id: p.id },
+        data: {
+          metadata: {
+            customContent: {
+              title: custom.title,
+              description: custom.description,
+              hashtags: custom.hashtags
+            }
+          }
+        }
+      });
+    }));
+
+    await revalidateDashboard();
     return { success: true };
   });
 }

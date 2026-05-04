@@ -283,6 +283,7 @@ export const MediaLibrary: React.FC = () => {
           <button 
             onClick={handleAddVideo}
             disabled={isUploading}
+            data-testid="add-video"
             style={{ 
               padding: '0.6rem 1.25rem', borderRadius: '0.5rem', 
               background: 'hsl(var(--primary))', border: 'none',
@@ -303,6 +304,7 @@ export const MediaLibrary: React.FC = () => {
             <button 
               onClick={handleClearAll}
               disabled={isUploading}
+              data-testid="clear-gallery"
             style={{ 
               padding: '0.6rem 1rem', borderRadius: '0.5rem', 
               background: 'none', border: '1px solid #ef4444',
@@ -409,6 +411,7 @@ export const MediaLibrary: React.FC = () => {
                       Post
                     </button>
                     <button 
+                      data-testid="delete-asset"
                       style={{ 
                         padding: '0.4rem', borderRadius: '0.4rem', 
                         background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',

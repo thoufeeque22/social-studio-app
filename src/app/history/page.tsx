@@ -1,19 +1,23 @@
 'use client';
 
 /**
- * HISTORY PAGE
+ * HISTORY PAGE - Activity Hub
  * Displays a list of all past uploads and their platform links.
  * Supports:
  * - Single platform retries (Cloud retry)
+ * - Single platform cancellation
+ * - Stop All functionality
  * - In-place physical upload resumption (Chunk retry)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { getDraftFile } from '@/lib/upload/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
 import { usePolling } from '@/hooks/usePolling';
+import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import styles from './history.module.css';
 
 interface PlatformResult {
@@ -23,6 +27,7 @@ interface PlatformResult {
   platformPostId: string | null;
   permalink: string | null;
   status: string;
+  progress: number;
   errorMessage: string | null;
   accountId: string | null;
 }
@@ -42,6 +47,7 @@ const PLATFORM_META: Record<string, { icon: string; label: string; className: st
   instagram: { icon: '📸', label: 'Instagram', className: styles.platformInstagram },
   facebook:  { icon: '👥', label: 'Facebook',  className: styles.platformFacebook },
   tiktok:    { icon: '🎵', label: 'TikTok',    className: styles.platformTiktok },
+  local:     { icon: '💻', label: 'Local Dev',  className: styles.platformLocal },
 };
 
 function formatRelativeDate(dateStr: string): string {
@@ -72,7 +78,21 @@ export default function HistoryPage() {
   const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
   const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCockpitActive, setIsCockpitActive] = useState(false);
+  const [cockpitReviews, setCockpitReviews] = useState<Record<string, any>>({});
+  const [isReviewingCockpit, setIsReviewingCockpit] = useState(false);
+  const [cockpitContext, setCockpitContext] = useState<any>(null);
+  const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
+
+  useEffect(() => {
+    const url = new URL(globalThis.window?.location.href || '');
+    const action = url.searchParams.get('action');
+    if (action === 'distribute' && !cockpitStartedRef.current && accounts.length > 0) {
+      cockpitStartedRef.current = true;
+      handleCockpitStart();
+    }
+  }, [accounts]);
 
   const fetchHistory = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
@@ -93,7 +113,7 @@ export default function HistoryPage() {
   }, [fetchHistory]);
 
   const hasActivePosts = posts.some(post => 
-    post.platforms.some(p => p.status === 'pending' || p.status === 'retrying')
+    post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status))
   );
 
   usePolling({
@@ -101,9 +121,38 @@ export default function HistoryPage() {
       const data = await fetchHistory();
       setPosts(data.data || []);
     },
-    interval: hasActivePosts ? 5000 : 60000,
+    interval: hasActivePosts ? 5000 : 15000,
     isActive: posts.length > 0
   });
+
+  // High-speed cross-tab sync for HUD
+  useEffect(() => {
+    const sync = () => {
+      if (globalThis.localStorage) {
+        const staging = localStorage.getItem('SS_STAGING_STATUS');
+        if (staging) {
+          const { status, timestamp, active } = JSON.parse(staging);
+          if (active && Date.now() - timestamp < 30000) {
+            if (!activeResumingId) setActiveResumingId('cross-tab-sync');
+            setInPlaceStatus(status);
+          } else if (activeResumingId === 'cross-tab-sync') {
+            setActiveResumingId(null);
+            setInPlaceStatus(null);
+          }
+        } else if (activeResumingId === 'cross-tab-sync') {
+          setActiveResumingId(null);
+          setInPlaceStatus(null);
+        }
+      }
+    };
+    const itv = setInterval(sync, 500);
+    return () => clearInterval(itv);
+  }, [activeResumingId]);
+
+  const isProcessing = (post: PostHistoryEntry) => {
+    return post.platforms.every(p => p.status === 'pending') && 
+           (Date.now() - new Date(post.createdAt).getTime() < 120000); // 2 min threshold
+  };
 
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;
@@ -114,19 +163,18 @@ export default function HistoryPage() {
     setLoadingMore(false);
   };
 
-  const [retryingIds, setRetryingIds] = useState<string[]>([]);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
 
   const handleRetry = async (e: React.MouseEvent, p: PlatformResult) => {
     e.preventDefault();
     e.stopPropagation();
-    if (retryingIds.includes(p.id)) return;
+    if (processingIds.includes(p.id)) return;
 
-    setRetryingIds(prev => [...prev, p.id]);
+    setProcessingIds(prev => [...prev, p.id]);
     try {
       const { retryUploadAction } = await import('@/app/actions/history');
       const res = await retryUploadAction(p.id);
       if (res.success) {
-        // Refresh history to see updating status
         const data = await fetchHistory();
         setPosts(data.data || []);
       } else {
@@ -135,7 +183,206 @@ export default function HistoryPage() {
     } catch (err: any) {
       alert(`Retry error: ${err.message}`);
     } finally {
-      setRetryingIds(prev => prev.filter(id => id !== p.id));
+      setProcessingIds(prev => prev.filter(id => id !== p.id));
+    }
+  };
+
+  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (processingIds.includes(resultId)) return;
+
+    setProcessingIds(prev => [...prev, resultId]);
+    try {
+      const { cancelPlatformUploadAction } = await import('@/app/actions/history');
+      await cancelPlatformUploadAction(resultId);
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    } catch (err: any) {
+      console.error("Cancel error:", err);
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== resultId));
+    }
+  };
+
+  const handleCancelAll = async (e: React.MouseEvent, historyId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const { cancelAllUploadsAction } = await import('@/app/actions/history');
+      await cancelAllUploadsAction(historyId);
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+    } catch (err: any) {
+      console.error("Cancel All error:", err);
+    }
+  };
+
+  const handleCockpitStart = async () => {
+    if (accounts.length === 0) {
+      setInPlaceStatus("⏳ Waiting for platform accounts...");
+      return;
+    }
+    
+    const pending = localStorage.getItem('SS_PENDING_POST');
+    if (!pending) {
+      setInPlaceStatus("⚠️ No pending post found in storage.");
+      return;
+    }
+    
+    setIsCockpitActive(true);
+    const post = JSON.parse(pending);
+    setCockpitContext(post);
+
+    const hId = post.resumeHistoryId;
+    if (hId) {
+      setActiveResumingId(hId);
+    } else {
+      setActiveResumingId('cockpit-active');
+    }
+
+    setInPlaceStatus("📡 Synchronizing Activity Hub...");
+    // REFRESH LIST TO SHOW THE NEW ROW
+    try {
+      const freshData = await fetchHistory();
+      setPosts(freshData.data || []);
+    } catch (e) { console.error("Initial list refresh failed", e); }
+    
+    try {
+      setInPlaceStatus("📂 Accessing local video storage...");
+      let stagedFileId = post.galleryFileId;
+      let fileName = post.galleryFileName || '';
+      let historyId = post.resumeHistoryId || '';
+
+      // 1. Stage Physical File if needed
+      if (!stagedFileId) {
+        setInPlaceStatus("🔍 Searching for draft file...");
+        const file = await getDraftFile();
+        if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
+        
+        setInPlaceStatus(`📤 Initializing upload for ${file.name}...`);
+        const stageResult = await stageVideoFile({
+          file,
+          onStatusUpdate: setInPlaceStatus,
+          metadata: {
+            title: post.title,
+            description: post.description,
+            videoFormat: post.videoFormat,
+            scheduledAt: post.isScheduled ? post.scheduledAt : undefined,
+            isPublished: false
+          },
+          platforms: post.platforms,
+          resumeHistoryId: post.resumeHistoryId
+        });
+        stagedFileId = stageResult.stagedFileId;
+        fileName = stageResult.fileName;
+        historyId = stageResult.historyId;
+      }
+
+      // 2. AI Generation if needed (Auto-Pilot)
+      let reviewedContentToPass = undefined;
+      if (post.aiTier !== 'Manual' && post.skipReview) {
+        setInPlaceStatus("🪄 Generating AI Strategy...");
+        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+        const targetPlatformNames = post.platforms.map((p: any) => p.platform);
+        
+        const previews = await getMultiPlatformAIPreviews(
+          post.title, 
+          post.description, 
+          post.aiTier, 
+          post.contentMode, 
+          targetPlatformNames, 
+          [], 
+          post.customStyleText
+        );
+        
+        const { updatePlatformResultsAction } = await import('@/app/actions/history');
+        await updatePlatformResultsAction(historyId, previews);
+        reviewedContentToPass = previews;
+      }
+
+      // 3. Final Distribution
+      await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
+
+    } catch (err: any) {
+      setInPlaceStatus(`❌ Cockpit Error: ${err.message}`);
+      setTimeout(() => {
+        setIsCockpitActive(false);
+        setActiveResumingId(null);
+      }, 5000);
+    }
+  };
+
+  const executeCockpitDistribution = async (stagedFileId: string, fileName: string, historyId: string, post: any, reviewedContent?: any) => {
+    setInPlaceStatus("🚀 Launching Mission...");
+    
+    try {
+      if (reviewedContent) {
+        const { updatePlatformResultsAction } = await import('@/app/actions/history');
+        await updatePlatformResultsAction(historyId, reviewedContent);
+      }
+
+      const selectedAccountIds = post.platforms.map((p: any) => {
+         const account = accounts.find(acc => acc.id === p.accountId);
+         if (!account) {
+           // Allow injected local-dev accounts to pass through
+           if (p.accountId && String(p.accountId).startsWith('local-dev-')) {
+             return p.accountId;
+           }
+           return null;
+         }
+         return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
+      }).filter(Boolean);
+
+      const fd = new FormData();
+      fd.append('title', post.title || '');
+      fd.append('description', post.description || '');
+
+      setInPlaceStatus("🛰️ Distributing to Platforms...");
+      await distributeToPlatforms({
+        stagedFileId,
+        fileName,
+        formData: fd,
+        accounts,
+        selectedAccountIds,
+        contentMode: post.contentMode,
+        videoFormat: post.videoFormat,
+        onStatusUpdate: setInPlaceStatus,
+        historyId,
+        reviewedContent,
+        onAccountSuccess: async () => {
+           const updated = await fetchHistory();
+           setPosts(updated.data || []);
+        }
+      });
+
+      setInPlaceStatus("✨ Mission Accomplished!");
+      localStorage.removeItem('SS_PENDING_POST');
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+      setTimeout(() => {
+        setIsCockpitActive(false);
+        setActiveResumingId(null);
+        // Clear URL param
+        window.history.replaceState({}, '', '/history');
+      }, 2000);
+
+    } catch (err: any) {
+      setInPlaceStatus(`❌ Distribution Error: ${err.message}`);
+    }
+  };
+
+  const handleConfirmCockpitReview = async (updatedPreviews: any) => {
+    setIsReviewingCockpit(false);
+    if (cockpitContext) {
+      await executeCockpitDistribution(
+        cockpitContext.stagedFileId,
+        cockpitContext.fileName,
+        cockpitContext.historyId,
+        cockpitContext,
+        updatedPreviews
+      );
     }
   };
 
@@ -191,7 +438,7 @@ export default function HistoryPage() {
         formData: new FormData(), 
         accounts,
         selectedAccountIds,
-        contentMode: 'Hook',
+        contentMode: 'Smart',
         videoFormat: post.videoFormat as any,
         onStatusUpdate: setInPlaceStatus,
         historyId,
@@ -212,50 +459,95 @@ export default function HistoryPage() {
   };
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
-    const meta = PLATFORM_META[p.platform] || {
+    let resolvedPlatform = p.platform.toLowerCase();
+    
+    // Support multi-local platforms (local1, local2, etc)
+    const basePlatform = resolvedPlatform.startsWith('local') ? 'local' : 
+                        (resolvedPlatform === 'google' ? 'youtube' : resolvedPlatform);
+
+    const meta = PLATFORM_META[basePlatform] || {
       icon: '🔗',
-      label: p.platform,
+      label: p.platform === 'unknown' ? 'Platform' : (p.platform.length > 15 ? 'External' : p.platform),
       className: styles.platformDefault,
     };
 
     const isFailed = p.status === 'failed';
-    const isRetrying = p.status === 'retrying' || retryingIds.includes(p.id);
-    const isPending = p.status === 'pending';
+    const isCancelled = p.status === 'cancelled';
+    const isRetrying = p.status === 'retrying' || processingIds.includes(p.id);
+    const isUploading = p.status === 'uploading';
+    const isPending = p.status === 'pending' || p.status === 'processing';
     
-    // Stale check for the WHOLE POST: if pending and older than 20s (unlikely to still be active in same session)
     const postCreatedAt = new Date(post.createdAt).getTime();
-    const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+    const isPostStale = p.status === 'pending' && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
     
-    const hasLink = !isFailed && !isRetrying && !isPending && !isPostStale && p.permalink;
+    const hasLink = !isFailed && !isRetrying && !isPending && !isUploading && !isCancelled && !isPostStale && p.permalink;
 
     const pillClasses = [
       styles.platformPill,
       meta.className,
       isFailed ? styles.platformPillFailed : 
+      isCancelled ? styles.platformPillCancelled :
       isRetrying ? styles.platformPillRetrying : 
+      isUploading ? styles.platformPillUploading :
       (isPending && !isPostStale) ? styles.platformPillPending :
       isPostStale ? styles.platformPillStale :
       hasLink ? styles.platformPillSuccess : styles.platformPillNoLink,
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
+    const showProgress = (isPending || isUploading) && !isPostStale && p.progress > 0;
+
     const content = (
       <>
+        {showProgress && (
+           <div 
+             className={styles.pillProgressBar} 
+             style={{ width: `${p.progress}%` }} 
+           />
+        )}
         <span className={styles.pillIcon}>
-          {isRetrying || (isPending && !isPostStale) ? '⏳' : isPostStale ? '⚠️' : meta.icon}
+          {isRetrying ? '⏳' : isUploading ? '📤' : (isPending && !isPostStale) ? '⏳' : isPostStale ? '⏳' : isCancelled ? '⏹️' : meta.icon}
         </span>
         <span className={styles.pillLabel}>
-          {isPostStale ? `${meta.label} (Incomplete)` : meta.label}
+          {isPostStale ? `${meta.label} (Waiting for Video)` : 
+           isCancelled ? `${meta.label} (Stopped)` : 
+           (isPending && !isPostStale) ? (p.progress > 0 ? `${meta.label} (Distributing)` : `${meta.label} (In Queue)`) : 
+           meta.label}
+          {showProgress && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
         </span>
-        {isFailed && (
-          <button 
-            className={styles.retryButton} 
-            onClick={(e) => handleRetry(e, p)}
-            title="Retry Upload"
-          >
-            🔄
-          </button>
-        )}
+        
+        {/* ACTION BUTTONS */}
+        <div className={styles.pillActions}>
+          {isFailed && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleRetry(e, p)}
+              title="Retry Upload"
+            >
+              🔄
+            </button>
+          )}
+          {isPending && !isPostStale && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleCancelPlatform(e, p.id)}
+              title="Stop Platform Upload"
+              style={{ color: '#EF4444' }}
+            >
+              ⏹️
+            </button>
+          )}
+          {isCancelled && (
+            <button 
+              className={styles.pillActionButton} 
+              onClick={(e) => handleRetry(e, p)}
+              title="Resume Stopped Upload"
+            >
+              ▶️
+            </button>
+          )}
+        </div>
+
         {hasLink && <span className={styles.pillLink}>↗</span>}
       </>
     );
@@ -275,12 +567,20 @@ export default function HistoryPage() {
       );
     }
 
+    const getTooltip = () => {
+      if (isFailed) return p.errorMessage || 'Upload failed';
+      if (isRetrying) return 'Retrying upload...';
+      if (isPending && !isPostStale) return 'Waiting for background worker to pick up this task...';
+      if (isPostStale) return 'Waiting for the physical video file to reach the cockpit...';
+      return `Status: ${p.status}${p.progress > 0 ? ` (${p.progress}%)` : ''}`;
+    };
+
     return (
       <span
         key={p.id}
         className={pillClasses}
         data-error={isFailed ? p.errorMessage || 'Upload failed' : undefined}
-        title={isFailed ? (p.errorMessage || 'Upload failed') : isRetrying ? 'Retrying upload...' : `Posted to ${meta.label}`}
+        title={getTooltip()}
       >
         {content}
       </span>
@@ -290,7 +590,7 @@ export default function HistoryPage() {
   if (isLoading) {
     return (
       <div className={styles.historyPage}>
-        <div className={styles.loading}>Loading post history...</div>
+        <div className={styles.loading}>Loading Activity Hub...</div>
       </div>
     );
   }
@@ -299,12 +599,11 @@ export default function HistoryPage() {
     <div className={styles.historyPage}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>Post History</h1>
+          <h1 className={styles.title}>Activity Hub</h1>
         </div>
         <p className={styles.subtitle}>
-          A timeline of all your published content with direct links
+          Track and manage your video distribution in real-time.
         </p>
-        {/* Hidden file input for file selection during in-place resumption */}
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/*" />
       </div>
 
@@ -312,26 +611,34 @@ export default function HistoryPage() {
         <GlassCard>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>📜</div>
-            <h3 className={styles.emptyTitle}>No posts yet</h3>
+            <h3 className={styles.emptyTitle}>No activity yet</h3>
             <p className={styles.emptyDescription}>
-              When you publish content from the dashboard, it will appear here with direct links to each platform.
+              Upload a video from the dashboard to see its distribution status here.
             </p>
           </div>
         </GlassCard>
       ) : (
         <div className={styles.timeline}>
           {posts.map((post) => {
-            const successCount = post.platforms.filter(p => p.status === 'success').length;
-            const failedCount = post.platforms.filter(p => p.status === 'failed').length;
+            const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
+            const allPending = post.platforms.every(p => p.status === 'pending');
 
             return (
-              <div key={post.id} className={`${styles.postCard} ${post.platforms.some(p => p.status === 'pending') ? styles.activePost : ''}`}>
+              <div key={post.id} className={`${styles.postCard} ${isActive ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
-                <GlassCard className={styles.cardInner}>
-                  <div className={styles.cardHeader}>
-                    <div>
+                <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden' }}>
+                  {/* GLOBAL PREPARATION BAR */}
+                  {allPending && isActive && (
+                    <div className={styles.globalPrepBar}>
+                      <div className={styles.globalPrepProgress} />
+                      <span className={styles.globalPrepText}>⚙️ Preparing for distribution...</span>
+                    </div>
+                  )}
+
+                  <div className={styles.cardHeader} style={allPending && isActive ? { paddingTop: '1.75rem' } : {}}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {post.platforms.some(p => p.status === 'pending') && <span className={styles.processingDot} />}
+                        {isActive && <span className={styles.processingDot} />}
                         {post.title}
                       </h3>
                       {post.description && (
@@ -345,10 +652,20 @@ export default function HistoryPage() {
                       <span className={styles.timestamp}>
                         {formatRelativeDate(post.createdAt)}
                       </span>
-                      {/* Post-level Resume Button if Stale */}
+                      
+                      {isActive && (
+                        <button 
+                          className={styles.stopAllButton}
+                          onClick={(e) => handleCancelAll(e, post.id)}
+                          title="Stop All active distributions for this post"
+                        >
+                          ⏹️ STOP ALL
+                        </button>
+                      )}
+
                       {(() => {
                         const postCreatedAt = new Date(post.createdAt).getTime();
-                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 20 * 1000) && !post.stagedFileId;
+                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
                         if (isPostStale) {
                           return (
                             <button 
@@ -357,7 +674,7 @@ export default function HistoryPage() {
                               disabled={activeResumingId === post.id}
                               style={{ marginLeft: '1rem' }}
                             >
-                              {activeResumingId === post.id ? '⌛ Processing' : '🚀 Resume Upload'}
+                              {activeResumingId === post.id ? '⌛ Processing' : '🚀 Manual Resume'}
                             </button>
                           );
                         }
@@ -365,21 +682,12 @@ export default function HistoryPage() {
                       })()}
                     </div>
                   </div>
-                  <div className={styles.platformRow}>
-                    {post.platforms.map(p => renderPlatformPill(p, post))}
-                  </div>
 
-                  {activeResumingId === post.id && (
-                    <div className={styles.inPlaceUploadProgress}>
-                      <div className={styles.progressBarWrapper}>
-                        <div 
-                          className={styles.progressBarFill} 
-                          style={{ width: inPlaceStatus?.includes('%') ? inPlaceStatus.match(/(\d+)%/)?.[1] + '%' : '100%' }}
-                        />
-                      </div>
-                      <p className={styles.progressBarStatus}>{inPlaceStatus}</p>
-                    </div>
-                  )}
+                  <div className={styles.platformRow}>
+                    {[...post.platforms]
+                      .sort((a, b) => a.platform.localeCompare(b.platform))
+                      .map(p => renderPlatformPill(p, post))}
+                  </div>
                 </GlassCard>
               </div>
             );
@@ -396,6 +704,56 @@ export default function HistoryPage() {
           )}
         </div>
       )}
+
+      {/* FLOATING HUD (Ported from Dashboard for physical upload tracking) */}
+      {activeResumingId && inPlaceStatus && (typeof inPlaceStatus === 'string' ? !inPlaceStatus.includes('All done') : true) && (
+        <div style={{
+          position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+          width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)', border: '1px solid hsla(var(--primary) / 0.5)', 
+          borderRadius: '1.5rem', padding: '1.25rem 1.5rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 20px hsla(var(--primary) / 0.2)', 
+          animation: 'slideUpHUD 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
+            <div className="animate-pulse" style={{ 
+              width: '14px', height: '14px', borderRadius: '50%', 
+              background: 'hsl(var(--primary))', boxShadow: '0 0 12px hsl(var(--primary))' 
+            }} />
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>Current Progress</span>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inPlaceStatus}</div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            aria-label="Stop all active uploads"
+            onClick={() => {
+               // Logic to stop in-place upload
+               setActiveResumingId(null);
+               setInPlaceStatus(null);
+            }} 
+            style={{ 
+              background: '#EF4444', color: 'white', border: 'none', 
+              padding: '0.75rem 1.5rem', borderRadius: '1rem', 
+              fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            ⏹️ STOP ALL
+          </button>
+        </div>
+      )}
+
+      <style jsx global>{`
+        @keyframes slideUpHUD {
+          from { transform: translate(-50%, 150%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
