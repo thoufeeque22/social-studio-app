@@ -280,12 +280,30 @@ export default function HistoryPage() {
         historyId = stageResult.historyId;
       }
 
-      // 2. AI Generation if needed (MOVED TO DASHBOARD)
-      // DashboardClient now fully handles the generation and review of AI content.
-      // We can skip straight to background distribution.
+      // 2. AI Generation if needed (Auto-Pilot)
+      let reviewedContentToPass = undefined;
+      if (post.aiTier !== 'Manual' && post.skipReview) {
+        setInPlaceStatus("🪄 Generating AI Strategy...");
+        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+        const targetPlatformNames = post.platforms.map((p: any) => p.platform);
+        
+        const previews = await getMultiPlatformAIPreviews(
+          post.title, 
+          post.description, 
+          post.aiTier, 
+          post.contentMode, 
+          targetPlatformNames, 
+          [], 
+          post.customStyleText
+        );
+        
+        const { updatePlatformResultsAction } = await import('@/app/actions/history');
+        await updatePlatformResultsAction(historyId, previews);
+        reviewedContentToPass = previews;
+      }
 
       // 3. Final Distribution
-      await executeCockpitDistribution(stagedFileId, fileName, historyId, post);
+      await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
 
     } catch (err: any) {
       setInPlaceStatus(`❌ Cockpit Error: ${err.message}`);
@@ -307,7 +325,13 @@ export default function HistoryPage() {
 
       const selectedAccountIds = post.platforms.map((p: any) => {
          const account = accounts.find(acc => acc.id === p.accountId);
-         if (!account) return null;
+         if (!account) {
+           // Allow injected local-dev accounts to pass through
+           if (p.accountId && String(p.accountId).startsWith('local-dev-')) {
+             return p.accountId;
+           }
+           return null;
+         }
          return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
       }).filter(Boolean);
 

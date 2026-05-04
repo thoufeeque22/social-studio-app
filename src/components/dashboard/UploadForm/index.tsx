@@ -328,7 +328,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               hidden.value = 'true';
               form.appendChild(hidden);
               form.requestSubmit();
-              hidden.remove();
+              setTimeout(() => hidden.remove(), 100);
             }}
             style={{ background: 'transparent', border: '1px solid hsla(var(--border)/0.5)', color: 'hsl(var(--muted-foreground))', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', cursor: 'pointer' }}
           >

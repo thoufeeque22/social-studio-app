@@ -199,6 +199,11 @@ export async function distributeToPlatforms({
 
     if (selectionId.includes(':')) {
       [platform, realAccountId] = selectionId.split(':');
+    } else if (selectionId.startsWith('local-dev-')) {
+      // Local simulated platforms map to 'local1', 'local2', etc. based on their number
+      const num = selectionId.split('-').pop();
+      platform = `local${num}`;
+      realAccountId = selectionId;
     } else {
       const account = accounts.find(a => a.id === selectionId);
       if (!account) return;
@@ -211,6 +216,8 @@ export async function distributeToPlatforms({
 
     try {
       const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);
+      const endpointPlatform = platform.startsWith('local') ? 'local' : platform;
+      
       const payload = {
         stagedFileId,
         fileName,
@@ -221,9 +228,10 @@ export async function distributeToPlatforms({
         contentMode,
         historyId,
         reviewedContent: reviewedContent ? reviewedContent[platform] : undefined,
+        actualPlatform: platform, // Pass the specific local platform
       };
 
-      const response = await fetch(`/api/upload/${platform}`, {
+      const response = await fetch(`/api/upload/${endpointPlatform}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

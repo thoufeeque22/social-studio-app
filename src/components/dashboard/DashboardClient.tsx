@@ -262,7 +262,7 @@ export default function DashboardClient({
 
       const skipReview = formData.get('skipReview') === 'true';
 
-      if (aiTier !== 'Manual') {
+      if (aiTier !== 'Manual' && !skipReview) {
         setUploadStatus("🪄 Generating AI Strategy...");
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
@@ -278,25 +278,18 @@ export default function DashboardClient({
           [], 
           customStyleText
         );
-        
-        if (skipReview) {
-          const { updatePlatformResultsAction } = await import('@/app/actions/history');
-          await updatePlatformResultsAction(actualHistoryId, previews);
-          setUploadStatus("✨ AI Content generated and auto-approved! Finalizing...");
-        } else {
-          setAiPreviews(previews);
-          setReviewContext({ 
-            historyId: actualHistoryId,
-            stagedFileId: galleryFileId || '',
-            fileName: galleryFileName || draftFileName || '',
-            formData: formData
-          });
-          setIsReviewing(true);
-          return; // Pause the flow, wait for user confirmation
-        }
+
+        setAiPreviews(previews);
+        setReviewContext({ 
+          historyId: actualHistoryId,
+          stagedFileId: galleryFileId || '',
+          fileName: galleryFileName || draftFileName || '',
+          formData: formData
+        });
+        setIsReviewing(true);
+        return; // Pause the flow, wait for user confirmation
       }
 
-      // 3. Save everything to localStorage for the Activity Hub Cockpit
       const pendingPost = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -309,7 +302,8 @@ export default function DashboardClient({
         scheduledAt,
         galleryFileId,
         galleryFileName,
-        resumeHistoryId: actualHistoryId
+        resumeHistoryId: actualHistoryId,
+        skipReview
       };
 
       localStorage.setItem('SS_PENDING_POST', JSON.stringify(pendingPost));
