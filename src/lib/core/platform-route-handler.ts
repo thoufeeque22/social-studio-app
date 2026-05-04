@@ -19,6 +19,7 @@ interface PlatformHandlerParams {
     videoFormat: string;
     accountId?: string;
     fields: Record<string, string>;
+    onProgress?: (percent: number) => void;
   }) => Promise<unknown>;
 }
 
@@ -96,7 +97,7 @@ export async function handlePlatformUploadRequest({
           error: "Unauthorized: Account not found or not owned by user" 
         }, { status: 403 });
       }
-      accountName = account.name || 'Unknown Account';
+      accountName = account.accountName || 'Unknown Account';
       console.log(`🔐 [SECURITY] Account ownership verified for ${platform}: ${accountId} (${accountName})`);
     }
 

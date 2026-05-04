@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/core/prisma";
 import { verifyMediaSignature } from "@/lib/core/media-auth";
 
 export const maxDuration = 300;

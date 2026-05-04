@@ -103,7 +103,7 @@ export function useDistributionEngine(accounts: Account[]) {
         formData,
         accounts,
         selectedAccountIds: activeTargets,
-        contentMode: (formData.get('contentMode') as any) || 'Hook',
+        contentMode: (formData.get('contentMode') as any) || 'Smart',
         videoFormat: (formData.get('videoFormat') as any) || 'short',
         onStatusUpdate: setUploadStatus,
         onPlatformStatus: (id, status, error) => {

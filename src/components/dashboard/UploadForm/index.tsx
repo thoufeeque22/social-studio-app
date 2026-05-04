@@ -38,6 +38,12 @@ interface UploadFormProps {
   isComplete: boolean;
   customStyleText: string;
   onCustomStyleChange: (text: string) => void;
+  successfulAccountIds: string[];
+  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
+  platformErrors: Record<string, string>;
+  onAbort: (id: string) => void;
+  onAbortAll: () => void;
+  hasFailures: boolean;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -64,7 +70,13 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onSchedulingChange,
   isComplete,
   customStyleText,
-  onCustomStyleChange
+  onCustomStyleChange,
+  successfulAccountIds,
+  platformStatuses,
+  platformErrors,
+  onAbort,
+  onAbortAll,
+  hasFailures
 }) => {
   const {
     title,

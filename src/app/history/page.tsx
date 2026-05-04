@@ -426,7 +426,7 @@ export default function HistoryPage() {
         formData: new FormData(), 
         accounts,
         selectedAccountIds,
-        contentMode: 'Hook',
+        contentMode: 'Smart',
         videoFormat: post.videoFormat as any,
         onStatusUpdate: setInPlaceStatus,
         historyId,

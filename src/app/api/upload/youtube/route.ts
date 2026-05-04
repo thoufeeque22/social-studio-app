@@ -19,7 +19,6 @@ export async function POST(req: any) {
         description,
         privacy: (fields.privacy as any) || "private",
         accountId,
-        historyId: fields.historyId,
         resumableUrl: fields.resumableUrl
       });
       return result.data;

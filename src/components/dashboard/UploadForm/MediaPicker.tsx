@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Film, Calendar, Check, X, Search, Clock, HardDrive, AlertTriangle } from 'lucide-react';
+import { Film, Calendar, Check, X, Search, Clock, HardDrive, AlertTriangle, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/Badge';
 

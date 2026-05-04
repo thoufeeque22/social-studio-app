@@ -142,7 +142,7 @@ export async function transcodeForPlatform(
     // Apply Resolution and Aspect Ratio rules
     if (platform === 'tiktok' || platform === 'instagram' || platform === 'facebook') {
       // Scale to fit 1080x1920 while maintaining aspect ratio (letterboxing/padding)
-      command = command.size('1080x1920').aspect('9:16').autopad('black');
+      command = command.size('1080x1920').aspect('9:16').autopad(true, 'black');
     } else {
       // For YouTube/General, just cap at 4K
       if (rules.maxResolution) {
