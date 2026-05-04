@@ -30,26 +30,48 @@ import { publishInstagramReel } from '../../lib/platforms/instagram';
 
 // Mock fs for Instagram binary push
 vi.mock('fs', () => {
+  const { Readable } = require('stream');
+  const createMockStream = () => {
+    const stream = new Readable();
+    stream.push('video data');
+    stream.push(null);
+    return stream;
+  };
   const promises = {
     stat: vi.fn().mockResolvedValue({ size: 1000 }),
     readFile: vi.fn().mockResolvedValue(Buffer.from('video data')),
-    createReadStream: vi.fn().mockReturnValue({}),
   };
   return {
     promises,
-    createReadStream: vi.fn().mockReturnValue({}),
+    createReadStream: vi.fn().mockImplementation(createMockStream),
     existsSync: vi.fn().mockReturnValue(true),
     mkdirSync: vi.fn(),
     appendFileSync: vi.fn(),
     default: {
       promises,
-      createReadStream: vi.fn().mockReturnValue({}),
+      createReadStream: vi.fn().mockImplementation(createMockStream),
       existsSync: vi.fn().mockReturnValue(true),
       mkdirSync: vi.fn(),
       appendFileSync: vi.fn(),
     },
   };
 });
+
+// Mock Axios for Instagram binary push
+vi.mock('axios', () => ({
+  default: {
+    post: vi.fn().mockImplementation(async (url, data, config) => {
+      if (url.includes('rupload.facebook.com')) {
+        // Assert Offset header if it's the resume test
+        if (config?.headers?.Offset === '500') {
+           expect(config.headers['Offset']).toBe('500');
+        }
+        return { data: { success: true } };
+      }
+      return { data: {} };
+    })
+  }
+}));
 
 describe('Upload Integrations', () => {
   beforeEach(() => {
