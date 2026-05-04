@@ -260,6 +260,8 @@ export default function DashboardClient({
       const initData = await initRes.json();
       const actualHistoryId = initData.data?.historyId || resumeHistoryId;
 
+      const skipReview = formData.get('skipReview') === 'true';
+
       if (aiTier !== 'Manual') {
         setUploadStatus("🪄 Generating AI Strategy...");
         const title = formData.get('title') as string;
@@ -277,10 +279,21 @@ export default function DashboardClient({
           customStyleText
         );
         
-        setAiPreviews(previews);
-        setReviewContext({ historyId: actualHistoryId });
-        setIsReviewing(true);
-        return; // Pause the flow, wait for user confirmation
+        if (skipReview) {
+          const { updatePlatformResultsAction } = await import('@/app/actions/history');
+          await updatePlatformResultsAction(actualHistoryId, previews);
+          setUploadStatus("✨ AI Content generated and auto-approved! Finalizing...");
+        } else {
+          setAiPreviews(previews);
+          setReviewContext({ 
+            historyId: actualHistoryId,
+            stagedFileId: galleryFileId || '',
+            fileName: galleryFileName || draftFileName || '',
+            formData: formData
+          });
+          setIsReviewing(true);
+          return; // Pause the flow, wait for user confirmation
+        }
       }
 
       // 3. Save everything to localStorage for the Activity Hub Cockpit
