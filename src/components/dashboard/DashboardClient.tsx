@@ -371,10 +371,6 @@ export default function DashboardClient({
       setTimeout(() => {
         window.location.href = '/history?action=distribute';
       }, 1500);
-      
-      handleFileChange(null);
-      setGalleryFileId(null);
-      setGalleryFileName(null);
     } catch (err: any) {
       setUploadStatus(`❌ Error saving AI content: ${err.message}`);
       setIsUploading(false);

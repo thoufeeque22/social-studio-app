@@ -280,25 +280,9 @@ export default function HistoryPage() {
         historyId = stageResult.historyId;
       }
 
-      // 2. AI Generation if needed
-      if (post.aiTier !== 'Manual') {
-        setInPlaceStatus("🪄 Generating AI options...");
-        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-        const previews = await getMultiPlatformAIPreviews(
-          post.title,
-          post.description || '',
-          post.aiTier,
-          post.contentMode,
-          post.platforms.map((p: any) => p.platform),
-          undefined,
-          post.customStyleText
-        );
-        setCockpitReviews(previews);
-        setCockpitContext({ ...post, stagedFileId, fileName, historyId });
-        setIsReviewingCockpit(true);
-        setInPlaceStatus("📋 Waiting for content review...");
-        return; // Wait for user to confirm AI
-      }
+      // 2. AI Generation if needed (MOVED TO DASHBOARD)
+      // DashboardClient now fully handles the generation and review of AI content.
+      // We can skip straight to background distribution.
 
       // 3. Final Distribution
       await executeCockpitDistribution(stagedFileId, fileName, historyId, post);
@@ -322,16 +306,20 @@ export default function HistoryPage() {
       }
 
       const selectedAccountIds = post.platforms.map((p: any) => {
-         const account = accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform);
+         const account = accounts.find(acc => acc.id === p.accountId);
          if (!account) return null;
          return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
       }).filter(Boolean);
+
+      const fd = new FormData();
+      fd.append('title', post.title || '');
+      fd.append('description', post.description || '');
 
       setInPlaceStatus("🛰️ Distributing to Platforms...");
       await distributeToPlatforms({
         stagedFileId,
         fileName,
-        formData: new FormData(),
+        formData: fd,
         accounts,
         selectedAccountIds,
         contentMode: post.contentMode,
