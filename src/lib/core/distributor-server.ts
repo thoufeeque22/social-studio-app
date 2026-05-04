@@ -91,7 +91,7 @@ export async function distributeSinglePlatform({
     });
   }
 
-  if (platform === 'local') {
+  if (platform.startsWith('local')) {
     const { publishLocalReel } = await import('@/lib/platforms/local');
     return await publishLocalReel({
       userId,

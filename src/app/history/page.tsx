@@ -447,14 +447,13 @@ export default function HistoryPage() {
   };
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
-    let resolvedPlatform = p.platform;
-    if (resolvedPlatform === 'google') resolvedPlatform = 'youtube';
+    let resolvedPlatform = p.platform.toLowerCase();
     
-    if (!PLATFORM_META[resolvedPlatform] && resolvedPlatform.length > 15) {
-      resolvedPlatform = 'youtube';
-    }
+    // Support multi-local platforms (local1, local2, etc)
+    const basePlatform = resolvedPlatform.startsWith('local') ? 'local' : 
+                        (resolvedPlatform === 'google' ? 'youtube' : resolvedPlatform);
 
-    const meta = PLATFORM_META[resolvedPlatform] || {
+    const meta = PLATFORM_META[basePlatform] || {
       icon: '🔗',
       label: p.platform === 'unknown' ? 'Platform' : (p.platform.length > 15 ? 'External' : p.platform),
       className: styles.platformDefault,

@@ -52,15 +52,34 @@ export default function DashboardClient({
   // Inject Local Simulator for Dev Env
   const devAccounts = React.useMemo(() => {
     if (process.env.NODE_ENV !== 'development') return accounts;
-    if (accounts.some(a => a.provider === 'local')) return accounts;
-    return [...accounts, { 
-      id: 'local-dev-id', 
-      provider: 'local', 
-      name: 'Local Simulator', 
-      email: 'dev@local.host', 
-      image: null, 
-      isDistributionEnabled: true 
-    }];
+    if (accounts.some(a => a.id.startsWith('local-dev-'))) return accounts;
+    return [
+      ...accounts, 
+      { 
+        id: 'local-dev-1', 
+        provider: 'local1', 
+        name: 'Local Alpha', 
+        email: 'alpha@local.host', 
+        image: null, 
+        isDistributionEnabled: true 
+      },
+      { 
+        id: 'local-dev-2', 
+        provider: 'local2', 
+        name: 'Local Beta', 
+        email: 'beta@local.host', 
+        image: null, 
+        isDistributionEnabled: true 
+      },
+      { 
+        id: 'local-dev-3', 
+        provider: 'local3', 
+        name: 'Local Gamma', 
+        email: 'gamma@local.host', 
+        image: null, 
+        isDistributionEnabled: true 
+      }
+    ];
   }, [accounts]);
 
   const {
