@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
           create: platforms.map((p: any) => ({
             platform: p.platform,
             accountId: p.accountId,
-            status: 'pending'
+            status: 'pending',
+            metadata: p.customContent ? { customContent: p.customContent } : undefined
           }))
         }
       }

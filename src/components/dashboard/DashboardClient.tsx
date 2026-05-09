@@ -249,6 +249,8 @@ export default function DashboardClient({
   // 4. HANDLERS: Orchestrating the flows
   const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
     try {
+      const isPlatformSpecific = formData.get('isPlatformSpecific') === 'true';
+
       // 1. Prepare Metadata for Cockpit Mode
       const targetPlatforms = (targetAccountIds || selectedAccountIds)
         .map(id => {
@@ -258,7 +260,17 @@ export default function DashboardClient({
           const account = devAccounts.find(a => a.id === actualAccountId);
           let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
           if (isSplit && platformKey) provider = platformKey;
-          return { platform: provider, accountId: actualAccountId };
+
+          const customContent = isPlatformSpecific ? {
+            title: formData.get(`title_${provider}`) as string,
+            description: formData.get(`description_${provider}`) as string
+          } : undefined;
+
+          return { 
+            platform: provider, 
+            accountId: actualAccountId,
+            customContent
+          };
         })
         .filter(p => p.platform !== 'unknown');
 
