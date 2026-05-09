@@ -17,6 +17,7 @@ model User {
   platformPreferences PlatformPreference[]
   postHistories PostHistory[]
   galleryAssets GalleryAsset[]
+  tokenAuditLogs TokenAuditLog[]
   preferredVideoFormat String @default("short")
   preferredAIStyle    String @default("Manual")
 
@@ -39,6 +40,7 @@ model Account {
   accountName       String?
   isDistributionEnabled Boolean @default(true)
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenAuditLogs    TokenAuditLog[]
 
   @@unique([provider, providerAccountId])
 }
@@ -150,4 +152,22 @@ model GalleryAsset {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model TokenAuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String?
+  action    String   // ACCESS, REFRESH, REVOKE, etc.
+  provider  String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([action])
+  @@index([createdAt])
 }

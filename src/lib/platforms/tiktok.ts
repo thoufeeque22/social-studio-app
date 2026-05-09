@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/core/prisma";
-
+import { logTokenEvent } from "@/lib/core/audit";
 import { promises as fs } from "fs";
 
 interface PublishTikTokParams {
@@ -17,6 +17,15 @@ export const getTikTokAccount = async (userId: string, accountId?: string) => {
   if (!account || !account.access_token) {
     throw new Error("Specified TikTok account not found for this user.");
   }
+
+  // Log token access
+  await logTokenEvent({
+    userId,
+    accountId: account.id,
+    action: "ACCESS",
+    provider: "tiktok",
+    reason: "Initializing TikTok client"
+  });
 
   return account;
 };
