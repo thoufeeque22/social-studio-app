@@ -8,65 +8,77 @@ Social Studio is a professional-grade multi-platform video distribution platform
 ### 2.1 Authentication & Account Management
 - **Multi-Platform OAuth**: Support for Google (YouTube), Facebook (Instagram/Facebook), and TikTok.
 - **Multi-Account Support**: Ability to connect multiple accounts per platform (e.g., two different YouTube channels).
-- **Native Bridge**: Compatibility with Capacitor for mobile auth flows.
+- **Native Bridge**: Full integration with Capacitor for mobile auth flows and native device access.
 - **Account Settings**: Toggle distribution on/off per account and disconnect accounts.
 
 ### 2.2 Video Upload & Processing
 - **Zero-Memory Chunked Upload**: Multi-part upload system to handle large video files without browser memory issues.
-- **Server-Side Assembly**: Secure reassembly of file chunks on the server before distribution.
-- **Staging System**: Persistence of uploaded files until final distribution or cleanup.
+- **Server-Side Assembly**: Secure reassembly of file chunks in `src/tmp`.
+- **Optimization & Transcoding**: Integrated FFmpeg pipeline for platform-specific video optimization (bitrate, resolution, format).
+- **Staging System**: Persistence of uploaded files with a 24-hour expiration and automated cleanup.
+- **Storage Quota**: Hard limit of 2GB per user for staged/gallery assets.
 
 ### 2.3 AI Vibe-Writer (Intelligence Layer)
-- **Metadata Generation**: Use Google Gemini to generate titles, descriptions, and hashtags.
+- **Metadata Generation**: Use Google Gemini (or local Ollama/Gemma) to generate titles, descriptions, and hashtags.
+- **AI Tiers**:
+    - **Manual**: User writes all content.
+    - **Enrich**: AI improves user's draft.
+    - **Generate**: AI creates content from video analysis/metadata.
 - **Style Modes**: 
-    - **Hook**: Click-driven, high FOMO.
-    - **SEO**: Keyword-optimized for search.
+    - **Smart**: Optimized for general engagement.
     - **Gen-Z**: Authentic, low-caps, slang-heavy.
-- **Platform Tailoring**: Automatic adjustment of metadata constraints (e.g., YouTube Shorts character limits).
+    - **SEO**: Keyword-optimized for search discoverability.
+    - **Story**: Narrative-driven captions.
+    - **Custom**: User-defined prompt instructions.
+- **Platform Tailoring**: Automatic adjustment of metadata constraints (e.g., character limits and hashtag rules).
 
 ### 2.4 Distribution Pipeline
-- **Parallel Publishing**: Simultaneous upload to all selected platforms.
-- **Status Tracking**: Real-time polling and feedback for each platform's upload status.
-- **Retry Mechanism**: Ability to retry failed uploads from the History page.
-- **Scheduling**: Support for "Publish Now" or scheduling for a future date.
+- **Parallel Publishing**: Simultaneous upload to all selected platforms via a server-side distributor.
+- **Status Tracking**: Real-time progress updates (percentage-based) for each platform.
+- **Retry Mechanism**: Resumable upload support for YouTube and error logging for other platforms.
+- **Scheduling**: Support for immediate publishing or scheduling for a future date/time.
 
 ### 2.5 Unified Dashboard & History
-- **Aggregate Stats**: Cross-platform view of views, reach, and follower growth.
-- **Post History**: Searchable log of all distributions with platform-specific post IDs and links.
+- **Aggregate Stats**: Cross-platform view of views and subscribers (YouTube supported).
+- **Post History**: Searchable log of all distributions with platform-specific post IDs and permalinks.
 
 ## 3. Technical Architecture
 
 ### 3.1 Stack
-- **Frontend**: Next.js 14+ (App Router), React, Tailwind CSS, Framer Motion.
+- **Frontend**: Next.js 16.2.3 (App Router), React 19, Vanilla CSS (CSS Modules), Framer Motion.
 - **Backend**: Next.js Server Actions, Route Handlers.
 - **Database**: PostgreSQL (via Prisma ORM).
-- **Auth**: NextAuth.js.
-- **Worker**: Custom server-side polling worker for scheduled tasks.
-- **AI**: Google Generative AI (Gemini Flash).
+- **Auth**: Auth.js (NextAuth) v5.
+- **Video Processing**: FFmpeg (via `fluent-ffmpeg`).
+- **Worker**: Persistent `tsx` process for scheduled tasks and asset purge.
+- **AI**: Google Generative AI (Gemini) with local LLM fallback support (Ollama).
+- **Mobile**: Capacitor (Android/iOS) wrapping the Next.js web app.
 
 ### 3.2 Platform Integrations
 - **YouTube**: Google APIs (OAuth2, YouTube Data API v3).
-- **Instagram**: Facebook Graph API (Instagram Graph API, Media Container flow).
+- **Instagram**: Facebook Graph API (Instagram Graph API).
 - **Facebook**: Facebook Graph API (Video/Reels API).
-- **TikTok**: TikTok Open API (Video Kit, OAuth2).
+- **TikTok**: TikTok Content Posting API.
+- **Local**: Mock platform for internal testing and verification.
+- **Planned**: Twitter/X, LinkedIn.
 
 ## 4. Non-Functional Requirements
 
 ### 4.1 Performance
-- **Auth Redirects**: Near-instantaneous transitions between dashboard and login.
-- **Concurrent Uploads**: Distribution queue limited to avoid server resource exhaustion.
-- **Optimistic UI**: Immediate UI feedback for settings changes (toggles, deletions).
+- **Streaming Parsers**: Efficient handling of file streams to minimize memory footprint.
+- **Concurrency**: Parallel distribution tasks handled by the server-side worker.
+- **Optimistic UI**: Immediate UI feedback for settings changes and metadata edits.
 
 ### 4.2 Security
-- **Data Privacy**: No sensitive code or environment variables sent to client-side.
-- **Token Management**: Secure storage and automatic refreshing of OAuth tokens.
-- **Ownership Validation**: Strict checks to ensure users can only access/modify their own data.
+- **Token Auditing**: Comprehensive logging of OAuth token events (Access, Refresh, Revoke).
+- **Data Privacy**: Secure storage of refresh tokens in the database; no credentials exposed to client.
+- **Ownership Validation**: Multi-tenant isolation at the database level.
 
 ### 4.3 Reliability
-- **Fault Tolerance**: Failure on one platform does not interrupt publishing on others.
-- **State Resilience**: Recovery of partial uploads or pending distribution tasks after server restarts.
+- **Locking Mechanism**: Immediate "isPublished" flag toggle to prevent double-posting by multiple worker ticks.
+- **Asset Resilience**: Sidecar metadata storage for reviewed content to ensure data persistence during the publish cycle.
 
 ## 5. System Constraints & Future Scope
-- **Storage**: Temporary staging of files on server disk until publication.
-- **API Rate Limits**: Compliance with platform-specific quotas (YouTube/TikTok/FB).
-- **Future**: Mobile app release (Capacitor), advanced analytics, and AI video editing hooks.
+- **Storage**: Temporary staging in `src/tmp` with automated hourly purge.
+- **Mobile Native**: Already integrated via Capacitor; future work involves deeper native plugin usage.
+- **Advanced Analytics**: Deeper integration for post-publish metrics across all platforms.
