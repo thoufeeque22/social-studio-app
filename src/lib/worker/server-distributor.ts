@@ -120,7 +120,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
           await prisma.postPlatformResult.update({
             where: { id: currentResult.id },
             data: { progress: Math.round(percent) }
-          }).catch(e => console.error("Failed to update progress:", e));
+          }).catch((e: Error) => console.error("Failed to update progress:", e));
         }
       });
 

@@ -63,8 +63,8 @@ export async function purgeExpiredAssets() {
       const dayAgo = now.getTime() - (24 * 60 * 60 * 1000);
       
       const trackedFileIds = new Set([
-        ...(await prisma.galleryAsset.findMany({ select: { fileId: true } })).map(a => a.fileId),
-        ...(await prisma.postHistory.findMany({ where: { stagedFileId: { not: null } }, select: { stagedFileId: true } })).map(p => p.stagedFileId!)
+        ...(await prisma.galleryAsset.findMany({ select: { fileId: true } })).map((a: any) => a.fileId),
+        ...(await prisma.postHistory.findMany({ where: { stagedFileId: { not: null } }, select: { stagedFileId: true } })).map((p: any) => p.stagedFileId!)
       ]);
 
       for (const file of files) {
@@ -148,7 +148,7 @@ export async function startPublishingWorker() {
       if (pending.length > 0) {
         logger.info(`👷 [WORKER] Found ${pending.length} overdue posts to publish. Processing in parallel...`);
 
-        await Promise.allSettled(pending.map(async (post) => {
+        await Promise.allSettled(pending.map(async (post: any) => {
           logger.info(`🚀 [WORKER] Attempting to publish: "${post.title}" (ID: ${post.id})`);
           
           // Mark as published immediately so other worker ticks don't pick it up
@@ -189,7 +189,7 @@ export async function startPublishingWorker() {
               title: post.title,
               description: post.description || "",
               videoFormat: post.videoFormat as any,
-              platforms: post.platforms.map(p => ({
+              platforms: post.platforms.map((p: any) => ({
                 platform: p.platform,
                 accountId: p.accountId!,
                 accountName: p.accountName

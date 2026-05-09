@@ -31,7 +31,7 @@ export async function GET() {
     });
 
     // BigInt serialization fix
-    const serializedAssets = assets.map(asset => ({
+    const serializedAssets = assets.map((asset: any) => ({
       ...asset,
       fileSize: asset.fileSize ? Number(asset.fileSize) : null,
       previewUrl: generateSignedMediaUrl(asset.fileId, 120) // 2 hour signed preview
@@ -66,7 +66,7 @@ export async function DELETE(req: NextRequest) {
         where: { userId: session.user.id },
         select: { fileId: true }
       });
-      targetIds = userAssets.map(a => a.fileId);
+      targetIds = userAssets.map((a: any) => a.fileId);
       
       // 2. Wipe DB records
       await prisma.galleryAsset.deleteMany({

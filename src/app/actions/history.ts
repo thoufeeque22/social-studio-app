@@ -293,7 +293,7 @@ export async function updateScheduledPost(id: string, data: { title?: string; de
       await prisma.galleryAsset.updateMany({
         where: { fileId: updated.stagedFileId },
         data: { expiresAt: newExpiry }
-      }).catch(e => console.warn("Failed to sync gallery expiry:", e));
+      }).catch((e: Error) => console.warn("Failed to sync gallery expiry:", e));
     }
 
     await revalidateDashboard();
@@ -323,7 +323,7 @@ export async function publishNowAction(id: string) {
       await prisma.galleryAsset.updateMany({
         where: { fileId: updated.stagedFileId },
         data: { expiresAt: newExpiry }
-      }).catch(e => console.warn("Failed to sync gallery expiry:", e));
+      }).catch((e: Error) => console.warn("Failed to sync gallery expiry:", e));
     }
 
     await revalidateDashboard();
@@ -382,7 +382,7 @@ export async function updatePlatformResultsAction(historyId: string, reviewedCon
     if (!history) throw new Error("History record not found.");
 
     // Update each platform result with its specific custom content
-    await Promise.all(history.platforms.map(p => {
+    await Promise.all(history.platforms.map((p: any) => {
       const custom = reviewedContent[p.platform];
       if (!custom) return Promise.resolve();
 
