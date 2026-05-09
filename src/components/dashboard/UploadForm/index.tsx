@@ -313,47 +313,60 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <SchedulingSelector isScheduled={isScheduled} scheduledAt={scheduledAt} onChange={onSchedulingChange} />
 
-        {hasCachedPreviews && !isUploading && (
-          <button
-            type="button"
-            onClick={onResumeReview}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.75rem',
-              padding: '1rem',
-              borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))',
-              border: '1px solid hsla(var(--primary) / 0.3)',
-              color: 'white',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'all 0.2s ease',
-              marginTop: '0.5rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.3), hsla(var(--primary) / 0.15))';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))';
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+          {hasCachedPreviews && !isUploading && (
+            <button
+              type="button"
+              onClick={onResumeReview}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '1rem',
+                borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))',
+                border: '1px solid hsla(var(--primary) / 0.3)',
+                color: 'white',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease',
+                fontSize: '0.9rem'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.3), hsla(var(--primary) / 0.15))';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))';
+              }}
+            >
+              <span>⏭️</span> Continue Reviewing
+            </button>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isUploading}
+            style={{ 
+              flex: hasCachedPreviews ? 1.2 : 'none',
+              background: 'hsl(var(--primary))', 
+              color: 'white', 
+              border: 'none', 
+              padding: '1rem', 
+              borderRadius: '0.75rem', 
+              fontWeight: 700, 
+              cursor: isUploading ? 'not-allowed' : 'pointer', 
+              boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', 
+              fontSize: '1rem' 
             }}
           >
-            <span>⏭️</span> Forward: Resume Review
+            {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? '🔄 Regenerate Strategy' : '✨ Review AI Strategy') : '🚀 Post Video')}
           </button>
-        )}
-
-        <button 
-          type="submit" 
-          disabled={isUploading}
-          style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
-        >
-          {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? '🔄 Regenerate AI Strategy' : '✨ Review AI Strategy') : '🚀 Post Video')}
-        </button>
+        </div>
 
         {aiTier !== 'Manual' && !isUploading && (
           <button

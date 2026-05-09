@@ -54,28 +54,28 @@ describe('UploadForm Forward Navigation', () => {
     hasFailures: false,
   };
 
-  it('does not render "Resume AI Review" button by default', () => {
+  it('does not render "Continue Reviewing" button by default', () => {
     render(<UploadForm {...mockProps} />);
-    expect(screen.queryByText(/Forward: Resume AI Review/i)).toBeNull();
+    expect(screen.queryByText(/Continue Reviewing/i)).toBeNull();
   });
 
-  it('renders "Resume Review" button when hasCachedPreviews is true', () => {
+  it('renders "Continue Reviewing" button when hasCachedPreviews is true', () => {
     render(<UploadForm {...mockProps} hasCachedPreviews={true} onResumeReview={vi.fn()} />);
-    expect(screen.getByText(/Forward: Resume Review/i)).toBeTruthy();
+    expect(screen.getByText(/Continue Reviewing/i)).toBeTruthy();
   });
 
-  it('calls onResumeReview when "Resume Review" button is clicked', () => {
+  it('calls onResumeReview when "Continue Reviewing" button is clicked', () => {
     const onResumeReview = vi.fn();
     render(<UploadForm {...mockProps} hasCachedPreviews={true} onResumeReview={onResumeReview} />);
     
-    const resumeButton = screen.getByText(/Forward: Resume Review/i);
+    const resumeButton = screen.getByText(/Continue Reviewing/i);
     fireEvent.click(resumeButton);
     
     expect(onResumeReview).toHaveBeenCalledTimes(1);
   });
 
-  it('hides "Resume AI Review" button when isUploading is true', () => {
+  it('hides "Continue Reviewing" button when isUploading is true', () => {
     render(<UploadForm {...mockProps} hasCachedPreviews={true} isUploading={true} onResumeReview={vi.fn()} />);
-    expect(screen.queryByText(/Forward: Resume AI Review/i)).toBeNull();
+    expect(screen.queryByText(/Continue Reviewing/i)).toBeNull();
   });
 });
