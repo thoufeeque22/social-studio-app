@@ -16,6 +16,7 @@ Located next to the description fields in the main upload form.
 ### 2. Snippet Management (Settings)
 A dedicated section in the Settings page (`/settings`) for organizing saved assets.
 - **List View:** See all saved snippets, their names, and content previews.
+- **Update:** Edit snippet name or content.
 - **Delete:** Remove outdated or redundant snippets.
 
 ## Technical Implementation
@@ -30,11 +31,29 @@ Managed via Prisma in `prisma/schema.prisma`:
 Implemented in `src/app/actions/metadata.ts`:
 - `getMetadataTemplates()`: Fetches user-specific snippets.
 - `createMetadataTemplate(data)`: Persists a new snippet.
+- `updateMetadataTemplate(id, data)`: Modifies an existing snippet.
 - `deleteMetadataTemplate(id)`: Removes a snippet (with ownership check).
 
-### State Management
+### State Management & UX
 Enhanced `useUploadForm` hook in `src/hooks/dashboard/useUploadForm.ts`:
 - `appendDescription(val, platform?)`: Helper to intelligently append text with proper newline separation.
+
+**Menu UX Improvements:**
+- **Auto-Close:** The snippets menu automatically closes after a successful "Save" or when a snippet is "Selected" for insertion.
+- **Click Outside:** The menu dismisses gracefully when clicking anywhere outside the menu container.
+- **Explicit Close:** An "X" button is provided for quick dismissal.
+
+## Quality Assurance
+
+### Automated Testing
+- **Unit Tests:** `src/__tests__/unit/metadata-actions.test.ts` covers CRUD operations and authorization.
+- **Integration Tests:** Existing test suites were updated to ensure compatibility with `StyleMode` and `AITier` type changes.
+- **E2E Tests:** `src/__tests__/e2e/snippets.spec.ts` (Playwright) verifies the full user journey and UX closing logic.
+
+### Manual Verification
+Refer to the following UAT scripts:
+- [UAT Script: Metadata Templates](../manual_tests/verify-metadata-templates.md) (Core Flow)
+- [UAT Script: Snippets UX Improvements](../manual_tests/verify-snippets-ux-improvements.md) (Targeted UX check)
 
 ## User Flow
 
@@ -44,9 +63,12 @@ graph TD
     B -- Yes --> C[Click Snippets Dropdown]
     C --> D[Select Snippet]
     D --> E[Snippet Appended to Description]
+    E --> J[Menu Closes Automatically]
     B -- No --> F[Type Description]
     F --> G[Click Snippets -> Save Current]
-    G --> H[Snippet Saved for Future]
-    E --> I[Distribute Post]
-    H --> I
+    G --> H[Enter Name & Save]
+    H --> I[Snippet Saved for Future]
+    I --> K[Menu Closes Automatically]
+    J --> L[Distribute Post]
+    K --> L
 ```
