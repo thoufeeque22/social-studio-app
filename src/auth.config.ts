@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import TikTok from "next-auth/providers/tiktok";
+import Credentials from "next-auth/providers/credentials";
 
 export default {
   providers: [
@@ -52,6 +53,29 @@ export default {
         },
         checks: ["state"],
         allowDangerousEmailAccountLinking: true,
+      })
+    ] : []),
+    ...(process.env.E2E === 'true' && process.env.NODE_ENV === 'development' ? [
+      Credentials({
+        name: "E2E Credentials",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" }
+        },
+        async authorize(credentials) {
+          if (
+            credentials?.email === "tester@socialstudio.ai" && 
+            credentials?.password === process.env.E2E_TEST_PASSWORD &&
+            process.env.E2E_TEST_PASSWORD
+          ) {
+            return {
+              id: "e2e-test-user",
+              name: "E2E Tester",
+              email: "tester@socialstudio.ai"
+            };
+          }
+          return null;
+        }
       })
     ] : []),
   ],
