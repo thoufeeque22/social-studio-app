@@ -337,7 +337,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     {platform === 'youtube' ? '📺' : platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'facebook' ? '👥' : '🌐'}
                   </span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary))' }}>
-                    {platform} Metadata
+                    {platform} Details
                   </span>
                 </div>
                 
