@@ -407,46 +407,50 @@ export default function DashboardClient({
               />
             </div>
           ) : (
-            <UploadForm 
-              isUploading={isUploading}
-              uploadStatus={uploadStatus}
-              accounts={devAccounts}
-              preferences={preferences}
-              selectedAccountIds={selectedAccountIds}
-              successfulAccountIds={successfulAccountIds}
-              platformStatuses={platformStatuses}
-              platformErrors={platformErrors}
-              contentMode={contentMode}
-              aiTier={aiTier}
-              videoFormat={videoFormat}
-              videoDuration={videoDuration}
-              draftFileName={galleryFileName || draftFileName}
-              onVisualScan={handleVisualScan}
-              onTierChange={setAiTier}
-              onModeChange={setContentMode}
-              onFormatChange={setVideoFormat}
-              onToggleAccount={handleToggleAccount}
-              onAbort={handleAbortPlatform}
-              onAbortAll={handleAbortAll}
-              onFileChange={(file) => {
-                setGalleryFileId(null);
-                setGalleryFileName(null);
-                handleFileChange(file);
-                setIsComplete(false);
-              }}
-              onGallerySelect={(fileId, fileName) => {
-                handleGallerySelect(fileId, fileName);
-                setIsComplete(false);
-              }}
-              onSubmit={handleMainAction}
-              isScheduled={isScheduled}
-              scheduledAt={scheduledAt}
-              onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
-              hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
-              isComplete={isComplete}
-              customStyleText={customStyleText}
-              onCustomStyleChange={setCustomStyleText}
-            />
+              <UploadForm 
+                isUploading={isUploading}
+                uploadStatus={uploadStatus}
+                accounts={devAccounts}
+                preferences={preferences}
+                selectedAccountIds={selectedAccountIds}
+                successfulAccountIds={successfulAccountIds}
+                platformStatuses={platformStatuses}
+                platformErrors={platformErrors}
+                contentMode={contentMode}
+                aiTier={aiTier}
+                videoFormat={videoFormat}
+                videoDuration={videoDuration}
+                draftFileName={galleryFileName || draftFileName}
+                onVisualScan={handleVisualScan}
+                onTierChange={setAiTier}
+                onModeChange={setContentMode}
+                onFormatChange={setVideoFormat}
+                onToggleAccount={handleToggleAccount}
+                onFileChange={(file) => {
+                  setGalleryFileId(null);
+                  setGalleryFileName(null);
+                  handleFileChange(file);
+                  setIsComplete(false);
+                  setAiPreviews({});
+                }}
+                onGallerySelect={(fileId, fileName) => {
+                  handleGallerySelect(fileId, fileName);
+                  setIsComplete(false);
+                  setAiPreviews({});
+                }}
+                onSubmit={handleMainAction}
+                isScheduled={isScheduled}
+                scheduledAt={scheduledAt}
+                onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
+                hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
+                isComplete={isComplete}
+                customStyleText={customStyleText}
+                onCustomStyleChange={setCustomStyleText}
+                onAbort={handleAbortPlatform}
+                onAbortAll={handleAbortAll}
+                hasCachedPreviews={Object.keys(aiPreviews).length > 0}
+                onResumeReview={() => setIsReviewing(true)}
+              />
           )}
           <SidebarInfo accounts={devAccounts} />
         </div>

@@ -44,6 +44,8 @@ interface UploadFormProps {
   onAbort: (id: string) => void;
   onAbortAll: () => void;
   hasFailures: boolean;
+  hasCachedPreviews?: boolean;
+  onResumeReview?: () => void;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -76,7 +78,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   platformErrors,
   onAbort,
   onAbortAll,
-  hasFailures
+  hasFailures,
+  hasCachedPreviews,
+  onResumeReview
 }) => {
   const {
     title,
@@ -309,12 +313,46 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <SchedulingSelector isScheduled={isScheduled} scheduledAt={scheduledAt} onChange={onSchedulingChange} />
 
+        {hasCachedPreviews && !isUploading && (
+          <button
+            type="button"
+            onClick={onResumeReview}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              padding: '1rem',
+              borderRadius: '0.75rem',
+              background: 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))',
+              border: '1px solid hsla(var(--primary) / 0.3)',
+              color: 'white',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s ease',
+              marginTop: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.3), hsla(var(--primary) / 0.15))';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.background = 'linear-gradient(135deg, hsla(var(--primary) / 0.2), hsla(var(--primary) / 0.1))';
+            }}
+          >
+            <span>⏭️</span> Forward: Resume Review
+          </button>
+        )}
+
         <button 
           type="submit" 
           disabled={isUploading}
           style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '1rem', borderRadius: '0.75rem', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', fontSize: '1rem' }}
         >
-          {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? '✨ Review AI Strategy' : '🚀 Post Video')}
+          {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? '🔄 Regenerate AI Strategy' : '✨ Review AI Strategy') : '🚀 Post Video')}
         </button>
 
         {aiTier !== 'Manual' && !isUploading && (
