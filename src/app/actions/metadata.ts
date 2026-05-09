@@ -1,14 +1,27 @@
 'use server';
 
-import { basePrisma as prisma } from '@/lib/core/prisma';
+import { prisma } from '@/lib/core/prisma';
 import { protectedAction, revalidateDashboard } from '@/lib/core/action-utils';
+
+/**
+ * Helper to ensure model exists or log diagnostics
+ */
+function getModel() {
+  if (!(prisma as any).metadataTemplate) {
+    console.error("CRITICAL: metadataTemplate model missing from Prisma client!");
+    console.error("Available models:", Object.keys(prisma).filter(k => !k.startsWith('_') && typeof (prisma as any)[k] === 'object'));
+    throw new Error("Metadata Template feature is currently unavailable due to a database client mismatch.");
+  }
+  return (prisma as any).metadataTemplate;
+}
 
 /**
  * Fetches all metadata templates for the current user.
  */
 export async function getMetadataTemplates() {
   return await protectedAction(async (userId) => {
-    return await prisma.metadataTemplate.findMany({
+    const model = getModel();
+    return await model.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' }
     });
@@ -20,7 +33,8 @@ export async function getMetadataTemplates() {
  */
 export async function createMetadataTemplate(data: { name: string, content: string }) {
   return await protectedAction(async (userId) => {
-    const template = await prisma.metadataTemplate.create({
+    const model = getModel();
+    const template = await model.create({
       data: {
         userId,
         name: data.name,
@@ -38,8 +52,9 @@ export async function createMetadataTemplate(data: { name: string, content: stri
  */
 export async function deleteMetadataTemplate(id: string) {
   return await protectedAction(async (userId) => {
+    const model = getModel();
     // Ensure the template belongs to the user
-    const template = await prisma.metadataTemplate.findUnique({
+    const template = await model.findUnique({
       where: { id }
     });
 
@@ -47,7 +62,7 @@ export async function deleteMetadataTemplate(id: string) {
       throw new Error("Template not found or unauthorized.");
     }
 
-    await prisma.metadataTemplate.delete({
+    await model.delete({
       where: { id }
     });
 
@@ -61,8 +76,9 @@ export async function deleteMetadataTemplate(id: string) {
  */
 export async function updateMetadataTemplate(id: string, data: { name: string, content: string }) {
   return await protectedAction(async (userId) => {
+    const model = getModel();
     // Ensure the template belongs to the user
-    const template = await prisma.metadataTemplate.findUnique({
+    const template = await model.findUnique({
       where: { id }
     });
 
@@ -70,7 +86,7 @@ export async function updateMetadataTemplate(id: string, data: { name: string, c
       throw new Error("Template not found or unauthorized.");
     }
 
-    const updated = await prisma.metadataTemplate.update({
+    const updated = await model.update({
       where: { id },
       data: {
         name: data.name,
