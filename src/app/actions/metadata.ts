@@ -7,12 +7,23 @@ import { protectedAction, revalidateDashboard } from '@/lib/core/action-utils';
  * Helper to ensure model exists or log diagnostics
  */
 function getModel() {
-  if (!(prisma as any).metadataTemplate) {
+  const p = prisma as any;
+  if (!p.metadataTemplate) {
     console.error("CRITICAL: metadataTemplate model missing from Prisma client!");
-    console.error("Available models:", Object.keys(prisma).filter(k => !k.startsWith('_') && typeof (prisma as any)[k] === 'object'));
+    console.error("Prisma object type:", typeof prisma);
+    console.error("Has metadataTemplate property:", 'metadataTemplate' in prisma);
+    console.error("Available properties:", Object.getOwnPropertyNames(prisma).filter(k => !k.startsWith('_')));
+    
+    // Fallback attempt to basePrisma
+    const bp = (require('@/lib/core/prisma').basePrisma as any);
+    if (bp && bp.metadataTemplate) {
+      console.warn("Using fallback to basePrisma for metadataTemplate");
+      return bp.metadataTemplate;
+    }
+
     throw new Error("Metadata Template feature is currently unavailable due to a database client mismatch.");
   }
-  return (prisma as any).metadataTemplate;
+  return p.metadataTemplate;
 }
 
 /**

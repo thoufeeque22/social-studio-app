@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bookmark, Plus, X, Loader2 } from 'lucide-react';
 import { getMetadataTemplates, createMetadataTemplate } from '@/app/actions/metadata';
 
@@ -20,6 +20,8 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
+  
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchTemplates = async () => {
     setIsLoading(true);
@@ -39,8 +41,24 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
     }
   }, [isOpen]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleSaveAction = async () => {
     if (!newTemplateName.trim() || !currentContent.trim()) return;
 
     setIsSaving(true);
@@ -52,6 +70,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
       setTemplates([newTemplate as Template, ...templates]);
       setNewTemplateName('');
       setShowSaveForm(false);
+      setIsOpen(false); // Close menu on successful save
     } catch (error) {
       console.error('Failed to save template:', error);
       alert('Failed to save template.');
@@ -61,11 +80,12 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         title="Saved Snippets"
+        data-testid="snippets-trigger"
         style={{
           background: 'hsla(var(--primary)/0.1)',
           border: '1px solid hsla(var(--primary)/0.3)',
@@ -85,21 +105,24 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
       </button>
 
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          right: 0,
-          zIndex: 50,
-          marginTop: '0.5rem',
-          width: '280px',
-          background: 'hsl(var(--card))',
-          border: '1px solid hsla(var(--border)/0.5)',
-          borderRadius: '0.75rem',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
+        <div 
+          data-testid="snippets-menu"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            zIndex: 50,
+            marginTop: '0.5rem',
+            width: '280px',
+            background: 'hsl(var(--card))',
+            border: '1px solid hsla(var(--border)/0.5)',
+            borderRadius: '0.75rem',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
           <div style={{ 
             padding: '0.75rem', 
             borderBottom: '1px solid hsla(var(--border)/0.3)',
@@ -133,6 +156,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                   <button
                     key={t.id}
                     type="button"
+                    data-testid={`snippet-item-${t.id}`}
                     onClick={() => {
                       onSelect(t.content);
                       setIsOpen(false);
@@ -179,6 +203,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
             {!showSaveForm ? (
               <button
                 type="button"
+                data-testid="save-snippet-form-trigger"
                 onClick={() => setShowSaveForm(true)}
                 disabled={!currentContent.trim()}
                 style={{
@@ -202,13 +227,20 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                 Save Current as Snippet
               </button>
             ) : (
-              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <input
                   autoFocus
                   type="text"
+                  data-testid="new-snippet-name-input"
                   placeholder="Snippet name (e.g. Bio Link)"
                   value={newTemplateName}
                   onChange={e => setNewTemplateName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveAction();
+                    }
+                  }}
                   style={{
                     background: 'hsla(var(--muted)/0.5)',
                     border: '1px solid hsla(var(--border)/0.5)',
@@ -221,7 +253,9 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                 />
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
-                    type="submit"
+                    type="button"
+                    data-testid="confirm-save-snippet"
+                    onClick={handleSaveAction}
                     disabled={isSaving || !newTemplateName.trim()}
                     style={{
                       flex: 1,
@@ -253,11 +287,12 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
             )}
           </div>
         </div>
       )}
     </div>
   );
+
 };
