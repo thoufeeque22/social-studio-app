@@ -36,7 +36,7 @@ describe('Sticky Video Format Server Actions', () => {
 
   describe('getVideoFormatPreference', () => {
     it('returns default "short" if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as any);
       const result = await getVideoFormatPreference();
       expect(result).toBe('short');
     });
@@ -56,7 +56,7 @@ describe('Sticky Video Format Server Actions', () => {
 
   describe('updateVideoFormatPreference', () => {
     it('throws an error if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as any);
       await expect(updateVideoFormatPreference('long'))
         .rejects.toThrow('Unauthorized');
     });

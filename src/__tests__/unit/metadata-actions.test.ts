@@ -61,7 +61,7 @@ describe('Metadata Actions', () => {
     });
 
     it('throws error if unauthorized', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as any);
       await expect(getMetadataTemplates()).rejects.toThrow('Unauthorized');
     });
   });
