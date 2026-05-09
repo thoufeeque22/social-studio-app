@@ -11,6 +11,10 @@ Welcome to the Social Studio project documentation.
 
 - [Architecture Overview](ARCHITECTURE.md) - Deep dive into system design, data models, and workflows.
 
+## Features
+
+- [Metadata Templates](features/METADATA_TEMPLATES.md) - Reusable description snippets and bio links.
+
 ## Guides & Troubleshooting
 
 - [Platform Integrations](PLATFORM_INTEGRATIONS.md) - Details on external API integrations.

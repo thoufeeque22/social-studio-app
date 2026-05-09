@@ -29,6 +29,7 @@ erDiagram
     User ||--o{ PostHistory : "creates"
     User ||--o{ GalleryAsset : "uploads"
     User ||--o{ TokenAuditLog : "logs"
+    User ||--o{ MetadataTemplate : "saves"
 
     Account ||--o{ TokenAuditLog : "audited by"
 
@@ -42,6 +43,15 @@ erDiagram
         string image
         string preferredVideoFormat
         string preferredAIStyle
+    }
+
+    MetadataTemplate {
+        string id PK
+        string userId FK
+        string name
+        string content
+        datetime createdAt
+        datetime updatedAt
     }
 
     Account {
