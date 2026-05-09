@@ -5,12 +5,12 @@ import {
   deleteMetadataTemplate,
   updateMetadataTemplate 
 } from '@/app/actions/metadata';
-import { prisma } from '@/lib/core/prisma';
+import { basePrisma as prisma } from '@/lib/core/prisma';
 import { auth } from '@/auth';
 
 // Mock Prisma
 vi.mock('@/lib/core/prisma', () => ({
-  prisma: {
+  basePrisma: {
     metadataTemplate: {
       findMany: vi.fn(),
       findUnique: vi.fn(),

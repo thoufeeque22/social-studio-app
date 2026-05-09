@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/core/prisma';
+import { basePrisma as prisma } from '@/lib/core/prisma';
 import { protectedAction, revalidateDashboard } from '@/lib/core/action-utils';
 
 /**
