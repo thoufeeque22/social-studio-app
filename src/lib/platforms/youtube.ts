@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { prisma } from "@/lib/core/prisma";
+import { logTokenEvent } from "@/lib/core/audit";
 import fs from "fs";
 
 export const getYouTubeClient = async (userId: string, accountId?: string) => {
@@ -11,6 +12,15 @@ export const getYouTubeClient = async (userId: string, accountId?: string) => {
   if (!account) {
     throw new Error("Specified YouTube account not found for this user.");
   }
+
+  // Log token access
+  await logTokenEvent({
+    userId,
+    accountId: account.id,
+    action: "ACCESS",
+    provider: "google",
+    reason: "Initializing YouTube client"
+  });
 
   const auth = new google.auth.OAuth2(
     process.env.AUTH_GOOGLE_ID,

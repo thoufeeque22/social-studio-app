@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/core/prisma";
+import { logTokenEvent } from "@/lib/core/audit";
 import { createReadStream } from "fs";
 import fsSync from "fs";
 import { logger } from "@/lib/core/logger";
@@ -11,6 +12,15 @@ export const getInstagramAccount = async (userId: string, accountId?: string) =>
   if (!account || !account.access_token) {
     throw new Error("Specified Facebook account for Instagram not found.");
   }
+
+  // Log token access
+  await logTokenEvent({
+    userId,
+    accountId: account.id,
+    action: "ACCESS",
+    provider: "instagram",
+    reason: "Initializing Instagram/Business client"
+  });
 
   // 1. Get the Facebook Page linked to an Instagram Business Account
   const pagesUrl = `https://graph.facebook.com/v20.0/me/accounts?fields=instagram_business_account,name,access_token&access_token=${account.access_token}`;

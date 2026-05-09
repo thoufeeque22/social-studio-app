@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/core/prisma";
+import { logTokenEvent } from "@/lib/core/audit";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
@@ -12,6 +13,15 @@ export const getFacebookPageAccount = async (userId: string, accountId?: string)
   if (!account || !account.access_token) {
     throw new Error("Specified Facebook account not found.");
   }
+
+  // Log token access
+  await logTokenEvent({
+    userId,
+    accountId: account.id,
+    action: "ACCESS",
+    provider: "facebook",
+    reason: "Initializing Facebook/Page client"
+  });
 
   // Fetch the list of pages the user manages
   const pagesUrl = `https://graph.facebook.com/v22.0/me/accounts?fields=name,access_token&access_token=${account.access_token}`;
@@ -108,7 +118,7 @@ export const publishFacebookVideo = async ({
 
 /**
  * CORRECT PULL-BASED UPLOAD FOR FACEBOOK REELS (v20.0)
- * Step 1: Initialize session
+ * Step 1: Initialise session
  * Step 2: Trigger pull via rupload
  * Step 3: Poll for ready
  * Step 4: Finalize
