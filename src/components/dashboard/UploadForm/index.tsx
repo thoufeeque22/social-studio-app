@@ -85,15 +85,38 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   const {
     title,
     description,
+    platformTitles,
+    platformDescriptions,
+    isPlatformSpecific,
     titleUndo,
     descUndo,
     handleTitleChange,
     handleDescriptionChange,
+    handlePlatformTitleChange,
+    handlePlatformDescriptionChange,
+    togglePlatformSpecific,
     handleClearTitle,
     handleUndoTitle,
     handleClearDesc,
     handleUndoDesc
   } = useUploadForm();
+
+  // Derived selected platform names
+  const selectedPlatforms = React.useMemo(() => {
+    const platformsSet = new Set<string>();
+    selectedAccountIds.forEach(id => {
+      const isSplit = id.includes(':');
+      const platformKey = isSplit ? id.split(':')[0] : null;
+      const actualAccountId = isSplit ? id.split(':')[1] : id;
+      const account = accounts.find(a => a.id === actualAccountId);
+      if (isSplit && platformKey) {
+        platformsSet.add(platformKey);
+      } else if (account) {
+        platformsSet.add(account.provider === 'google' ? 'youtube' : account.provider);
+      }
+    });
+    return Array.from(platformsSet);
+  }, [selectedAccountIds, accounts]);
 
   const [showGallery, setShowGallery] = useState(false);
 
@@ -213,78 +236,133 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
         <AITierSelector selectedTier={aiTier} onChange={onTierChange} />
 
-        {/* Title Input */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                {aiTier === 'Generate' ? 'Video Prompt' : 'Video Title'}
-              </label>
-              {aiTier === 'Generate' && !isUploading && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const { getDraftFile } = await import('@/lib/upload/file-store');
-                    const file = await getDraftFile();
-                    if (!file) { alert("Please select a video file first."); return; }
-                    await onVisualScan(file);
-                  }}
-                  style={{ background: 'hsla(var(--primary)/0.1)', border: '1px solid hsla(var(--primary)/0.3)', color: 'hsl(var(--primary))', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  🪄 Auto-Scan Video
-                </button>
-              )}
-            </div>
-            {titleUndo && (
-              <button type="button" onClick={handleUndoTitle} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-                ↩️ Undo Clear
-              </button>
-            )}
-          </div>
-          <div style={{ position: 'relative' }}>
+        {/* Platform-Specific Toggle (Manual Mode Only) */}
+        {aiTier === 'Manual' && selectedPlatforms.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'hsla(var(--muted)/0.2)', borderRadius: '0.75rem', border: '1px solid hsla(var(--border)/0.3)' }}>
             <input 
-              id="video-title"
-              type="text" 
-              name="title" 
-              placeholder={aiTier === 'Generate' ? "Describe your video concept..." : "Catchy title..."}
-              value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              required
-              style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%' }} 
+              type="checkbox" 
+              id="platform-specific-toggle"
+              checked={isPlatformSpecific}
+              onChange={(e) => togglePlatformSpecific(e.target.checked)}
+              style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', accentColor: 'hsl(var(--primary))' }}
             />
-            {title && (
-              <button type="button" onClick={handleClearTitle} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'hsla(var(--foreground)/0.1)', border: 'none', color: 'hsl(var(--muted-foreground))', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', cursor: 'pointer' }}>✕</button>
-            )}
-          </div>
-        </div>
-
-        {/* Description Input */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-              {aiTier === 'Generate' ? 'Context' : 'Description'}
+            <label htmlFor="platform-specific-toggle" style={{ fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', color: isPlatformSpecific ? 'hsl(var(--primary))' : 'white' }}>
+              Separate titles/descriptions per platform
             </label>
-            {descUndo && (
-              <button type="button" onClick={handleUndoDesc} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-                ↩️ Undo Clear
-              </button>
-            )}
+            <input type="hidden" name="isPlatformSpecific" value={String(isPlatformSpecific)} />
           </div>
-          <div style={{ position: 'relative' }}>
-            <textarea 
-              id="video-description"
-              name="description" 
-              placeholder={aiTier === 'Generate' ? "Specific keywords or links..." : "Video description..."}
-              value={description}
-              onChange={(e) => handleDescriptionChange(e.target.value)}
-              rows={3}
-              style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%', resize: 'none' }} 
-            />
-            {description && (
-              <button type="button" onClick={handleClearDesc} style={{ position: 'absolute', right: '0.75rem', top: '0.75rem', background: 'hsla(var(--foreground)/0.1)', border: 'none', color: 'hsl(var(--muted-foreground))', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', cursor: 'pointer' }}>✕</button>
-            )}
+        )}
+
+        {!isPlatformSpecific ? (
+          <>
+            {/* Title Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    {aiTier === 'Generate' ? 'Video Prompt' : 'Video Title'}
+                  </label>
+                  {aiTier === 'Generate' && !isUploading && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const { getDraftFile } = await import('@/lib/upload/file-store');
+                        const file = await getDraftFile();
+                        if (!file) { alert("Please select a video file first."); return; }
+                        await onVisualScan(file);
+                      }}
+                      style={{ background: 'hsla(var(--primary)/0.1)', border: '1px solid hsla(var(--primary)/0.3)', color: 'hsl(var(--primary))', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      🪄 Auto-Scan Video
+                    </button>
+                  )}
+                </div>
+                {titleUndo && (
+                  <button type="button" onClick={handleUndoTitle} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                    ↩️ Undo Clear
+                  </button>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  id="video-title"
+                  type="text" 
+                  name="title" 
+                  placeholder={aiTier === 'Generate' ? "Describe your video concept..." : "Catchy title..."}
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  required
+                  style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%' }} 
+                />
+                {title && (
+                  <button type="button" onClick={handleClearTitle} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'hsla(var(--foreground)/0.1)', border: 'none', color: 'hsl(var(--muted-foreground))', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', cursor: 'pointer' }}>✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Description Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                  {aiTier === 'Generate' ? 'Context' : 'Description'}
+                </label>
+                {descUndo && (
+                  <button type="button" onClick={handleUndoDesc} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                    ↩️ Undo Clear
+                  </button>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <textarea 
+                  id="video-description"
+                  name="description" 
+                  placeholder={aiTier === 'Generate' ? "Specific keywords or links..." : "Video description..."}
+                  value={description}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  rows={3}
+                  style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 2.5rem 0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%', resize: 'none' }} 
+                />
+                {description && (
+                  <button type="button" onClick={handleClearDesc} style={{ position: 'absolute', right: '0.75rem', top: '0.75rem', background: 'hsla(var(--foreground)/0.1)', border: 'none', color: 'hsl(var(--muted-foreground))', borderRadius: '50%', width: '20px', height: '20px', fontSize: '0.7rem', cursor: 'pointer' }}>✕</button>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem', background: 'hsla(var(--muted)/0.1)', borderRadius: '1rem', border: '1px solid hsla(var(--border)/0.3)' }}>
+            {selectedPlatforms.map(platform => (
+              <div key={platform} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem' }}>
+                    {platform === 'youtube' ? '📺' : platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'facebook' ? '👥' : '🌐'}
+                  </span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary))' }}>
+                    {platform} Details
+                  </span>
+                </div>
+                
+                <input 
+                  type="text"
+                  name={`title_${platform}`}
+                  placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} title...`}
+                  value={platformTitles[platform] || ''}
+                  onChange={(e) => handlePlatformTitleChange(platform, e.target.value)}
+                  required
+                  style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%' }}
+                />
+                
+                <textarea 
+                  name={`description_${platform}`}
+                  placeholder={`${platform.charAt(0).toUpperCase() + platform.slice(1)} description...`}
+                  value={platformDescriptions[platform] || ''}
+                  onChange={(e) => handlePlatformDescriptionChange(platform, e.target.value)}
+                  rows={2}
+                  style={{ background: 'hsla(var(--muted) / 0.3)', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)', color: 'white', width: '100%', resize: 'none' }}
+                />
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
         {aiTier !== 'Manual' && (
           <AIStyleSelector 

@@ -22,6 +22,7 @@ export interface PlatformResultInput {
   resumableUrl?: string | null;
   videoId?: string | null;
   creationId?: string | null;
+  metadata?: any;
 }
 
 /**
@@ -100,6 +101,7 @@ export async function savePostHistory(data: SavePostHistoryInput) {
             resumableUrl: p.resumableUrl || null,
             videoId: p.videoId || null,
             creationId: p.creationId || null,
+            metadata: p.metadata || null,
           })),
         },
       },
