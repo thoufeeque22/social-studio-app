@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getMetadataTemplates, createMetadataTemplate, deleteMetadataTemplate } from '@/app/actions/metadata';
+import { 
+  getMetadataTemplates, 
+  createMetadataTemplate, 
+  deleteMetadataTemplate,
+  updateMetadataTemplate 
+} from '@/app/actions/metadata';
 import { prisma } from '@/lib/core/prisma';
 import { auth } from '@/auth';
 
@@ -11,6 +16,7 @@ vi.mock('@/lib/core/prisma', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -104,6 +110,31 @@ describe('Metadata Actions', () => {
 
       await expect(deleteMetadataTemplate(templateId)).rejects.toThrow('unauthorized');
       expect(prisma.metadataTemplate.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateMetadataTemplate', () => {
+    it('updates a template if owned by user', async () => {
+      const templateId = 't1';
+      const input = { name: 'Updated Name', content: 'Updated Content' };
+      const mockUpdated = { id: templateId, ...input, userId: mockUserId };
+      
+      vi.mocked(prisma.metadataTemplate.findUnique).mockResolvedValue({
+        id: templateId,
+        userId: mockUserId,
+      } as any);
+      vi.mocked(prisma.metadataTemplate.update).mockResolvedValue(mockUpdated as any);
+
+      const result = await updateMetadataTemplate(templateId, input);
+
+      expect(prisma.metadataTemplate.update).toHaveBeenCalledWith({
+        where: { id: templateId },
+        data: {
+          name: input.name,
+          content: input.content,
+        },
+      });
+      expect(result).toEqual(mockUpdated);
     });
   });
 });

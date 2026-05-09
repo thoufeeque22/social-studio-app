@@ -55,3 +55,30 @@ export async function deleteMetadataTemplate(id: string) {
     return { success: true };
   });
 }
+
+/**
+ * Updates an existing metadata template.
+ */
+export async function updateMetadataTemplate(id: string, data: { name: string, content: string }) {
+  return await protectedAction(async (userId) => {
+    // Ensure the template belongs to the user
+    const template = await prisma.metadataTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template || template.userId !== userId) {
+      throw new Error("Template not found or unauthorized.");
+    }
+
+    const updated = await prisma.metadataTemplate.update({
+      where: { id },
+      data: {
+        name: data.name,
+        content: data.content
+      }
+    });
+
+    await revalidateDashboard();
+    return updated;
+  });
+}

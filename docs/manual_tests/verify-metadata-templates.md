@@ -31,16 +31,18 @@ This script verifies the ability to save, reuse, and manage metadata snippets (s
 7. **Repeat** for TikTok.
 8. **Expected Result:** Snippets can be independently applied to different platform descriptions.
 
-## Scenario 3: Managing Snippets in Settings
+## Scenario 3: Managing Snippets (Edit & Delete) in Settings
 1. **Navigate** to the Settings page (`/settings`).
 2. **Locate** the "Reusable Snippets" section.
-3. **Verify** all saved snippets are displayed with their names and content previews.
-4. **Click** the trash icon on a snippet.
-5. **Confirm** the deletion in the browser dialog.
-6. **Verify** the snippet is removed from the list.
-7. **Return** to the Upload Dashboard.
-8. **Click** "Snippets".
-9. **Expected Result:** The deleted snippet no longer appears in the selection list.
+3. **Verify** all saved snippets are displayed.
+4. **Click** the edit icon (pencil) on a snippet.
+5. **Change** the name and the content.
+6. **Click** "Save".
+7. **Verify** the snippet updates in the list.
+8. **Click** the trash icon on a snippet.
+9. **Confirm** the deletion in the browser dialog.
+10. **Verify** the snippet is removed from the list.
+11. **Expected Result:** Snippets can be fully managed (edited and deleted) from the Settings page.
 
 ## Scenario 4: Edge Cases & UI Polish
 1. **Attempt** to save a snippet when the description field is empty.
