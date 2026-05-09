@@ -19,30 +19,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // --- AUTO-SCRUB SAFETY TASK ---
-  // Periodically clean up src/tmp for untracked files older than 48 hours
   try {
-    const tempDir = path.join(process.cwd(), "src/tmp");
-    if (fsSync.existsSync(tempDir)) {
-      const files = await fs.readdir(tempDir);
-      const now = Date.now();
-      for (const file of files) {
-        if (file === 'chunks') continue;
-        const filePath = path.join(tempDir, file);
-        const stats = await fs.stat(filePath);
-        if (stats.isFile() && (now - stats.mtimeMs > 7 * 24 * 60 * 60 * 1000)) {
-          await fs.unlink(filePath);
-          console.log(`🧹 [AUTO-SCRUB] Purged old temp file: ${file}`);
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Auto-scrub failed:", err);
-  }
-  // ------------------------------
-
-  try {
-    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId, platforms } = await req.json();
+    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId, platforms, scheduledAt } = await req.json();
     
     if (!uploadId || !fileName || totalChunks === undefined) {
       return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
@@ -135,7 +113,11 @@ export async function POST(req: NextRequest) {
     // REGISTER OR UPDATE IN GALLERY (LEAN GALLERY #388) - DEDUPLICATION LOGIC
     try {
       const stats = await fs.stat(finalPath);
-      const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      
+      // Calculate Expiry: Scheduled time + 48 hours (Grace period)
+      // Default to 7 days if no schedule is provided
+      const baseExpiryDate = scheduledAt ? new Date(scheduledAt) : new Date();
+      const expiresAt = new Date(baseExpiryDate.getTime() + (scheduledAt ? 48 : 7 * 24) * 60 * 60 * 1000);
 
       // Check for existing asset with same name and size for this user
       const existingAsset = await prisma.galleryAsset.findFirst({
@@ -161,7 +143,7 @@ export async function POST(req: NextRequest) {
           where: { id: existingAsset.id },
           data: {
             fileId: fileId, // Point to the newest version
-            expiresAt: sevenDaysFromNow,
+            expiresAt: expiresAt,
             createdAt: new Date(), // Reset creation date for sorting
             metadata: videoMetadata as any
           }
@@ -174,7 +156,7 @@ export async function POST(req: NextRequest) {
             fileName: fileName,
             fileSize: BigInt(stats.size),
             mimeType: "video/mp4", // Default
-            expiresAt: sevenDaysFromNow,
+            expiresAt: expiresAt,
             metadata: videoMetadata as any
           }
         });
