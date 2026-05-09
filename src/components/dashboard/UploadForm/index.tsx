@@ -325,6 +325,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div style={{ position: 'relative' }}>
                 <textarea 
                   id="video-description"
+                  data-testid="video-description"
                   name="description" 
                   placeholder={aiTier === 'Generate' ? "Specific keywords or links..." : "Video description..."}
                   value={description}

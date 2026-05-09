@@ -27,7 +27,7 @@ test.describe('Metadata Templates (Snippets)', () => {
   });
 
   test('should save a new snippet and close the menu on success', async ({ page }) => {
-    const descriptionField = page.locator('textarea[id="video-description"]');
+    const descriptionField = page.getByTestId('video-description');
     const testContent = `E2E Test Snippet ${Date.now()}`;
     const snippetName = `Name ${Date.now()}`;
 
@@ -55,7 +55,7 @@ test.describe('Metadata Templates (Snippets)', () => {
   });
 
   test('should append snippet content to description and close menu', async ({ page }) => {
-    const descriptionField = page.locator('textarea[id="video-description"]');
+    const descriptionField = page.getByTestId('video-description');
     await descriptionField.fill('Initial text.');
 
     // Open menu
@@ -81,7 +81,7 @@ test.describe('Metadata Templates (Snippets)', () => {
 
   test('should work independently for platform-specific descriptions', async ({ page }) => {
     // Enable platform specific toggle if available
-    const toggle = page.locator('button:has-text("Separate titles/descriptions")');
+    const toggle = page.getByTestId('platform-specific-toggle-label');
     if (await toggle.isVisible()) {
       await toggle.click();
     }
@@ -91,7 +91,7 @@ test.describe('Metadata Templates (Snippets)', () => {
     if (await platformHeader.isVisible()) {
       const platformContainer = platformHeader.locator('xpath=../..');
       const platformTrigger = platformContainer.getByTestId('snippets-trigger');
-      const platformInput = platformContainer.locator('textarea');
+      const platformInput = platformContainer.getByTestId('video-description-youtube');
 
       await platformTrigger.click();
       const firstSnippet = page.locator('[data-testid^="snippet-item-"]').first();
