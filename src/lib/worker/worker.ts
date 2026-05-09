@@ -9,7 +9,7 @@ import { logger } from "@/lib/core/logger";
  * 1. Cleans up DB records and physical files for expired gallery assets.
  * 2. Purges orphaned files in src/tmp not tracked in DB (>24h old).
  */
-async function purgeExpiredAssets() {
+export async function purgeExpiredAssets() {
   try {
     const now = new Date();
     
