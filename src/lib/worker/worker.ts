@@ -5,12 +5,15 @@ import { readFileSync, existsSync, promises as fs } from "fs";
 import { logger } from "@/lib/core/logger";
 
 /**
- * PURGE EXPIRED ASSETS
- * Cleans up both DB records and physical files for staged assets older than 7 days.
+ * PURGE EXPIRED ASSETS & CLEANUP ORPHANED FILES
+ * 1. Cleans up DB records and physical files for expired gallery assets.
+ * 2. Purges orphaned files in src/tmp not tracked in DB (>24h old).
  */
 async function purgeExpiredAssets() {
   try {
     const now = new Date();
+    
+    // --- 1. DB-TRACKED EXPIRED ASSETS ---
     const expired = await prisma.galleryAsset.findMany({
       where: {
         expiresAt: {
@@ -35,11 +38,49 @@ async function purgeExpiredAssets() {
             await fs.unlink(metadataPath);
           }
 
+          // Also clean up optimized versions if any
+          const files = await fs.readdir(path.join(process.cwd(), "src/tmp"));
+          for (const file of files) {
+             if (file.includes(asset.fileId) && file !== asset.fileId) {
+                await fs.unlink(path.join(process.cwd(), "src/tmp", file)).catch(() => {});
+             }
+          }
+
           await prisma.galleryAsset.delete({
             where: { id: asset.id }
           });
         } catch (err: any) {
           logger.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, err.message);
+        }
+      }
+    }
+
+    // --- 2. ORPHANED FILES CLEANUP ---
+    // Files in src/tmp older than 24h that are NOT in GalleryAsset or PostHistory
+    const tempDir = path.join(process.cwd(), "src/tmp");
+    if (existsSync(tempDir)) {
+      const files = await fs.readdir(tempDir);
+      const dayAgo = now.getTime() - (24 * 60 * 60 * 1000);
+      
+      const trackedFileIds = new Set([
+        ...(await prisma.galleryAsset.findMany({ select: { fileId: true } })).map(a => a.fileId),
+        ...(await prisma.postHistory.findMany({ where: { stagedFileId: { not: null } }, select: { stagedFileId: true } })).map(p => p.stagedFileId!)
+      ]);
+
+      for (const file of files) {
+        if (file === '.gitignore' || file === 'chunks') continue;
+        
+        const filePath = path.join(tempDir, file);
+        const stats = await fs.stat(filePath);
+        
+        if (stats.isFile() && stats.mtimeMs < dayAgo) {
+           // Check if this file (or its base fileId if it's optimized_) is tracked
+           const isTracked = Array.from(trackedFileIds).some(id => file.includes(id));
+           
+           if (!isTracked) {
+              await fs.unlink(filePath);
+              logger.info(`🧹 [WORKER] Purged orphaned file: ${file}`);
+           }
         }
       }
     }
@@ -157,6 +198,14 @@ export async function startPublishingWorker() {
             });
 
             logger.info(`✅ [WORKER] Published successfully: ${post.title}`);
+
+            // Shorten expiry to now + 24h since it's already published
+            if (stagedFileId) {
+               await prisma.galleryAsset.updateMany({
+                  where: { fileId: stagedFileId },
+                  data: { expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }
+               }).catch(() => {});
+            }
           } catch (err: any) {
             logger.error(`❌ [WORKER] Failed to publish ${post.title}: ${err.message}`);
             Sentry.captureException(err, {

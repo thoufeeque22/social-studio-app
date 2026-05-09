@@ -24,3 +24,6 @@ export const GEMINI_FALLBACK_MODELS = [
 
 export const OLLAMA_DEFAULT_BASE_URL = "http://localhost:11434";
 export const OLLAMA_DEFAULT_MODEL = "gemma4";
+
+// Storage Quotas
+export const MAX_STORAGE_PER_USER = 2 * 1024 * 1024 * 1024; // 2GB in bytes

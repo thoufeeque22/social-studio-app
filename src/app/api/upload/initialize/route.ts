@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
+import { MAX_STORAGE_PER_USER } from "@/lib/core/constants";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -14,6 +15,21 @@ export async function POST(req: NextRequest) {
 
     if (!platforms || !Array.isArray(platforms)) {
       return NextResponse.json({ error: "Missing platforms data" }, { status: 400 });
+    }
+
+    // 1. Check Per-User Storage Quota
+    const usage = await prisma.galleryAsset.aggregate({
+      where: { userId: session.user.id },
+      _sum: { fileSize: true }
+    });
+
+    const currentUsage = Number(usage._sum.fileSize || 0);
+    if (currentUsage >= MAX_STORAGE_PER_USER) {
+      const usageMB = Math.round(currentUsage / (1024 * 1024));
+      const limitMB = Math.round(MAX_STORAGE_PER_USER / (1024 * 1024));
+      return NextResponse.json({ 
+        error: `Storage limit exceeded. You are using ${usageMB}MB of your ${limitMB}MB quota. Please delete some old videos from your Gallery before uploading more.` 
+      }, { status: 403 });
     }
 
     const history = await prisma.postHistory.create({

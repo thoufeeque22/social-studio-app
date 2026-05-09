@@ -287,6 +287,15 @@ export async function updateScheduledPost(id: string, data: { title?: string; de
       }
     });
 
+    // Sync GalleryAsset expiry
+    if (updated.stagedFileId && updated.scheduledAt) {
+      const newExpiry = new Date(updated.scheduledAt.getTime() + 48 * 60 * 60 * 1000);
+      await prisma.galleryAsset.updateMany({
+        where: { fileId: updated.stagedFileId },
+        data: { expiresAt: newExpiry }
+      }).catch(e => console.warn("Failed to sync gallery expiry:", e));
+    }
+
     await revalidateDashboard();
     return updated;
   });
@@ -307,6 +316,15 @@ export async function publishNowAction(id: string) {
       where: { id },
       data: { scheduledAt: new Date() }
     });
+
+    // Sync GalleryAsset expiry
+    if (updated.stagedFileId && updated.scheduledAt) {
+      const newExpiry = new Date(updated.scheduledAt.getTime() + 48 * 60 * 60 * 1000);
+      await prisma.galleryAsset.updateMany({
+        where: { fileId: updated.stagedFileId },
+        data: { expiresAt: newExpiry }
+      }).catch(e => console.warn("Failed to sync gallery expiry:", e));
+    }
 
     await revalidateDashboard();
     return updated;
