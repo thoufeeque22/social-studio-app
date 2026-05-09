@@ -7,6 +7,10 @@ import React from 'react';
 vi.mock('lucide-react', () => ({
   Film: () => <div data-testid="film-icon" />,
   Sparkles: () => <div data-testid="sparkles-icon" />,
+  Bookmark: () => <div data-testid="bookmark-icon" />,
+  Loader2: () => <div data-testid="loader-icon" className="animate-spin" />,
+  Plus: () => <div data-testid="plus-icon" />,
+  X: () => <div data-testid="x-icon" />,
 }));
 
 describe('UploadForm Forward Navigation', () => {

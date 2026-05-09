@@ -3,7 +3,12 @@ import '@testing-library/jest-dom';
 
 // Mock Next-Auth
 vi.mock('next-auth', () => ({
-  default: vi.fn(),
+  default: vi.fn(() => ({
+    handlers: {},
+    auth: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  })),
   getServerSession: vi.fn(),
 }));
 
@@ -13,6 +18,8 @@ vi.mock('next-auth/react', () => ({
     data: null,
     status: 'unauthenticated',
   })),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
