@@ -140,10 +140,33 @@ export default function DashboardClient({
   } = useDistributionEngine(devAccounts);
 
   // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
-  const [aiTier, setAiTier] = useState<AITier>(initialAITier || 'Manual');
+  const [aiTier, setAiTierInternal] = useState<AITier>(() => {
+    // Priority: localStorage (fastest/most recent) > initialAITier (server-side) > Manual (fallback)
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('SS_AI_TIER') as AITier;
+      if (saved && ['Manual', 'Enrich', 'Generate'].includes(saved)) return saved;
+    }
+    return initialAITier || 'Manual';
+  });
+
   const [contentMode, setContentMode] = useState<StyleMode>(
     (initialAIStyle && (initialAIStyle as string) !== 'Manual') ? initialAIStyle : 'Smart'
   );
+
+  // Persistence wrapper for AI Tier
+  const setAiTier = async (newTier: AITier) => {
+    setAiTierInternal(newTier);
+    if (globalThis.localStorage) {
+      localStorage.setItem('SS_AI_TIER', newTier);
+    }
+    
+    try {
+      const { updateAIStylePreference } = await import('@/app/actions/user');
+      await updateAIStylePreference(newTier);
+    } catch (err) {
+      console.error("Failed to persist AI Tier preference", err);
+    }
+  };
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
   const [isScheduled, setIsScheduled] = useState(false);
