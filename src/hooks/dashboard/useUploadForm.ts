@@ -39,6 +39,17 @@ export function useUploadForm() {
     localStorage.setItem('SS_DRAFT_DESC', val);
   };
 
+  const appendDescription = (val: string, platform?: string) => {
+    if (platform) {
+      const current = platformDescriptions[platform] || '';
+      const separator = current && !current.endsWith('\n') ? '\n' : '';
+      handlePlatformDescriptionChange(platform, current + separator + val);
+    } else {
+      const separator = description && !description.endsWith('\n') ? '\n' : '';
+      handleDescriptionChange(description + separator + val);
+    }
+  };
+
   const handlePlatformTitleChange = (platform: string, val: string) => {
     setPlatformTitles(prev => {
       const next = { ...prev, [platform]: val };
@@ -103,6 +114,7 @@ export function useUploadForm() {
     descUndo,
     handleTitleChange,
     handleDescriptionChange,
+    appendDescription,
     handlePlatformTitleChange,
     handlePlatformDescriptionChange,
     togglePlatformSpecific,
