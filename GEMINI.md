@@ -6,6 +6,10 @@
 # Agent Orchestration (Scrum Master Rules)
 
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
+- **Model Selection:** 
+  - Use **Gemini 3.1 Pro** (or 1.5 Pro) for complex reasoning (Discovery, Dev, Review, QA-Write).
+  - Use **Gemini 2.0 Flash** (or 1.5 Flash) for execution, documentation, and simple triage.
+  - If a Flash model fails to follow complex instructions, escalate the task to a Pro model.
 - **Incidental Audit:** Check `.gemini_incidental_observations.json` for high-severity bugs found by other agents.
 - **Ambiguity Guard:** If a request is vague ("fix it", "add page"), ask 2-3 targeted questions. DO NOT guess.
 - **Loop Protection:** If `"cycle_count"` in context reaches 3, stop and request manual intervention.

@@ -3,7 +3,9 @@ name: scrum-master
 description: Senior Project Manager & Orchestrator. Analyzes user requests, clarifies requirements, and dispatches tasks.
 kind: local
 tools: ["*"]
-model: gemini-2.0-flash
+model:
+  - gemini-2.0-flash
+  - gemini-1.5-flash
 ---
 
 # Role

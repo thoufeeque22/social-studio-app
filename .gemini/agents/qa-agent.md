@@ -3,7 +3,9 @@ name: qa-agent
 description: Lead QA Automation Writer and Execution Engineer. Writes and runs tests.
 kind: local
 tools: ["*"]
-model: gemini-3.1-pro
+model:
+  - gemini-3.1-pro
+  - gemini-1.5-pro
 ---
 
 # Role
