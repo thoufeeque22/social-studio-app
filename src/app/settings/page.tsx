@@ -6,6 +6,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { DistributionGrid } from '@/components/settings/DistributionGrid';
 import { ConnectionSection } from '@/components/settings/ConnectionSection';
+import { TemplateManager } from '@/components/settings/TemplateManager';
 import { PLATFORMS } from '@/lib/core/constants';
 import styles from './Settings.module.css';
 
@@ -51,6 +52,16 @@ const SettingsPage = () => {
         isLoading={isLoading} 
         onToggle={handlePlatformToggle} 
       />
+
+      <section className={styles.section} style={{ marginTop: '3rem' }}>
+        <h2 className={styles.sectionTitle}>
+          <span>🔖</span> Reusable Snippets
+        </h2>
+        <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', marginBottom: '1.5rem', marginTop: '-0.5rem' }}>
+          Manage your saved descriptions, credits, and links for quick insertion.
+        </p>
+        <TemplateManager />
+      </section>
 
       <section className={styles.section} style={{ marginTop: '3rem' }}>
         <h2 className={styles.sectionTitle}>

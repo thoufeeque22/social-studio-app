@@ -138,7 +138,7 @@ export async function DELETE(
         fileId: fileId,
         userId: session.user.id
       }
-    }).catch(e => {
+    }).catch((e: Error) => {
        console.warn(`⚠️ [GALLERY] DB record already gone or inaccessible for ${fileId}`);
        return null;
     });

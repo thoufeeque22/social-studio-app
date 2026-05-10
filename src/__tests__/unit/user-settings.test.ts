@@ -56,7 +56,7 @@ describe('User Account Server Actions', () => {
 
   describe('getUserAccounts', () => {
     it('returns an empty array if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as any);
       const result = await getUserAccounts();
       expect(result).toEqual([]);
     });
@@ -85,7 +85,7 @@ describe('User Account Server Actions', () => {
 
   describe('toggleAccountDistribution', () => {
     it('throws an error if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null);
+      vi.mocked(auth).mockResolvedValue(null as any);
       await expect(toggleAccountDistribution('acc_1', true))
         .rejects.toThrow('Unauthorized');
     });

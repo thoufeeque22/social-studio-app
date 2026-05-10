@@ -14,11 +14,11 @@ export const AI_TIERS: AITier[] = ['Manual', 'Enrich', 'Generate'];
 export const STYLE_MODES: StyleMode[] = ['Smart', 'Gen-Z', 'SEO', 'Story', 'Custom'];
 
 export const GEMINI_FALLBACK_MODELS = [
+  "gemini-3-flash-preview",
   "gemini-3.1-pro-preview",
   "gemini-3-pro-preview",
-  "gemini-2.5-pro",
-  "gemini-3.1-flash-preview",
-  "gemini-2.5-flash",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
   "gemini-2.0-flash"
 ];
 

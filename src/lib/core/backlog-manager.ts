@@ -26,7 +26,7 @@ export async function getBacklog() {
     'Completed': []
   };
 
-  tasks.forEach(task => {
+  tasks.forEach((task: any) => {
     const item: BacklogItem = {
       id: task.id,
       title: task.title,
@@ -83,7 +83,7 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
   siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as any);
 
   // Perform bulk update for order
-  await Promise.all(siblingTasks.map((t, idx) => 
+  await Promise.all(siblingTasks.map((t: any, idx: number) => 
     prisma.roadmapTask.update({
       where: { id: t.id },
       data: { 
@@ -141,7 +141,7 @@ export async function getLaunchTasks() {
     'Completed': []
   };
 
-  tasks.forEach(task => {
+  tasks.forEach((task: any) => {
     const item: LaunchItem = {
       id: task.id,
       title: task.title,
@@ -189,7 +189,7 @@ export async function moveLaunchItem(id: string, newSection: string, newStatus?:
   const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, siblingTasks.length) : siblingTasks.length;
   siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as any);
 
-  await Promise.all(siblingTasks.map((t, idx) => 
+  await Promise.all(siblingTasks.map((t: any, idx: number) => 
     prisma.launchTask.update({
       where: { id: t.id },
       data: { 

@@ -8,6 +8,7 @@ import { AITierSelector } from './AITierSelector';
 import { VideoFileDisplay } from './VideoFileDisplay';
 import { SchedulingSelector } from './SchedulingSelector';
 import { MediaPicker } from './MediaPicker';
+import { MetadataTemplates } from './MetadataTemplates';
 import { useUploadForm } from '@/hooks/dashboard/useUploadForm';
 
 import { StyleMode, AITier } from '@/lib/core/constants';
@@ -92,6 +93,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     descUndo,
     handleTitleChange,
     handleDescriptionChange,
+    appendDescription,
     handlePlatformTitleChange,
     handlePlatformDescriptionChange,
     togglePlatformSpecific,
@@ -286,6 +288,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div style={{ position: 'relative' }}>
                 <input 
                   id="video-title"
+                  data-testid="video-title"
                   type="text" 
                   name="title" 
                   placeholder={aiTier === 'Generate' ? "Describe your video concept..." : "Catchy title..."}
@@ -303,9 +306,17 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             {/* Description Input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                  {aiTier === 'Generate' ? 'Context' : 'Description'}
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                    {aiTier === 'Generate' ? 'Context' : 'Description'}
+                  </label>
+                  {!isUploading && (
+                    <MetadataTemplates 
+                      onSelect={(val) => appendDescription(val)} 
+                      currentContent={description} 
+                    />
+                  )}
+                </div>
                 {descUndo && (
                   <button type="button" onClick={handleUndoDesc} style={{ background: 'transparent', border: 'none', color: 'hsl(var(--primary))', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                     ↩️ Undo Clear
@@ -315,6 +326,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div style={{ position: 'relative' }}>
                 <textarea 
                   id="video-description"
+                  data-testid="video-description"
                   name="description" 
                   placeholder={aiTier === 'Generate' ? "Specific keywords or links..." : "Video description..."}
                   value={description}
@@ -332,13 +344,21 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem', background: 'hsla(var(--muted)/0.1)', borderRadius: '1rem', border: '1px solid hsla(var(--border)/0.3)' }}>
             {selectedPlatforms.map(platform => (
               <div key={platform} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1rem' }}>
-                    {platform === 'youtube' ? '📺' : platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'facebook' ? '👥' : '🌐'}
-                  </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary))' }}>
-                    {platform} Details
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1rem' }}>
+                      {platform === 'youtube' ? '📺' : platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'facebook' ? '👥' : '🌐'}
+                    </span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary))' }}>
+                      {platform} Details
+                    </span>
+                  </div>
+                  {!isUploading && (
+                    <MetadataTemplates 
+                      onSelect={(val) => appendDescription(val, platform)} 
+                      currentContent={platformDescriptions[platform] || ''} 
+                    />
+                  )}
                 </div>
                 
                 <input 

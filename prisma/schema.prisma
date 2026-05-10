@@ -8,39 +8,51 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  platformPreferences PlatformPreference[]
-  postHistories PostHistory[]
-  galleryAssets GalleryAsset[]
-  tokenAuditLogs TokenAuditLog[]
-  preferredVideoFormat String @default("short")
-  preferredAIStyle    String @default("Manual")
+  id                   String               @id @default(cuid())
+  name                 String?
+  email                String?              @unique
+  emailVerified        DateTime?
+  image                String?
+  preferredVideoFormat String               @default("short")
+  preferredAIStyle     String               @default("Manual")
+  accounts             Account[]
+  galleryAssets        GalleryAsset[]
+  metadataTemplates    MetadataTemplate[]
+  platformPreferences  PlatformPreference[]
+  postHistories        PostHistory[]
+  sessions             Session[]
+  tokenAuditLogs       TokenAuditLog[]
+}
 
-  sessions      Session[]
+model MetadataTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  accountName       String?
-  isDistributionEnabled Boolean @default(true)
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenAuditLogs    TokenAuditLog[]
+  id                    String          @id @default(cuid())
+  userId                String
+  type                  String
+  provider              String
+  providerAccountId     String
+  refresh_token         String?
+  access_token          String?
+  expires_at            Int?
+  token_type            String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
+  accountName           String?
+  isDistributionEnabled Boolean         @default(true)
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenAuditLogs        TokenAuditLog[]
 
   @@unique([provider, providerAccountId])
 }
@@ -86,27 +98,27 @@ model PostHistory {
 }
 
 model PostPlatformResult {
-  id             String      @id @default(cuid())
-  postHistoryId  String
-  platform       String
-  accountName    String?
-  accountId      String?
-  platformPostId String?
-  permalink      String?
-  status         String      @default("success")
-  errorMessage   String?
-  resumableUrl   String?
-  videoId        String?
-  creationId     String?
-  transcodeStatus String?    @default("skipped") // pending, processing, completed, failed, skipped
+  id              String      @id @default(cuid())
+  postHistoryId   String
+  platform        String
+  accountName     String?
+  accountId       String?
+  platformPostId  String?
+  permalink       String?
+  status          String      @default("success")
+  errorMessage    String?
+  resumableUrl    String?
+  videoId         String?
+  creationId      String?
+  lastOffset      Int         @default(0)
+  retryCount      Int         @default(0)
+  lastRetryAt     DateTime?
+  createdAt       DateTime    @default(now())
   optimizedFileId String?
-  metadata       Json?
-  lastOffset     Int         @default(0)
-  progress       Int         @default(0)
-  retryCount     Int         @default(0)
-  lastRetryAt    DateTime?
-  createdAt      DateTime    @default(now())
-  postHistory    PostHistory  @relation(fields: [postHistoryId], references: [id], onDelete: Cascade)
+  transcodeStatus String?     @default("skipped")
+  metadata        Json?
+  progress        Int         @default(0)
+  postHistory     PostHistory @relation(fields: [postHistoryId], references: [id], onDelete: Cascade)
 
   @@unique([postHistoryId, platform, accountId], name: "postHistoryId_platform_accountId")
 }
@@ -114,9 +126,9 @@ model PostPlatformResult {
 model RoadmapTask {
   id          String   @id @default(cuid())
   title       String
-  description String?  @db.Text
-  status      String   @default("pending") // pending, in-progress, completed
-  priority    String   @default("High Priority") // Critical, High Priority, etc.
+  description String?
+  status      String   @default("pending")
+  priority    String   @default("High Priority")
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -127,9 +139,9 @@ model RoadmapTask {
 model LaunchTask {
   id          String   @id @default(cuid())
   title       String
-  description String?  @db.Text
-  status      String   @default("pending") // pending, in-progress, completed
-  category    String   @default("Marketing") // App Store, Marketing, Legal
+  description String?
+  status      String   @default("pending")
+  category    String   @default("Marketing")
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -138,17 +150,17 @@ model LaunchTask {
 }
 
 model GalleryAsset {
-  id           String   @id @default(cuid())
-  userId       String
-  fileId       String   @unique // The UUID-based stagedFileId
-  fileName     String
-  fileSize     BigInt?
-  mimeType     String?
-  processingStatus String?  @default("ready") // ready, processing, failed
-  metadata     Json?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  userId           String
+  fileId           String   @unique
+  fileName         String
+  fileSize         BigInt?
+  mimeType         String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  metadata         Json?
+  processingStatus String?  @default("ready")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -158,13 +170,12 @@ model TokenAuditLog {
   id        String   @id @default(cuid())
   userId    String
   accountId String?
-  action    String   // ACCESS, REFRESH, REVOKE, etc.
+  action    String
   provider  String?
   reason    String?
   createdAt DateTime @default(now())
-
+  account   Account? @relation(fields: [accountId], references: [id])
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([accountId])

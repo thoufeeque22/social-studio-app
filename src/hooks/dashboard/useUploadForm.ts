@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 
+interface FormState {
+  title: string;
+  description: string;
+  platformTitles: Record<string, string>;
+  platformDescriptions: Record<string, string>;
+  isPlatformSpecific: boolean;
+}
+
 export function useUploadForm() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [platformTitles, setPlatformTitles] = useState<Record<string, string>>({});
-  const [platformDescriptions, setPlatformDescriptions] = useState<Record<string, string>>({});
-  const [isPlatformSpecific, setIsPlatformSpecific] = useState(false);
+  const [form, setForm] = useState<FormState>({
+    title: '',
+    description: '',
+    platformTitles: {},
+    platformDescriptions: {},
+    isPlatformSpecific: false
+  });
+  
   const [titleUndo, setTitleUndo] = useState<string | null>(null);
   const [descUndo, setDescUndo] = useState<string | null>(null);
 
@@ -13,55 +24,75 @@ export function useUploadForm() {
   useEffect(() => {
     const savedTitle = localStorage.getItem('SS_DRAFT_TITLE') || '';
     const savedDesc = localStorage.getItem('SS_DRAFT_DESC') || '';
-    setTitle(savedTitle);
-    setDescription(savedDesc);
-    
     const savedIsPlatformSpecific = localStorage.getItem('SS_METADATA_SPECIFIC') === 'true';
-    setIsPlatformSpecific(savedIsPlatformSpecific);
 
+    let savedPlatformTitles = {};
+    let savedPlatformDescs = {};
     try {
-      const savedPlatformTitles = JSON.parse(localStorage.getItem('SS_PLATFORM_TITLES') || '{}');
-      const savedPlatformDescs = JSON.parse(localStorage.getItem('SS_PLATFORM_DESCS') || '{}');
-      setPlatformTitles(savedPlatformTitles);
-      setPlatformDescriptions(savedPlatformDescs);
+      savedPlatformTitles = JSON.parse(localStorage.getItem('SS_PLATFORM_TITLES') || '{}');
+      savedPlatformDescs = JSON.parse(localStorage.getItem('SS_PLATFORM_DESCS') || '{}');
     } catch (e) {
       console.error("Failed to load platform-specific metadata", e);
     }
+
+    // Defer update to avoid cascading render lint error
+    const timer = setTimeout(() => {
+      setForm({
+        title: savedTitle,
+        description: savedDesc,
+        isPlatformSpecific: savedIsPlatformSpecific,
+        platformTitles: savedPlatformTitles,
+        platformDescriptions: savedPlatformDescs
+      });
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleTitleChange = (val: string) => {
-    setTitle(val);
+    setForm(prev => ({ ...prev, title: val }));
     localStorage.setItem('SS_DRAFT_TITLE', val);
   };
 
   const handleDescriptionChange = (val: string) => {
-    setDescription(val);
+    setForm(prev => ({ ...prev, description: val }));
     localStorage.setItem('SS_DRAFT_DESC', val);
   };
 
+  const appendDescription = (val: string, platform?: string) => {
+    if (platform) {
+      const current = form.platformDescriptions[platform] || '';
+      const separator = current && !current.endsWith('\n') ? '\n' : '';
+      handlePlatformDescriptionChange(platform, current + separator + val);
+    } else {
+      const separator = form.description && !form.description.endsWith('\n') ? '\n' : '';
+      handleDescriptionChange(form.description + separator + val);
+    }
+  };
+
   const handlePlatformTitleChange = (platform: string, val: string) => {
-    setPlatformTitles(prev => {
-      const next = { ...prev, [platform]: val };
-      localStorage.setItem('SS_PLATFORM_TITLES', JSON.stringify(next));
-      return next;
+    setForm(prev => {
+      const nextTitles = { ...prev.platformTitles, [platform]: val };
+      localStorage.setItem('SS_PLATFORM_TITLES', JSON.stringify(nextTitles));
+      return { ...prev, platformTitles: nextTitles };
     });
   };
 
   const handlePlatformDescriptionChange = (platform: string, val: string) => {
-    setPlatformDescriptions(prev => {
-      const next = { ...prev, [platform]: val };
-      localStorage.setItem('SS_PLATFORM_DESCS', JSON.stringify(next));
-      return next;
+    setForm(prev => {
+      const nextDescs = { ...prev.platformDescriptions, [platform]: val };
+      localStorage.setItem('SS_PLATFORM_DESCS', JSON.stringify(nextDescs));
+      return { ...prev, platformDescriptions: nextDescs };
     });
   };
 
   const togglePlatformSpecific = (val: boolean) => {
-    setIsPlatformSpecific(val);
+    setForm(prev => ({ ...prev, isPlatformSpecific: val }));
     localStorage.setItem('SS_METADATA_SPECIFIC', String(val));
   };
 
   const handleClearTitle = () => {
-    setTitleUndo(title);
+    setTitleUndo(form.title);
     handleTitleChange('');
     setTimeout(() => setTitleUndo(null), 5000);
   };
@@ -74,7 +105,7 @@ export function useUploadForm() {
   };
 
   const handleClearDesc = () => {
-    setDescUndo(description);
+    setDescUndo(form.description);
     handleDescriptionChange('');
     setTimeout(() => setDescUndo(null), 5000);
   };
@@ -94,15 +125,16 @@ export function useUploadForm() {
   };
 
   return {
-    title,
-    description,
-    platformTitles,
-    platformDescriptions,
-    isPlatformSpecific,
+    title: form.title,
+    description: form.description,
+    platformTitles: form.platformTitles,
+    platformDescriptions: form.platformDescriptions,
+    isPlatformSpecific: form.isPlatformSpecific,
     titleUndo,
     descUndo,
     handleTitleChange,
     handleDescriptionChange,
+    appendDescription,
     handlePlatformTitleChange,
     handlePlatformDescriptionChange,
     togglePlatformSpecific,

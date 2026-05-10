@@ -79,9 +79,13 @@ describe('Upload Integrations', () => {
     vi.useFakeTimers();
     
     // We don't want to actually fetch from graph/youtube
-    vi.mocked(global.fetch).mockImplementation(async (url: string, options: any) => {
+    vi.mocked(global.fetch).mockImplementation(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : (input as Request).url);
+      const options = init || (input instanceof Request ? input : {});
+      const body = options?.body as string | undefined;
+
       // Mock for Facebook Get Account Pages
-      if (typeof url === 'string' && url.includes('/me/accounts')) {
+      if (url.includes('/me/accounts')) {
         return {
           ok: true,
           json: async () => ({
@@ -91,9 +95,8 @@ describe('Upload Integrations', () => {
       }
 
       // Mock for Facebook Graph Container
-      if (typeof url === 'string' && url.includes('/media') && !url.includes('publish') && options?.method === 'POST') {
-        const body = options.body;
-        if (body.includes('audio_id')) {
+      if (url.includes('/media') && !url.includes('publish') && options?.method === 'POST') {
+        if (body?.includes('audio_id')) {
            return {
              ok: true,
              json: async () => ({ id: 'mock_creation_id' })
@@ -102,7 +105,7 @@ describe('Upload Integrations', () => {
       }
 
       // Mock for Facebook Polling
-      if (typeof url === 'string' && url.includes('status_code')) {
+      if (url.includes('status_code')) {
         return {
            ok: true,
            json: async () => ({ status_code: 'FINISHED' })
@@ -110,7 +113,7 @@ describe('Upload Integrations', () => {
       }
 
       // Mock for Facebook Publish
-      if (typeof url === 'string' && url.includes('/media_publish')) {
+      if (url.includes('/media_publish')) {
         return {
            ok: true,
            json: async () => ({ id: 'mock_published_id' })
@@ -172,9 +175,12 @@ describe('Upload Integrations', () => {
     expect(body.status.privacyStatus).toBe('public');
   });
   it('verifies Meta resumable upload logic fetches offset and resumes', async () => {
-    vi.mocked(global.fetch).mockImplementation(async (url: string, options: any) => {
+    vi.mocked(global.fetch).mockImplementation(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : (input as Request).url);
+      const options = init || (input instanceof Request ? input : {});
+      
       // Mock for Facebook Get Account Pages
-      if (typeof url === 'string' && url.includes('/me/accounts')) {
+      if (url.includes('/me/accounts')) {
         return {
           ok: true,
           json: async () => ({
@@ -191,18 +197,18 @@ describe('Upload Integrations', () => {
       }
       // Mock the POST request for binary push
       if (url.includes('rupload.facebook.com') && options?.method === 'POST') {
-        expect(options.headers['Offset']).toBe('500'); // Validates it resumed from 500
+        expect((options.headers as Record<string, string>)['Offset']).toBe('500'); // Validates it resumed from 500
         return { ok: true, json: async () => ({ success: true }) } as any;
       }
       // Mock for Facebook Polling
-      if (typeof url === 'string' && url.includes('status_code')) {
+      if (url.includes('status_code')) {
         return {
            ok: true,
            json: async () => ({ status_code: 'FINISHED' })
         } as any;
       }
       // Mock for Facebook Publish
-      if (typeof url === 'string' && url.includes('/media_publish')) {
+      if (url.includes('/media_publish')) {
         return {
            ok: true,
            json: async () => ({ id: 'mock_published_id' })

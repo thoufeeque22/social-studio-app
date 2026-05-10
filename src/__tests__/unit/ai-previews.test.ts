@@ -28,7 +28,7 @@ describe('getMultiPlatformAIPreviews', () => {
     const result = await getMultiPlatformAIPreviews(
       'My Video',
       'Original Desc',
-      'Premium',
+      'Generate',
       'SEO',
       ['youtube', 'tiktok'],
       undefined,
@@ -50,7 +50,7 @@ describe('getMultiPlatformAIPreviews', () => {
     const result = await getMultiPlatformAIPreviews(
       'My Video',
       '',
-      'Basic',
+      'Enrich',
       'Smart',
       ['youtube', 'instagram'],
       undefined,

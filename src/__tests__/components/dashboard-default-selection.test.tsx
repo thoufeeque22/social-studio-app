@@ -88,8 +88,8 @@ describe('Dashboard Default Connection Selection', () => {
         session={mockSession}
         initialAccounts={mockAccounts}
         initialPreferences={[]}
-        initialVideoFormat="short"
-        initialAIStyle="Manual"
+        initialAIStyle="Smart"
+        initialAITier="Manual"
       />
     );
 
@@ -114,8 +114,8 @@ describe('Dashboard Default Connection Selection', () => {
         session={mockSession}
         initialAccounts={mockAccounts}
         initialPreferences={preferences}
-        initialVideoFormat="short"
-        initialAIStyle="Manual"
+        initialAIStyle="Smart"
+        initialAITier="Manual"
       />
     );
 
@@ -139,8 +139,8 @@ describe('Dashboard Default Connection Selection', () => {
         session={mockSession}
         initialAccounts={mockAccounts}
         initialPreferences={[]}
-        initialAIStyle="Manual"
-        initialVideoFormat="short"
+        initialAIStyle="Smart"
+        initialAITier="Manual"
       />
     );
 
@@ -176,8 +176,8 @@ describe('Dashboard Default Connection Selection', () => {
         session={mockSession}
         initialAccounts={mockAccounts}
         initialPreferences={[]}
-        initialAIStyle="Manual"
-        initialVideoFormat="short"
+        initialAIStyle="Smart"
+        initialAITier="Manual"
       />
     );
 

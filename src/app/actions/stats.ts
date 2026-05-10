@@ -17,7 +17,7 @@ export async function getDashboardStats() {
       where: { userId }
     });
 
-    const platformPromises = accounts.map(async (acc) => {
+    const platformPromises = accounts.map(async (acc: any) => {
       try {
         if (acc.provider === "google") {
           return { type: 'youtube', data: await getYouTubeStats(userId, acc.id) };

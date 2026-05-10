@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAccounts } from '@/hooks/useAccounts';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { UploadForm } from '@/components/dashboard/UploadForm';
 import { SidebarInfo } from '@/components/dashboard/SidebarInfo';
-import { stageVideoFile } from '@/lib/upload/upload-utils';
 import { StyleMode, AITier } from '@/lib/core/constants';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { extractVideoFrames } from '@/lib/utils/video-analysis';
@@ -25,11 +24,15 @@ interface ReviewContext {
   targetAccountIds?: string[];
 }
 
+interface Asset {
+  fileId: string;
+  fileName: string;
+}
+
 interface DashboardClientProps {
   session: Session;
   initialAccounts: Account[];
   initialPreferences: PlatformPreference[];
-  initialVideoFormat: 'short' | 'long';
   initialAIStyle: StyleMode;
   initialAITier: AITier;
 }
@@ -38,7 +41,6 @@ export default function DashboardClient({
   session, 
   initialAccounts, 
   initialPreferences,
-  initialVideoFormat,
   initialAIStyle,
   initialAITier
 }: Readonly<DashboardClientProps>) {
@@ -48,7 +50,7 @@ export default function DashboardClient({
 
   // 1. MODULAR LOGIC: Hooks handle the heavy lifting
   const { accounts, isLoading, preferences } = useAccounts(initialAccounts, initialPreferences);
-  
+
   // Inject Local Simulator for Dev Env
   const devAccounts = React.useMemo(() => {
     if (process.env.NODE_ENV !== 'development') return accounts;
@@ -60,8 +62,8 @@ export default function DashboardClient({
         userId: session?.user?.id || 'dev-user',
         provider: 'local1', 
         providerAccountId: 'local-1',
-        name: 'Local Alpha', 
-        accountName: 'Local Alpha',
+        name: 'Tester Alpha', 
+        accountName: 'Tester Alpha',
         email: 'alpha@local.host', 
         image: null, 
         access_token: null,
@@ -78,8 +80,8 @@ export default function DashboardClient({
         userId: session?.user?.id || 'dev-user',
         provider: 'local2', 
         providerAccountId: 'local-2',
-        name: 'Local Beta', 
-        accountName: 'Local Beta',
+        name: 'Tester Beta', 
+        accountName: 'Tester Beta',
         email: 'beta@local.host', 
         image: null, 
         access_token: null,
@@ -110,10 +112,8 @@ export default function DashboardClient({
         isDistributionEnabled: true 
       }
     ];
-  }, [accounts]);
-
+  }, [accounts, session?.user?.id]);
   const {
-    draftFileRef,
     draftFileName,
     videoFormat,
     setVideoFormat,
@@ -159,7 +159,7 @@ export default function DashboardClient({
     if (globalThis.localStorage) {
       localStorage.setItem('SS_AI_TIER', newTier);
     }
-    
+
     try {
       const { updateAIStylePreference } = await import('@/app/actions/user');
       await updateAIStylePreference(newTier);
@@ -218,7 +218,7 @@ export default function DashboardClient({
       fetch(`/api/media`)
         .then(res => res.json())
         .then(data => {
-           const asset = data.data?.find((a: any) => a.fileId === stagedFileIdParam);
+           const asset = data.data?.find((a: Asset) => a.fileId === stagedFileIdParam);
            if (asset) {
              setGalleryFileId(asset.fileId);
              setGalleryFileName(asset.fileName);
@@ -291,7 +291,7 @@ export default function DashboardClient({
           platforms: targetPlatforms
         })
       });
-      
+
       const initData = await initRes.json();
       const actualHistoryId = initData.data?.historyId || resumeHistoryId;
 
@@ -303,7 +303,7 @@ export default function DashboardClient({
         const description = formData.get('description') as string;
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         const targetPlatformNames = targetPlatforms.map(p => p.platform);
-        
+
         const previews = await getMultiPlatformAIPreviews(
           title, 
           description, 
@@ -359,11 +359,11 @@ export default function DashboardClient({
     setIsReviewing(false);
     setIsUploading(true);
     setUploadStatus("🪄 Applying AI magic...");
-    
+
     try {
       const { updatePlatformResultsAction } = await import('@/app/actions/history');
       await updatePlatformResultsAction(reviewContext.historyId, updatedPreviews);
-      
+
       setUploadStatus("✨ AI Content saved! Finalizing in Activity Hub...");
       setIsComplete(true);
 
@@ -396,12 +396,13 @@ export default function DashboardClient({
       localStorage.setItem('SS_PENDING_POST', JSON.stringify(pendingPost));
       localStorage.removeItem('SS_DRAFT_TITLE');
       localStorage.removeItem('SS_DRAFT_DESC');
-      
+
       setTimeout(() => {
         window.location.href = '/history?action=distribute';
       }, 1500);
-    } catch (err: any) {
-      setUploadStatus(`❌ Error saving AI content: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unknown error occurred";
+      setUploadStatus(`❌ Error saving AI content: ${message}`);
       setIsUploading(false);
     }
   };

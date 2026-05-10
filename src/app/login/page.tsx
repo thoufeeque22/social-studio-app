@@ -67,6 +67,25 @@ function LoginContent() {
     setShowWarning(false);
   };
 
+  const handleE2ELogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    
+    const result = await signIn('credentials', { 
+      email, 
+      password, 
+      redirect: false 
+    });
+
+    if (result?.error) {
+      console.error("[E2E] Login failed:", result.error);
+    } else {
+      window.location.href = '/';
+    }
+  };
+
   // If we are in bridge mode, show a loading state while we redirect to Google
   if (searchParams.get('bridge') === 'true') {
     return (
@@ -203,6 +222,38 @@ function LoginContent() {
               Continue with TikTok
             </button>
           </div>
+
+          {(process.env.NEXT_PUBLIC_E2E === 'true' && process.env.NODE_ENV === 'development') && (
+            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid hsla(var(--border)/0.5)' }}>
+               <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))', marginBottom: '1rem', letterSpacing: '0.05em' }}>E2E Test Login</h3>
+               <form onSubmit={handleE2ELogin} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <input 
+                    name="email" 
+                    type="email" 
+                    placeholder="Test Email" 
+                    defaultValue="tester@socialstudio.ai"
+                    required
+                    data-testid="e2e-email-input"
+                    style={{ background: 'hsla(var(--muted)/0.3)', border: '1px solid hsla(var(--border)/0.5)', padding: '0.75rem', borderRadius: '0.5rem', color: 'white' }}
+                  />
+                  <input 
+                    name="password" 
+                    type="password" 
+                    placeholder="Test Password" 
+                    required
+                    data-testid="e2e-password-input"
+                    style={{ background: 'hsla(var(--muted)/0.3)', border: '1px solid hsla(var(--border)/0.5)', padding: '0.75rem', borderRadius: '0.5rem', color: 'white' }}
+                  />
+                  <button 
+                    type="submit"
+                    data-testid="e2e-login-submit"
+                    style={{ background: 'hsl(var(--primary))', color: 'white', border: 'none', padding: '0.75rem', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Authenticate Tester
+                  </button>
+               </form>
+            </div>
+          )}
 
           <div className={styles.footer}>
             By continuing, you agree to our 

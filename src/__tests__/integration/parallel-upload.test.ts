@@ -38,7 +38,7 @@ describe('Parallel Distribution Logic', () => {
       formData,
       accounts,
       selectedAccountIds,
-      contentMode: 'Manual',
+      contentMode: 'Smart',
       videoFormat: 'short',
       onStatusUpdate: () => {},
       onPlatformStatus
@@ -86,7 +86,7 @@ describe('Parallel Distribution Logic', () => {
       formData,
       accounts,
       selectedAccountIds,
-      contentMode: 'Manual',
+      contentMode: 'Smart',
       videoFormat: 'short',
       onStatusUpdate: () => {},
       onPlatformStatus

@@ -5,9 +5,9 @@ import { Suspense } from "react";
 import { 
   getUserAccounts, 
   getPlatformPreferences, 
-  getVideoFormatPreference, 
   getAIStylePreference 
 } from "@/app/actions/user";
+import { AITier } from "@/lib/core/constants";
 
 export default async function Home() {
   const session = await auth();
@@ -21,12 +21,10 @@ export default async function Home() {
   const [
     accounts, 
     preferences, 
-    videoFormat, 
     aiStyle
   ] = await Promise.all([
     getUserAccounts(),
     getPlatformPreferences(),
-    getVideoFormatPreference(),
     getAIStylePreference()
   ]);
 
@@ -37,9 +35,8 @@ export default async function Home() {
         session={session} 
         initialAccounts={accounts}
         initialPreferences={preferences}
-        initialVideoFormat={videoFormat as 'short' | 'long'}
         initialAIStyle="Smart"
-        initialAITier={aiStyle as any}
+        initialAITier={aiStyle as AITier}
       />
     </Suspense>
   );

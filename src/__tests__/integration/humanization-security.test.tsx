@@ -27,6 +27,8 @@ vi.mock('lucide-react', () => ({
   ArrowRight: () => <div data-testid="arrow-right-icon" />,
   Settings: () => <div data-testid="settings-icon" />,
   LogOut: () => <div data-testid="logout-icon" />,
+  Bookmark: () => <div data-testid="bookmark-icon" />,
+  Loader2: () => <div data-testid="loader-icon" />,
   User: () => <div data-testid="user-icon" />,
   MoreHorizontal: () => <div data-testid="more-icon" />,
   ChevronRight: () => <div data-testid="chevron-right-icon" />,

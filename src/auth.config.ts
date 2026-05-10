@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import TikTok from "next-auth/providers/tiktok";
+import Credentials from "next-auth/providers/credentials";
 
 export default {
   providers: [
@@ -54,36 +55,63 @@ export default {
         allowDangerousEmailAccountLinking: true,
       })
     ] : []),
+    ...(process.env.NEXT_PUBLIC_E2E === 'true' && process.env.NODE_ENV === 'development' ? [
+      Credentials({
+        name: "E2E Credentials",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" }
+        },
+        async authorize(credentials) {
+          const expectedPassword = process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret';
+          
+          if (
+            credentials?.email === "tester@socialstudio.ai" && 
+            credentials?.password === expectedPassword
+          ) {
+            // Dynamic import to avoid edge runtime issues in middleware
+            const { prisma } = await import("@/lib/core/prisma");
+            const user = await prisma.user.findFirst({
+              where: { email: "tester@socialstudio.ai" }
+            });
+
+            if (user) {
+              return {
+                id: user.id,
+                name: user.name || "E2E Tester",
+                email: user.email
+              };
+            }
+          }
+          return null;
+        }
+      })
+    ] : []),
   ],
   trustHost: true,
   secret: process.env.AUTH_SECRET,
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
+      console.log('Authorized callback - auth object:', auth);
+      console.log('Authorized callback - isLoggedIn:', !!auth?.user);
       const isLoggedIn = !!auth?.user;
       const isOnLogin = nextUrl.pathname === "/login";
-      const isBridge = nextUrl.searchParams.get("bridge") === "true";
-      const isOnDashboard = nextUrl.pathname === "/";
-      const isOnSettings = nextUrl.pathname.startsWith("/settings");
-      
-      if (isOnLogin) {
-        // If we are already logged in in the browser but the app wants a 'bridge'
-        // redirect them to the success page so it triggers the deep link back to the app
-        if (isLoggedIn && isBridge) {
-          return Response.redirect(new URL("/auth/success", nextUrl));
-        }
 
-        // Standard web login: redirect to dashboard if already logged in
-        if (isLoggedIn && !isBridge) {
+      if (isOnLogin) {
+        if (isLoggedIn) {
           return Response.redirect(new URL("/", nextUrl));
         }
-
-        return true;
+        return true; // Allow login page if not logged in
       }
 
+      const isOnDashboard = nextUrl.pathname === "/";
+      const isOnSettings = nextUrl.pathname.startsWith("/settings");
+
+      // For dashboard and settings, allow access if logged in, otherwise redirect to login
       if (isOnDashboard || isOnSettings) {
-        if (isLoggedIn) return true;
-        return false; // Redirect to login
+        return isLoggedIn ? true : Response.redirect(new URL("/login", nextUrl));
       }
+
       return true;
     },
   },
