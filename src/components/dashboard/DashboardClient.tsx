@@ -113,7 +113,6 @@ export default function DashboardClient({
       }
     ];
   }, [accounts, session?.user?.id]);
-
   const {
     draftFileName,
     videoFormat,

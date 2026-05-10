@@ -16,9 +16,14 @@ setup('authenticate', async ({ page }) => {
   await page.getByTestId('e2e-login-submit').click();
 
   // Wait for redirect to dashboard
-  await page.waitForURL('/');
-  await expect(page.locator('h2:has-text("Upload & Automate")')).toBeVisible();
+  await page.waitForNavigation({ url: '/', timeout: 10000 });
+  await expect(page.locator('h2:has-text("Upload & Automate")').first()).toBeVisible();
 
   // End of authentication steps.
-  await page.context().storageState({ path: authFile });
-});
+  const result = await signIn('credentials', { 
+    email: 'tester@socialstudio.ai',
+    password: process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret',
+    redirect: false
+  });
+  console.log('signIn result:', result);
+}

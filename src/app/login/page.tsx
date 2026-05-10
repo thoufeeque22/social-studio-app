@@ -73,12 +73,17 @@ function LoginContent() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     
-    await signIn('credentials', { 
+    const result = await signIn('credentials', { 
       email, 
       password, 
-      callbackUrl: '/',
-      redirect: true 
+      redirect: false 
     });
+
+    if (result?.error) {
+      console.error("[E2E] Login failed:", result.error);
+    } else {
+      window.location.href = '/';
+    }
   };
 
   // If we are in bridge mode, show a loading state while we redirect to Google

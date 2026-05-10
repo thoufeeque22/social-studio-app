@@ -288,6 +288,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div style={{ position: 'relative' }}>
                 <input 
                   id="video-title"
+                  data-testid="video-title"
                   type="text" 
                   name="title" 
                   placeholder={aiTier === 'Generate' ? "Describe your video concept..." : "Catchy title..."}
