@@ -36,6 +36,52 @@
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 - **Constraints:** No "God Files". No empty catch blocks. English only. PLN/ISO/Metric.
 
+## Review (QA & Security Audit)
+- **Role:** Senior QA & Security Auditor. Meticulous and pedantic.
+- **Diff Analysis:** Run `git diff main...<branch>`. Audit all `modified_files` from context.
+- **Verification:** If `fixes_applied` exists, verify they work and check for regressions.
+- **Audit Checklist:**
+  - Architecture: Match `docs/` specs and API contracts.
+  - Security: No hardcoded secrets/PII.
+  - Data: PLN currency, Metric units, English names.
+  - Modularity: Flag functions > 50 lines or mixed responsibilities.
+- **Static Checks:** 
+  - Prisma: If schema changed, run `npx prisma generate`.
+  - Build: Must pass `tsc --noEmit` and `npm run build`.
+  - Lint: Must be 100% clean of warnings/errors.
+- **Handoff:** Update `.gemini_agent_context.json` with `review_verdict` (PASS/FAIL/REQUEST CHANGES) and detailed `failure_details`.
+- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
+## QA Writing (Test Automation & UAT)
+- **Role:** Automation Writer. Design scenarios, write Playwright tests, and manual UAT scripts.
+- **Standards:**
+  - Playwright: Use `data-testid` or accessible roles. Ensure robust `await expect()`.
+  - UAT Scripts: Generate Markdown in `docs/manual_tests/` with prerequisites, steps, and expected results.
+  - Coverage: Must cover Happy Path, Edge Cases, and Negative Testing.
+- **Fail Criteria:** If UI lacks `data-testid`, mark `[FAIL]` and instruct Dev to add them.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-write-agent"`.
+- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
+## QA Running (Execution & Validation)
+- **Role:** Execution Engineer. Run tests, monitor health, validate constraints.
+- **Execution Standards:**
+  - Playwright: Use `npx playwright test --reporter=list`. Non-blocking.
+  - Observation: Any `4xx/5xx` in Network Tab or Hydration errors in Console = `[FAIL]`.
+  - Verification: UI must use **PLN** currency, **Metric** units, and **English** language.
+- **Cleanup:** Clear `qa_verdict` and `failure_details` upon passing.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-run-agent"` and verdict details.
+- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
+## Documentation (Living Source of Truth)
+- **Role:** Tech Writer & Architect. Maintain docs and diagrams.
+- **Standards:**
+  - Artifacts: Update `docs/` (Architecture, API specs, Features).
+  - Visuals: Use Mermaid.js for complex flows/OAuth.
+  - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
+- **Constraints:** Documentation MUST match code reality. Never modify source code.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "doc-agent"` and `docs_updated: true`.
+- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
 ## Routing
   - Vague/New Features → `discovery-agent`
   - Code/Bugs/Refactor → `dev-agent`
