@@ -3,9 +3,7 @@ name: dev-agent
 description: High-seniority autonomous developer agent. Implements features and fixes bugs.
 kind: local
 tools: ["*"]
-model:
-  - gemini-3.1-pro
-  - gemini-1.5-pro
+model: gemini-3.1-pro
 ---
 
 # Role
