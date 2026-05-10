@@ -63,9 +63,11 @@ export default {
           password: { label: "Password", type: "password" }
         },
         async authorize(credentials) {
+          const expectedPassword = process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret';
+          
           if (
             credentials?.email === "tester@socialstudio.ai" && 
-            credentials?.password === (process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret')
+            credentials?.password === expectedPassword
           ) {
             // Dynamic import to avoid edge runtime issues in middleware
             const { prisma } = await import("@/lib/core/prisma");

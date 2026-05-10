@@ -3,6 +3,8 @@ import { test as setup, expect } from '@playwright/test';
 const authFile = '.auth/user.json';
 
 setup('authenticate', async ({ page }) => {
+  console.log('[E2E Setup] Starting authentication...');
+  
   // Navigate to login
   await page.goto('/login');
 
@@ -11,19 +13,24 @@ setup('authenticate', async ({ page }) => {
   await expect(emailInput).toBeVisible();
 
   // Perform login
-  await emailInput.fill('tester@socialstudio.ai');
-  await page.getByTestId('e2e-password-input').fill(process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret');
+  const testEmail = 'tester@socialstudio.ai';
+  const testPassword = process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret';
+  
+  console.log(`[E2E Setup] Attempting login for ${testEmail}...`);
+  
+  await emailInput.fill(testEmail);
+  await page.getByTestId('e2e-password-input').fill(testPassword);
   await page.getByTestId('e2e-login-submit').click();
 
   // Wait for redirect to dashboard
-  await page.waitForNavigation({ url: '/', timeout: 10000 });
+  console.log('[E2E Setup] Waiting for redirect to dashboard...');
+  await page.waitForNavigation({ url: '/', timeout: 15000 });
+  
+  // Verify we are on the dashboard
   await expect(page.locator('h2:has-text("Upload & Automate")').first()).toBeVisible();
+  console.log('[E2E Setup] Successfully logged in and reached dashboard.');
 
-  // End of authentication steps.
-  const result = await signIn('credentials', { 
-    email: 'tester@socialstudio.ai',
-    password: process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret',
-    redirect: false
-  });
-  console.log('signIn result:', result);
-}
+  // Save storage state
+  await page.context().storageState({ path: authFile });
+  console.log(`[E2E Setup] Storage state saved to ${authFile}`);
+});

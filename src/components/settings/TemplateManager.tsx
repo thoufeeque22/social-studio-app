@@ -107,6 +107,7 @@ export const TemplateManager = () => {
           {templates.map(t => (
             <div 
               key={t.id}
+              data-testid="template-card"
               style={{
                 padding: '1rem',
                 borderRadius: '0.75rem',
@@ -160,6 +161,8 @@ export const TemplateManager = () => {
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         onClick={() => handleStartEdit(t)}
+                        aria-label="Edit Snippet"
+                        data-testid={`edit-snippet-${t.id}`}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -177,6 +180,8 @@ export const TemplateManager = () => {
                       <button
                         onClick={() => handleDelete(t.id)}
                         disabled={deletingId === t.id}
+                        aria-label="Delete Snippet"
+                        data-testid={`delete-snippet-${t.id}`}
                         style={{
                           background: 'transparent',
                           border: 'none',

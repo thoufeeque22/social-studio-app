@@ -11,9 +11,10 @@ test.describe('Session Reuse Verification', () => {
     // Verify dashboard elements are visible
     await expect(page.locator('h2:has-text("Upload & Automate")').first()).toBeVisible();
     
-    // Verify the test user's accounts are loaded (local1 and local2)
-    const ytBtn = page.getByRole('button', { name: /Tester Alpha/i });
-    const tkBtn = page.getByRole('button', { name: /Tester Beta/i });
+    // Verify the test user's accounts are loaded (Tester Alpha and Tester Beta)
+    // The names are formatted as "@testeralpha" and "@testerbeta" by formatHandle
+    const ytBtn = page.getByRole('button', { name: /youtube: @testeralpha/i });
+    const tkBtn = page.getByRole('button', { name: /tiktok: @testerbeta/i });
     
     await expect(ytBtn).toBeVisible();
     await expect(tkBtn).toBeVisible();
