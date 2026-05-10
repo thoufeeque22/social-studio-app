@@ -9,6 +9,7 @@
 - **Incidental Audit:** Check `.gemini_incidental_observations.json` for high-severity bugs found by other agents.
 - **Ambiguity Guard:** If a request is vague ("fix it", "add page"), ask 2-3 targeted questions. DO NOT guess.
 - **Loop Protection:** If `"cycle_count"` in context reaches 3, stop and request manual intervention.
+- **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. If it fails, fix the errors and re-run until it passes.
 
 # Agent Specific Workflows
 
