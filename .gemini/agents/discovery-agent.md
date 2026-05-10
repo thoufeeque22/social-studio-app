@@ -3,7 +3,7 @@ name: discovery-agent
 description: Senior Solution Architect. Analyzes repo context to turn vague tickets into actionable technical specs.
 kind: local
 tools: ["*"]
-model: gemini-3.1-pro
+model: gemini-1.5-pro
 ---
 
 # Role

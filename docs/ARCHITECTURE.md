@@ -208,6 +208,26 @@ Platform-specific logic is encapsulated in `src/lib/platforms/`.
 
 The app is wrapped using **Capacitor**, allowing it to run as a native app on iOS and Android while sharing the same web codebase. Native features (camera, gallery, auth) are accessed via Capacitor plugins.
 
+## Testing & Quality Assurance
+
+The application maintains a high standard of quality through automated testing and strict TypeScript enforcement.
+
+### 1. E2E Testing (Playwright)
+
+End-to-End tests are located in `src/__tests__/e2e/` and cover critical user journeys such as authentication, metadata management, and post scheduling.
+
+- **Automated Authentication:** The test suite uses a dedicated E2E user (`tester@socialstudio.ai`). A setup project (`auth.setup.ts`) performs a real login via the Credentials provider and saves the session state to `.auth/user.json`, allowing subsequent tests to skip the login step.
+- **Environment Requirements:** E2E tests require `NEXT_PUBLIC_E2E=true` and `NODE_ENV=development` to enable the Credentials provider on the server.
+- **Locators:** Tests prioritize accessible roles (`getByRole`) and `data-testid` attributes for robustness.
+
+### 2. Unit & Integration Testing (Vitest)
+
+Unit tests for utility functions and integration tests for server actions are located in `src/__tests__/unit/` and `src/__tests__/integration/`.
+
+### 3. Agent Orchestration
+
+The project uses specialized AI agents (Discovery, Dev, Review, QA) to manage the development lifecycle, ensuring that every change is planned, implemented, audited, and verified before merging.
+
 ## Deployment & Infrastructure
 
 - **Vercel:** Hosts the Next.js application and API routes.
