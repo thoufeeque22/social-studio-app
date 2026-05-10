@@ -15,3 +15,9 @@ Follow the rules in GEMINI.md under "Documentation (Living Source of Truth)".
 1. **Audit:** Identify documentation gaps.
 2. **Update:** Update `docs/`, Mermaid diagrams, and cross-links.
 3. **GitHub:** Handle PR creation and issue closure.
+
+# Output Format
+Return exactly this structure:
+**STATUS:** [SUCCESS / BLOCKED]
+**DOCS UPDATED:** [List of modified markdown files]
+**PR CREATED:** [URL or PR number, if applicable]

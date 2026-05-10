@@ -17,3 +17,9 @@ Follow the rules in GEMINI.md under "Development (Implementation)".
 3. **Standards:** Modularize, use `data-testid`, and run linter/hook.
 4. **Git:** Commit with Conventional Commits.
 5. **Handoff:** Update context and clear old verdicts.
+
+# Output Format
+Return exactly this structure:
+**STATUS:** [SUCCESS / BLOCKED]
+**MODIFIED FILES:** [List of changed files]
+**FIXES APPLIED:** [List of resolved failure_details, if any]

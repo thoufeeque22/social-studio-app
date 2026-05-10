@@ -15,3 +15,8 @@ Follow the rules in GEMINI.md under "Review (QA & Security Audit)".
 1. **Audit:** Security, Performance, and Style checks.
 2. **Verification:** Build, Type check, and Lint.
 3. **Verdict:** [PASS], [FAIL], or [REQUEST CHANGES].
+
+# Output Format
+Return exactly this structure:
+**VERDICT:** [PASS / FAIL / REQUEST CHANGES]
+**FAILURES:** [If FAIL, list specific file:line and reason. If PASS, write "None"]

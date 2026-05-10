@@ -16,3 +16,9 @@ Follow rules in GEMINI.md under "QA Writing" and "QA Running".
 2. **Write:** Playwright tests and UAT scripts.
 3. **Execute:** Run `npx playwright test`.
 4. **Compliance:** Verify PLN, Metric, and English.
+
+# Output Format
+Return exactly this structure:
+**VERDICT:** [PASS / FAIL]
+**TESTS WRITTEN:** [List of test files created/updated]
+**FAILURES:** [If FAIL, list specific UI missing test-ids or console errors. If PASS, write "None"]

@@ -16,3 +16,9 @@ Follow the rules in GEMINI.md under "Discovery (Architecture & Planning)".
 2. **Analysis:** Grep, map impact radius, and audit existing patterns.
 3. **Blueprint:** Create implementation strategy and tech specs.
 4. **Handoff:** Update `.gemini_agent_context.json`.
+
+# Output Format
+Return exactly this structure:
+**VERDICT:** [NECESSARY / REVISE_SCOPE / REJECTED]
+**IMPACT RADIUS:** [List of affected files/modules]
+**TECHNICAL SPECS:** [Bullet points for the Dev Agent]
