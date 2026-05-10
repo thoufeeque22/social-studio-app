@@ -48,7 +48,11 @@ Enhanced `useUploadForm` hook in `src/hooks/dashboard/useUploadForm.ts`:
 ### Automated Testing
 - **Unit Tests:** `src/__tests__/unit/metadata-actions.test.ts` covers CRUD operations and authorization.
 - **Integration Tests:** Existing test suites were updated to ensure compatibility with `StyleMode` and `AITier` type changes.
-- **E2E Tests:** `src/__tests__/e2e/snippets.spec.ts` (Playwright) verifies the full user journey and UX closing logic.
+- **E2E Tests (Playwright):**
+    - `src/__tests__/e2e/snippets.spec.ts`: Verifies full user journey on the dashboard and UX closing logic.
+    - `src/__tests__/e2e/settings.spec.ts`: Verifies template management (Edit/Delete) with hardened locators and dialog handling.
+    - **Automated Auth:** Uses `src/__tests__/e2e/auth.setup.ts` to perform real logins and save session state for reuse across all E2E tests.
+
 
 ### Manual Verification
 Refer to the following UAT scripts:
