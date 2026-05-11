@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
-import { StyleMode } from "@/lib/core/constants";
 import fsSync from "node:fs";
 import path from "node:path";
 import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
@@ -10,7 +9,7 @@ import { getOptimizedVideoPath } from "@/lib/video/transcode-manager";
 
 interface PlatformHandlerParams {
   req: NextRequest;
-  platform: 'youtube' | 'facebook' | 'instagram' | 'tiktok';
+  platform: 'youtube' | 'facebook' | 'instagram' | 'tiktok' | 'local';
   uploadLogic: (params: {
     userId: string;
     filePath: string;
@@ -210,8 +209,8 @@ export async function handlePlatformUploadRequest({
       return NextResponse.json({ success: true, data: result });
     } catch (apiError: unknown) {
       console.error(`❌ [${platform}] API Error:`, apiError);
-      const e = apiError as Record<string, any>;
-      const errorMessage = e.message || String(e);
+      const e = apiError as Record<string, unknown>;
+      const errorMessage = (e.message as string) || String(e);
 
       // PERSIST FAILURE TO DATABASE
       if (historyId && accountId) {
@@ -234,9 +233,9 @@ export async function handlePlatformUploadRequest({
         success: false, 
         error: errorMessage,
         // Carry over resumable hints if available
-        resumableUrl: e.resumableUrl,
-        videoId: e.videoId,
-        creationId: e.creationId
+        resumableUrl: e.resumableUrl as string | undefined,
+        videoId: e.videoId as string | undefined,
+        creationId: e.creationId as string | undefined
       }, { status: e.status === 'failed' ? 200 : 500 });
     }
   } catch (error: unknown) {

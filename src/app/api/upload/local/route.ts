@@ -1,5 +1,5 @@
+import { NextRequest } from "next/server";
 import { handlePlatformUploadRequest } from "@/lib/core/platform-route-handler";
-import { NextResponse } from "next/server";
 
 export const maxDuration = 300; 
 
@@ -7,11 +7,11 @@ export const maxDuration = 300;
  * LOCAL SIMULATOR UPLOAD HANDLER
  * Uses the unified route handler to simulate an upload for local testing.
  */
-export async function POST(req: any) {
+export async function POST(req: NextRequest) {
   return handlePlatformUploadRequest({
     req,
-    platform: "local" as any, // Bypass strict typing for simulator
-    uploadLogic: async ({ accountId, fields, onProgress }) => {
+    platform: "local", // Supported in PlatformHandlerParams
+    uploadLogic: async ({ accountId: _accountId, fields, onProgress }) => {
       // Use the existing simulation logic from server-distributor
       // Note: server-distributor's distributeSinglePlatform expects (historyId, platform, stagedFileId, fileName, accountId)
       // BUT platform-route-handler passes different arguments to uploadLogic.

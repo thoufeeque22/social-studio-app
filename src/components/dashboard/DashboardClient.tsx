@@ -15,6 +15,7 @@ import { Account, PlatformPreference } from '@/lib/core/types';
 import { useDraftFile } from '@/hooks/dashboard/useDraftFile';
 import { usePlatformSelection } from '@/hooks/dashboard/usePlatformSelection';
 import { useDistributionEngine } from '@/hooks/dashboard/useDistributionEngine';
+import StopIcon from '@mui/icons-material/Stop';
 
 interface ReviewContext {
   stagedFileId: string;
@@ -132,10 +133,6 @@ export default function DashboardClient({
     setIsUploading,
     uploadStatus,
     setUploadStatus,
-    platformStatuses,
-    platformErrors,
-    successfulAccountIds,
-    handleAbortPlatform,
     handleAbortAll
   } = useDistributionEngine(devAccounts);
 
@@ -449,9 +446,6 @@ export default function DashboardClient({
                 accounts={devAccounts}
                 preferences={preferences}
                 selectedAccountIds={selectedAccountIds}
-                successfulAccountIds={successfulAccountIds}
-                platformStatuses={platformStatuses}
-                platformErrors={platformErrors}
                 contentMode={contentMode}
                 aiTier={aiTier}
                 videoFormat={videoFormat}
@@ -460,7 +454,6 @@ export default function DashboardClient({
                 onVisualScan={handleVisualScan}
                 onTierChange={setAiTier}
                 onModeChange={setContentMode}
-                onFormatChange={setVideoFormat}
                 onToggleAccount={handleToggleAccount}
                 onFileChange={(file) => {
                   setGalleryFileId(null);
@@ -478,12 +471,9 @@ export default function DashboardClient({
                 isScheduled={isScheduled}
                 scheduledAt={scheduledAt}
                 onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
-                hasFailures={Object.values(platformStatuses).some(s => s === 'failed' || s === 'cancelled')}
                 isComplete={isComplete}
                 customStyleText={customStyleText}
                 onCustomStyleChange={setCustomStyleText}
-                onAbort={handleAbortPlatform}
-                onAbortAll={handleAbortAll}
                 hasCachedPreviews={Object.keys(aiPreviews).length > 0}
                 onResumeReview={() => setIsReviewing(true)}
               />
@@ -522,10 +512,13 @@ export default function DashboardClient({
               fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer',
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}
           >
-            ⏹️ STOP ALL
+            <StopIcon sx={{ fontSize: 18 }} /> STOP ALL
           </button>
         </div>
       )}

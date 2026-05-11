@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { promises as fs } from "fs";
-import fsSync from "fs";
 import path from "path";
 
 export const maxDuration = 300; // Chunk uploads should be fast
@@ -37,8 +36,8 @@ export async function POST(req: NextRequest) {
     await fs.writeFile(chunkPath, buffer);
 
     return NextResponse.json({ success: true, index: chunkIndex });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Chunk Upload Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

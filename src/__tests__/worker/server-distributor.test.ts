@@ -17,8 +17,8 @@ const mockFindUnique = vi.fn().mockResolvedValue(null);
 vi.mock('../../lib/core/prisma', () => ({
   prisma: {
     postPlatformResult: {
-      upsert: (...args: any[]) => mockUpsert(...args),
-      findUnique: (...args: any[]) => mockFindUnique(...args),
+      upsert: (args: unknown) => mockUpsert(args),
+      findUnique: (args: unknown) => mockFindUnique(args),
     },
     postHistory: {
       update: vi.fn().mockResolvedValue({}),
@@ -32,19 +32,19 @@ vi.mock('../../lib/core/prisma', () => ({
 // Mock Platform SDKs
 const mockUploadToYouTube = vi.fn().mockResolvedValue({ data: { id: 'yt-123' } });
 vi.mock('../../lib/platforms/youtube', () => ({
-  uploadToYouTube: (params: any) => mockUploadToYouTube(params),
+  uploadToYouTube: (params: unknown) => mockUploadToYouTube(params),
 }));
 
 const mockPublishFacebookVideo = vi.fn().mockResolvedValue({ id: 'fb-123' });
 const mockPublishFacebookReel = vi.fn().mockResolvedValue({ id: 'fbr-123' });
 vi.mock('../../lib/platforms/facebook', () => ({
-  publishFacebookVideo: (params: any) => mockPublishFacebookVideo(params),
-  publishFacebookReel: (params: any) => mockPublishFacebookReel(params),
+  publishFacebookVideo: (params: unknown) => mockPublishFacebookVideo(params),
+  publishFacebookReel: (params: unknown) => mockPublishFacebookReel(params),
 }));
 
 const mockPublishInstagramReel = vi.fn().mockResolvedValue({ id: 'ig-123' });
 vi.mock('../../lib/platforms/instagram', () => ({
-  publishInstagramReel: (params: any) => mockPublishInstagramReel(params),
+  publishInstagramReel: (params: unknown) => mockPublishInstagramReel(params),
 }));
 
 describe('Server Distributor', () => {

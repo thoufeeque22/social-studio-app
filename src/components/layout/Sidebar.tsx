@@ -3,21 +3,30 @@
 import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { Plus } from 'lucide-react';
 import styles from './Sidebar.module.css';
+
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import PermMediaIcon from '@mui/icons-material/PermMedia';
+import FlashOnIcon from '@mui/icons-material/FlashOn';
+import MapIcon from '@mui/icons-material/Map';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import SettingsIcon from '@mui/icons-material/Settings';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CloseIcon from '@mui/icons-material/Close';
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { data: session } = useSession();
   const menuItems = [
-    { name: 'Dashboard', icon: '📊', path: '/' },
-    { name: 'Schedule', icon: '📅', path: '/schedule' },
-    { name: 'Media Gallery', icon: '🖼️', path: '/media' },
-    { name: 'Activity Hub', icon: '⚡', path: '/history' },
+    { name: 'Dashboard', icon: <DashboardIcon sx={{ fontSize: 20 }} />, path: '/' },
+    { name: 'Schedule', icon: <CalendarMonthIcon sx={{ fontSize: 20 }} />, path: '/schedule' },
+    { name: 'Media Gallery', icon: <PermMediaIcon sx={{ fontSize: 20 }} />, path: '/media' },
+    { name: 'Activity Hub', icon: <FlashOnIcon sx={{ fontSize: 20 }} />, path: '/history' },
     ...(process.env.NODE_ENV !== 'production' ? [
-      { name: 'Roadmap', icon: '🗺️', path: '/roadmap' },
-      { name: 'Launch', icon: '🚀', path: '/launch' },
+      { name: 'Roadmap', icon: <MapIcon sx={{ fontSize: 20 }} />, path: '/roadmap' },
+      { name: 'Launch', icon: <RocketLaunchIcon sx={{ fontSize: 20 }} />, path: '/launch' },
     ] : []),
-    { name: 'Settings', icon: '⚙️', path: '/settings' },
+    { name: 'Settings', icon: <SettingsIcon sx={{ fontSize: 20 }} />, path: '/settings' },
   ];
 
   return (
@@ -28,9 +37,13 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
       />
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
         <Link href="/" className={styles.logo} onClick={onClose}>
-          <div className={styles.logoIcon}>✨</div>
+          <div className={styles.logoIcon}>
+            <AutoAwesomeIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />
+          </div>
           <span className={styles.logoText}>SocialStudio</span>
-          <button className={styles.closeButton} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}>✕</button>
+          <button className={styles.closeButton} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}>
+            <CloseIcon sx={{ fontSize: 20 }} />
+          </button>
         </Link>
 
       <nav className={styles.nav}>

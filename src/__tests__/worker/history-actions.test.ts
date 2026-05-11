@@ -37,14 +37,14 @@ describe('History Actions (Internal)', () => {
     const userId = 'user-1';
     const historyId = 'history-1';
     const resultInput = {
-      platform: 'youtube',
+      platform: 'youtube' as const,
       status: 'success' as const,
       platformPostId: 'yt-123'
     };
 
     // Mock finding the history entry (ownership check)
-    (prisma.postHistory.findUnique as any).mockResolvedValue({ id: historyId, userId });
-    (prisma.postPlatformResult.upsert as any).mockResolvedValue({ id: 'res-1' });
+    vi.mocked(prisma.postHistory.findUnique).mockResolvedValue({ id: historyId, userId } as never);
+    vi.mocked(prisma.postPlatformResult.upsert).mockResolvedValue({ id: 'res-1' } as never);
 
     await upsertPlatformResultInternal(userId, historyId, resultInput);
 
@@ -74,7 +74,7 @@ describe('History Actions (Internal)', () => {
     const historyId = 'history-1';
     
     // Mock no history entry found for this user
-    (prisma.postHistory.findUnique as any).mockResolvedValue(null);
+    vi.mocked(prisma.postHistory.findUnique).mockResolvedValue(null);
 
     await expect(upsertPlatformResultInternal(userId, historyId, { 
       platform: 'youtube', 

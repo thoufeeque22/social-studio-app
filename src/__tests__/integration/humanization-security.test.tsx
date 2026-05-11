@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET as roadmapGET } from '../../app/api/roadmap/route';
 import { GET as launchGET } from '../../app/api/launch/route';
 import { render, screen } from '@testing-library/react';
-import { UploadForm } from '../../components/dashboard/UploadForm';
+import { UploadForm, UploadFormProps } from '../../components/dashboard/UploadForm';
 import React from 'react';
 
 // Mock Auth
@@ -44,6 +44,9 @@ describe('Project Management & UI Humanization', () => {
       getItem: vi.fn().mockReturnValue(''),
       setItem: vi.fn(),
       clear: vi.fn(),
+      removeItem: vi.fn(),
+      key: vi.fn(),
+      length: 0,
     };
     Object.defineProperty(globalThis, 'localStorage', { value: mockLocalStorage });
   });
@@ -65,7 +68,7 @@ describe('Project Management & UI Humanization', () => {
   });
 
   describe('UploadForm UI (Dynamic Metadata)', () => {
-    const mockProps: any = {
+    const mockProps: UploadFormProps = {
       isUploading: false,
       uploadStatus: null,
       accounts: [],
@@ -73,6 +76,7 @@ describe('Project Management & UI Humanization', () => {
       selectedAccountIds: [],
       successfulAccountIds: [],
       platformStatuses: {},
+      platformErrors: {},
       contentMode: 'Smart',
       aiTier: 'Manual',
       videoFormat: 'short',
@@ -84,10 +88,17 @@ describe('Project Management & UI Humanization', () => {
       onFormatChange: vi.fn(),
       onToggleAccount: vi.fn(),
       onFileChange: vi.fn(),
+      onGallerySelect: vi.fn(),
       onSubmit: vi.fn(),
       isScheduled: false,
       scheduledAt: '',
       onSchedulingChange: vi.fn(),
+      isComplete: false,
+      customStyleText: '',
+      onCustomStyleChange: vi.fn(),
+      onAbort: vi.fn(),
+      onAbortAll: vi.fn(),
+      hasFailures: false,
     };
 
     it('renders the Short-Form badge with duration', () => {
@@ -114,3 +125,4 @@ describe('Project Management & UI Humanization', () => {
     });
   });
 });
+

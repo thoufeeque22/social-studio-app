@@ -59,10 +59,11 @@
 - **Standards:**
   - Modularize if file > 50 lines.
   - UI: Add `data-testid` for QA.
-  - Formatting: Run linter after every edit.
-- **Commit:** Use Conventional Commits.
-- **Handoff:** Update `.gemini_agent_context.json`. Clear old `failure_details` and `verdicts` to reset the review cycle.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+  - **Formatting:** Run linter after every edit.
+  - **Commit:** Use Conventional Commits.
+  - **Handoff:** Update `.gemini_agent_context.json`. You MUST **append** to `modified_files` (unique list) and `fixes_applied` (running history). Clear old `failure_details` and `verdicts` to reset the review cycle.
+  - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
 - **Constraints:** No "God Files". No empty catch blocks. English only. PLN/ISO/Metric.
 
 ## Review (QA & Security Audit)
@@ -108,8 +109,17 @@
   - Visuals: Use Mermaid.js for complex flows/OAuth.
   - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
 - **Constraints:** Documentation MUST match code reality. Never modify source code.
-- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "doc-agent"` and `docs_updated: true`.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "doc-agent"` and `docs_updated: true`. If `.gemini_incidental_observations.json` is not empty, hand off to `project-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
+## Project Agent (Management & Tracking)
+- **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.
+- **Workflow:** 
+  - **Issue Creation:** Use `mcp_github_create_issue` for new tasks or bugs.
+  - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`).
+  - **Incidental Resolution:** After a ticket is closed by `doc-agent`, the Project Agent MUST read `.gemini_incidental_observations.json`.
+  - **Individual Logging:** Each entry in the JSON MUST be created as an individual GitHub issue with labels (`bug`, `priority:<severity>`) and then cleared from the local JSON file.
+- **Constraints:** Technical, structured, and emoji-free documentation.
 
 ## Routing
   - Vague/New Features → discovery-agent

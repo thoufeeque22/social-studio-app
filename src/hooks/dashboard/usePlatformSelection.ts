@@ -36,22 +36,29 @@ export function usePlatformSelection(
     if (isLoading || isInitialSync) return;
 
     const stickySelection = localStorage.getItem('SS_SELECTED_PLATFORMS');
+    let parsedSelection: string[] | null = null;
+
     if (stickySelection) {
       try {
         const parsed = JSON.parse(stickySelection);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setSelectedAccountIds(parsed);
-          setIsInitialSync(true);
-          return;
+          parsedSelection = parsed;
         }
       } catch (e) { console.error(e); }
     }
 
-    if (accounts.length > 0) {
-      const initialSelection = calculateInitialSelection(accounts, preferences);
-      setSelectedAccountIds(initialSelection);
-      setIsInitialSync(true);
-    }
+    const timer = setTimeout(() => {
+      if (parsedSelection) {
+        setSelectedAccountIds(parsedSelection);
+        setIsInitialSync(true);
+      } else if (accounts.length > 0) {
+        const initialSelection = calculateInitialSelection(accounts, preferences);
+        setSelectedAccountIds(initialSelection);
+        setIsInitialSync(true);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [accounts, isInitialSync, preferences, isLoading]);
 
   // Persist Sticky Selection

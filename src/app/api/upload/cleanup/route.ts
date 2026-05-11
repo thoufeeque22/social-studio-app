@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       console.warn(`⚠️ [CLEANUP] File already gone or not found: ${stagedFileId}`);
       return NextResponse.json({ success: true, message: "File not found" });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cleanup Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

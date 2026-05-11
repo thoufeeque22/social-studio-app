@@ -92,7 +92,7 @@ describe('LoginPage', () => {
     expect(screen.getByText('Unified Identity Check')).toBeInTheDocument();
 
     // 2. Click Close (X)
-    const closeBtn = screen.getByText('✕');
+    const closeBtn = screen.getByTestId('CloseIcon');
     fireEvent.click(closeBtn);
 
     // Modal should be gone

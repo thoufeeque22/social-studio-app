@@ -4,9 +4,14 @@ import { prisma } from "@/lib/core/prisma";
 import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
-import { getVideoMetadata, checkTranscodeRequirement } from "@/lib/video/processor";
+import { getVideoMetadata, checkTranscodeRequirement, VideoMetadata } from "@/lib/video/processor";
 
 export const maxDuration = 300; 
+
+interface PlatformInput {
+  platform: string;
+  accountId: string;
+}
 
 /**
  * ASSEMBLE HANDLER
@@ -129,7 +134,7 @@ export async function POST(req: NextRequest) {
       });
 
       // 1. EXTRACT METADATA (FFMPEG PRE-FLIGHT)
-      let videoMetadata = null;
+      let videoMetadata: VideoMetadata | null = null;
       try {
         videoMetadata = await getVideoMetadata(finalPath);
         console.log(`🎬 [METADATA] Extracted for ${fileName}: ${videoMetadata.width}x${videoMetadata.height}`);
@@ -145,7 +150,7 @@ export async function POST(req: NextRequest) {
             fileId: fileId, // Point to the newest version
             expiresAt: expiresAt,
             createdAt: new Date(), // Reset creation date for sorting
-            metadata: videoMetadata as any
+            metadata: videoMetadata ? (videoMetadata as unknown as Record<string, unknown>) : undefined
           }
         });
       } else {
@@ -157,7 +162,7 @@ export async function POST(req: NextRequest) {
             fileSize: BigInt(stats.size),
             mimeType: "video/mp4", // Default
             expiresAt: expiresAt,
-            metadata: videoMetadata as any
+            metadata: videoMetadata ? (videoMetadata as unknown as Record<string, unknown>) : undefined
           }
         });
       }
@@ -167,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     // UPSERT POST HISTORY RECORD (RELIABILITY FIX V4)
     let history;
-    const initialPlatformData = platforms ? await Promise.all((platforms as any[]).map(async (p) => {
+    const initialPlatformData = platforms ? await Promise.all((platforms as PlatformInput[]).map(async (p) => {
       const { results } = await checkTranscodeRequirement(finalPath, [p.platform]);
       return {
         platform: p.platform,
@@ -229,8 +234,8 @@ export async function POST(req: NextRequest) {
         historyId: history.id
       } 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Assembly Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

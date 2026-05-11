@@ -12,6 +12,16 @@ import { usePolling } from '@/hooks/usePolling';
 import { AIContentReview } from '@/components/dashboard/AIContentReview';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import InfoIcon from '@mui/icons-material/Info';
+
 interface PlatformResult {
   id: string;
   platform: string;
@@ -28,11 +38,11 @@ interface PostHistoryEntry {
   platforms: PlatformResult[];
 }
 
-const PLATFORM_ICONS: Record<string, string> = {
-  youtube: '📺',
-  instagram: '📸',
-  facebook: '👥',
-  tiktok: '🎵'
+const PLATFORM_ICONS: Record<string, React.ReactNode> = {
+  youtube: <YouTubeIcon sx={{ fontSize: 16, color: '#FF0000' }} />,
+  instagram: <InstagramIcon sx={{ fontSize: 16, color: '#E4405F' }} />,
+  facebook: <FacebookIcon sx={{ fontSize: 16, color: '#1877F2' }} />,
+  tiktok: <MusicNoteIcon sx={{ fontSize: 16, color: '#000000' }} />
 };
 
 export default function SchedulePage() {
@@ -218,7 +228,9 @@ export default function SchedulePage() {
       {posts.length === 0 ? (
         <GlassCard>
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>📅</div>
+            <div className={styles.emptyIcon}>
+              <CalendarMonthIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+            </div>
             <h3 className={styles.emptyTitle}>No scheduled posts</h3>
             <p className={styles.emptyDescription}>
               Plan your content ahead of time from the Dashboard, and it will appear here.
@@ -256,7 +268,10 @@ export default function SchedulePage() {
                 <div className={styles.platformRow}>
                   {post.platforms.map(p => (
                     <span key={post.id + p.platform} className={styles.platformPill}>
-                      {PLATFORM_ICONS[p.platform] || '🔗'} {p.platform}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {PLATFORM_ICONS[p.platform] || <InfoIcon sx={{ fontSize: 16 }} />}
+                        {p.platform}
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -266,19 +281,19 @@ export default function SchedulePage() {
                     className={`${styles.actionButton} ${styles.primaryAction}`}
                     onClick={() => handlePublishNow(post.id)}
                   >
-                    🚀 Publish Now
+                    <RocketLaunchIcon sx={{ fontSize: 18 }} /> Publish Now
                   </button>
                   <button 
                     className={`${styles.actionButton} ${styles.secondaryAction}`}
                     onClick={() => setEditingPost(post)}
                   >
-                    ✏️ Edit
+                    <EditIcon sx={{ fontSize: 18 }} /> Edit
                   </button>
                   <button 
                     className={`${styles.actionButton} ${styles.dangerAction}`}
                     onClick={() => handleDelete(post.id)}
                   >
-                    🗑️ Cancel
+                    <DeleteIcon sx={{ fontSize: 18 }} /> Cancel
                   </button>
                 </div>
               </GlassCard>
@@ -328,7 +343,7 @@ export default function SchedulePage() {
                     opacity: isAILoading ? 0.7 : 1
                   }}
                 >
-                  ✨ {isAILoading ? 'Brainstorming...' : 'Brainstorm Strategies & Polish'}
+                  <RocketLaunchIcon sx={{ fontSize: 18 }} /> {isAILoading ? 'Brainstorming...' : 'Brainstorm Strategies & Polish'}
                 </button>
               </div>
               <div className={styles.formGroup}>
@@ -357,7 +372,9 @@ export default function SchedulePage() {
                   htmlFor="edit-scheduledAt"
                   className={styles.datePickerWrapper}
                 >
-                  <span className={styles.dateIcon}>📅</span>
+                  <span className={styles.dateIcon}>
+                    <CalendarMonthIcon sx={{ fontSize: 20 }} />
+                  </span>
                   <input 
                     id="edit-scheduledAt"
                     type="datetime-local" 

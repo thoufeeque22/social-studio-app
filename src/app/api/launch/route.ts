@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     await moveLaunchItem(id, section, status, index);
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update launch tasks' }, { status: 500 });
   }
 }
@@ -53,7 +53,7 @@ export async function PUT(request: Request) {
     const newTask = await createLaunchTask(title, description, section);
     
     return NextResponse.json({ success: true, task: newTask });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to create launch task' }, { status: 500 });
   }
 }
@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
     const { updateLaunchTask } = await import('@/lib/core/backlog-manager');
     await updateLaunchTask(id, title, description);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to update launch task text' }, { status: 500 });
   }
 }

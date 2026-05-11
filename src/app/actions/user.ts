@@ -132,7 +132,7 @@ export async function getAIStylePreference() {
       select: { preferredAIStyle: true }
     });
 
-    return (user?.preferredAIStyle as any) || "Manual";
+    return user?.preferredAIStyle ?? "Manual";
   }).catch(() => "Manual");
 }
 

@@ -26,8 +26,8 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       json: async () => ({
         candidates: [{ content: { parts: [{ text: "" }] } }]
       })
-    };
-    global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+    } as Response;
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     await expect(generatePostContent('Generate', 'SEO', 'Raw Text', 'Context', 'youtube'))
       .rejects.toThrow('Invalid response structure from LLM');
@@ -48,15 +48,16 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       json: async () => ({
         response: JSON.stringify(mockOllamaOutput)
       })
-    };
-    global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+    } as Response;
+    const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+    global.fetch = fetchMock;
 
     const result = await generatePostContent('Generate', 'Smart', 'Hello', 'World', 'instagram');
 
     
     expect(result.title).toBe("Ollama Title");
-    expect(global.fetch).toHaveBeenCalled();
-    const fetchUrl = (global.fetch as any).mock.calls[0][0];
+    expect(fetchMock).toHaveBeenCalled();
+    const fetchUrl = fetchMock.mock.calls[0][0] as string;
     expect(fetchUrl).toContain(':11434/api/generate');
   });
 
@@ -80,8 +81,8 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
       json: async () => ({
         candidates: [{ content: { parts: [{ text: JSON.stringify(mockOutput) }] } }]
       })
-    };
-    global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+    } as Response;
+    global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
     const result = await generatePostContent('Generate', 'SEO', 'Input Title', 'Input Context', 'youtube');
     
@@ -94,18 +95,18 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
     const mockOllamaOutput = { title: "Ollama Fallback", description: "Gemini Failed", hashtags: [] };
     
     global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 1
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 2
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 3
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 4
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 5
-      .mockResolvedValueOnce({ ok: false, status: 500 } as any) // gemini fallback 6
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 1
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 2
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 3
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 4
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 5
+      .mockResolvedValueOnce({ ok: false, status: 500 } as Response) // gemini fallback 6
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: JSON.stringify(mockOllamaOutput)
         })
-      } as any);
+      } as Response);
 
     const result = await generatePostContent('Generate', 'SEO', 'Input Title', 'Input Context', 'youtube');
     
@@ -116,15 +117,16 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
   it('should THROW and NOT attempt Ollama if Gemini fails in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 } as any);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 } as Response);
+    global.fetch = fetchMock;
 
     await expect(generatePostContent('Generate', 'SEO', 'Input Title', 'Input Context', 'youtube'))
       .rejects.toThrow('LLM API returned 500 for model');
     
     // Should have tried gemini models but not ollama (ollama uses :11434)
-    const calls = (global.fetch as any).mock.calls;
-    calls.forEach((call: any) => {
-      expect(call[0]).not.toContain(':11434');
+    const calls = fetchMock.mock.calls;
+    calls.forEach((call) => {
+      expect(call[0] as string).not.toContain(':11434');
     });
   });
 
@@ -135,12 +137,13 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
         json: async () => ({
           candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "YT", description: "Desc", hashtags: [] }) }] } }]
         })
-      };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+      } as Response;
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock;
 
       await generatePostContent('Generate', 'Smart', 'Title', 'Context', 'youtube');
       
-      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const fetchBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
       const prompt = fetchBody.contents[0].parts[0].text;
       
       expect(prompt).toContain('DISCOVERABILITY');
@@ -153,12 +156,13 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
         json: async () => ({
           candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "TT", description: "Desc", hashtags: [] }) }] } }]
         })
-      };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+      } as Response;
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock;
 
       await generatePostContent('Generate', 'Smart', 'Title', 'Context', 'tiktok');
       
-      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const fetchBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
       const prompt = fetchBody.contents[0].parts[0].text;
       
       expect(prompt).toContain('ADRENALINE & AUTHENTICITY');
@@ -171,13 +175,14 @@ describe('AI Vibe-Writer (generatePostContent)', () => {
         json: async () => ({
           candidates: [{ content: { parts: [{ text: JSON.stringify({ title: "Custom", description: "Desc", hashtags: [] }) }] } }]
         })
-      };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse as any);
+      } as Response;
+      const fetchMock = vi.fn().mockResolvedValue(mockResponse);
+      global.fetch = fetchMock;
 
       const customVibe = "Like a 1950s Detective";
       await generatePostContent('Generate', 'Custom', 'Title', 'Context', 'instagram', undefined, customVibe);
       
-      const fetchBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+      const fetchBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
       const prompt = fetchBody.contents[0].parts[0].text;
       
       expect(prompt).toContain('USER-DEFINED');

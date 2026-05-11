@@ -51,8 +51,8 @@ export async function streamMultipartFormData(req: NextRequest): Promise<ParsedM
       resolve({ fields, filePath, fileName });
     });
 
-    bb.on("error", (err: any) => {
-      reject(new Error(`Busboy error: ${err.message}`));
+    bb.on("error", (err: unknown) => {
+      reject(new Error(`Busboy error: ${err instanceof Error ? err.message : String(err)}`));
     });
 
     // Pipe the web request body (ReadableStream) to busboy (Node.js WritableStream)
@@ -61,6 +61,6 @@ export async function streamMultipartFormData(req: NextRequest): Promise<ParsedM
       return reject(new Error("Request body is empty"));
     }
     
-    Readable.fromWeb(req.body as any).pipe(bb);
+    Readable.fromWeb(req.body as import('node:stream/web').ReadableStream).pipe(bb);
   });
 }

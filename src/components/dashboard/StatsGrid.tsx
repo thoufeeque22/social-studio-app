@@ -1,15 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getDashboardStats } from '@/app/actions/stats';
+import DescriptionIcon from '@mui/icons-material/Description';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import GroupIcon from '@mui/icons-material/Group';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+
+interface StatItem {
+  label: string;
+  value: string;
+  change: string;
+  icon: string;
+}
+
+const IconMap: Record<string, React.ReactNode> = {
+  Description: <DescriptionIcon />,
+  TrendingUp: <TrendingUpIcon />,
+  Group: <GroupIcon />,
+  Favorite: <FavoriteIcon />,
+};
 
 export const StatsGrid: React.FC = () => {
-  const [stats, setStats] = useState<any[]>([]);
+  const [stats, setStats] = useState<StatItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getDashboardStats()
       .then(data => {
-        setStats(data);
+        if (data) {
+          setStats(data as StatItem[]);
+        }
         setIsLoading(false);
       })
       .catch(err => {
@@ -49,7 +69,9 @@ export const StatsGrid: React.FC = () => {
       {stats.map((stat) => (
         <GlassCard key={stat.label}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>{stat.icon}</span>
+            <span style={{ fontSize: '1.5rem', color: 'hsl(var(--primary))' }}>
+              {IconMap[stat.icon] || <DescriptionIcon />}
+            </span>
             <span style={{ 
               fontSize: '0.8rem', 
               color: stat.change.startsWith('+') ? '#4ade80' : 'hsl(var(--muted-foreground))',

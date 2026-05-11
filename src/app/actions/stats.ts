@@ -4,6 +4,17 @@ import { prisma } from "@/lib/core/prisma";
 import { getYouTubeStats } from "@/lib/platforms/youtube";
 import { getInstagramStats } from "@/lib/platforms/instagram";
 import { protectedAction } from "@/lib/core/action-utils";
+import { Account } from "@prisma/client";
+
+interface PlatformStats {
+  type: 'youtube' | 'instagram';
+  data: {
+    views?: number;
+    subscribers?: number;
+    reach?: number;
+    followers?: number;
+  } | null;
+}
 
 export async function getDashboardStats() {
   return protectedAction(async (userId) => {
@@ -17,7 +28,7 @@ export async function getDashboardStats() {
       where: { userId }
     });
 
-    const platformPromises = accounts.map(async (acc: any) => {
+    const platformPromises = accounts.map(async (acc: Account): Promise<PlatformStats | null> => {
       try {
         if (acc.provider === "google") {
           return { type: 'youtube', data: await getYouTubeStats(userId, acc.id) };
@@ -31,7 +42,7 @@ export async function getDashboardStats() {
       }
     });
 
-    const platformResults = (await Promise.all(platformPromises)).filter(Boolean) as any[];
+    const platformResults = (await Promise.all(platformPromises)).filter((res): res is PlatformStats => res !== null);
 
     let totalReach = 0;
     let totalFollowers = 0;
@@ -41,13 +52,11 @@ export async function getDashboardStats() {
       if (!res?.data) return;
       activePlatforms++;
       if (res.type === 'youtube') {
-        const d = res.data as { views: number; subscribers: number };
-        totalReach += d.views || 0;
-        totalFollowers += d.subscribers || 0;
+        totalReach += res.data.views || 0;
+        totalFollowers += res.data.subscribers || 0;
       } else if (res.type === 'instagram') {
-        const d = res.data as { reach: number; followers: number };
-        totalReach += d.reach || 0;
-        totalFollowers += d.followers || 0;
+        totalReach += res.data.reach || 0;
+        totalFollowers += res.data.followers || 0;
       }
     });
 
@@ -59,25 +68,25 @@ export async function getDashboardStats() {
         label: 'Total Posts', 
         value: totalPosts.toString(), 
         change: '+100%', 
-        icon: '📝' 
+        icon: 'Description' 
       },
       { 
         label: 'Total Reach', 
         value: formatNumber(totalReach), 
         change: '+12.5%', 
-        icon: '🚀' 
+        icon: 'TrendingUp' 
       },
       { 
         label: 'Community', 
         value: formatNumber(totalFollowers), 
         change: `across ${activePlatforms} platforms`, 
-        icon: '👥' 
+        icon: 'Group' 
       },
       { 
         label: 'Engagement', 
         value: `${engagement}%`, 
         change: 'Avg. Rate', 
-        icon: '❤️' 
+        icon: 'Favorite' 
       },
     ];
   });

@@ -94,8 +94,9 @@ export async function getOptimizedVideoPath(
     }
 
     return optimizedPath;
-  } catch (err: any) {
-    logger.error(`❌ [TRANSCODER] Optimization failed for ${platform}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(`❌ [TRANSCODER] Optimization failed for ${platform}: ${message}`);
     
     if (postHistoryId && accountId) {
       await prisma.postPlatformResult.update({
@@ -108,7 +109,7 @@ export async function getOptimizedVideoPath(
         },
         data: {
           transcodeStatus: 'failed',
-          errorMessage: `Transcoding failed: ${err.message}`
+          errorMessage: `Transcoding failed: ${message}`
         }
       });
     }

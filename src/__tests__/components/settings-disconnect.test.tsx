@@ -28,23 +28,41 @@ vi.mock('../../app/actions/user', () => ({
   disconnectAccount: vi.fn(),
 }));
 
+interface MockAccount {
+  id: string;
+  provider: string;
+  accountName: string | null;
+  isDistributionEnabled: boolean;
+}
+
+interface MockPreference {
+  id: string;
+  userId: string;
+  platformId: string;
+  isEnabled: boolean;
+}
+
 describe('Settings Disconnect Functionality', () => {
-  const mockAccounts = [
+  const mockAccounts: MockAccount[] = [
     { id: 'acc_yt_1', provider: 'google', accountName: 'thoufiq.ar', isDistributionEnabled: true },
     { id: 'acc_tk_1', provider: 'tiktok', accountName: 'tiktok_handle', isDistributionEnabled: false },
   ];
 
-  const mockPreferences = [
+  const mockPreferences: MockPreference[] = [
     { id: 'p1', userId: 'u1', platformId: 'youtube', isEnabled: true },
     { id: 'p2', userId: 'u1', platformId: 'tiktok', isEnabled: true },
   ];
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useSession).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' } as any);
-    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
-    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as any);
-    vi.mocked(disconnectAccount).mockResolvedValue({ success: true });
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { id: 'u1' }, expires: '' },
+      status: 'authenticated',
+      update: vi.fn(),
+    } as ReturnType<typeof useSession>);
+    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as Awaited<ReturnType<typeof getUserAccounts>>);
+    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as Awaited<ReturnType<typeof getPlatformPreferences>>);
+    vi.mocked(disconnectAccount).mockResolvedValue({ success: true } as Awaited<ReturnType<typeof disconnectAccount>>);
     
     // Mock window.confirm
     vi.stubGlobal('confirm', vi.fn(() => true));

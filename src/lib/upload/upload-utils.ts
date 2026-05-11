@@ -1,5 +1,4 @@
 import { Account } from '@/lib/core/types';
-import { formatHandle } from '@/lib/utils/utils';
 import { StyleMode } from '@/lib/core/constants';
 import { extractPlatformPostId, generatePermalink } from '@/lib/core/distributor-utils';
 
@@ -91,7 +90,7 @@ export async function stageVideoFile({
       const data = await chunksResponse.json();
       existingChunks = data.chunks || [];
     }
-  } catch (e) { console.log("No existing chunks found or aborted"); }
+  } catch { console.log("No existing chunks found or aborted"); }
 
   const CHUNK_SIZE = 5 * 1024 * 1024; 
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -126,8 +125,8 @@ export async function stageVideoFile({
           success = true;
           break;
         }
-      } catch (e) {
-        console.warn(`Part ${i} stream failed (attempt ${retry + 1})`, e);
+      } catch (e: unknown) {
+        console.warn(`Part ${i} stream failed (attempt ${retry + 1})`, e instanceof Error ? e.message : String(e));
       }
     }
     if (!success) throw new Error(`Stream interrupted at ${progress}%. Please check your connection.`);
@@ -175,7 +174,6 @@ export async function distributeToPlatforms({
   selectedAccountIds,
   contentMode,
   videoFormat,
-  onStatusUpdate,
   onPlatformStatus,
   onAccountSuccess,
   historyId,
@@ -191,7 +189,9 @@ export async function distributeToPlatforms({
     const size = file?.size || 0;
     if (size > 300 * 1024 * 1024) concurrency = 1;
     else if (size > 0 && size < 50 * 1024 * 1024) concurrency = 4;
-  } catch (e: any) {}
+  } catch {
+    // No-op
+  }
 
   const processOne = async (selectionId: string) => {
     let platform: string;
@@ -239,10 +239,25 @@ export async function distributeToPlatforms({
       });
 
       const responseText = await response.text();
-      let data: any;
+      interface DistributionResponse {
+        data?: {
+          videoId?: string;
+          id?: string;
+          creationId?: string;
+          [key: string]: unknown;
+        };
+        error?: string;
+        message?: string;
+        resumableUrl?: string;
+        videoId?: string;
+        creationId?: string;
+        id?: string;
+      }
+
+      let data: DistributionResponse;
       try {
         data = responseText ? JSON.parse(responseText) : { status: 'failed', message: 'No response from server' };
-      } catch (e) {
+      } catch {
         throw new Error(`Server returned invalid response (${response.status})`);
       }
 
@@ -271,21 +286,28 @@ export async function distributeToPlatforms({
       if (onPlatformStatus) onPlatformStatus(selectionId, 'success', undefined);
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
 
-    } catch (err: any) {
-      const isAborted = err.name === 'AbortError' || err.message === 'The user aborted a request.';
+    } catch (err: unknown) {
+      const error = err as { 
+        name?: string; 
+        message?: string; 
+        resumableUrl?: string; 
+        videoId?: string; 
+        creationId?: string 
+      };
+      const isAborted = error.name === 'AbortError' || error.message === 'The user aborted a request.';
       const platformResult: PlatformUploadResult = {
         accountId: selectionId,
         platform,
         accountName: account?.accountName || null,
         status: isAborted ? 'cancelled' : 'failed',
-        errorMessage: isAborted ? 'Cancelled by user' : err.message,
-        resumableUrl: err.resumableUrl,
-        videoId: err.videoId,
-        creationId: err.creationId
+        errorMessage: isAborted ? 'Cancelled by user' : error.message,
+        resumableUrl: error.resumableUrl,
+        videoId: error.videoId,
+        creationId: error.creationId
       };
       platformResults.push(platformResult);
 
-      if (onPlatformStatus) onPlatformStatus(selectionId, isAborted ? 'cancelled' : 'failed', isAborted ? undefined : err.message);
+      if (onPlatformStatus) onPlatformStatus(selectionId, isAborted ? 'cancelled' : 'failed', isAborted ? undefined : error.message);
       if (onAccountSuccess) onAccountSuccess(selectionId, platformResult);
     }
   };
@@ -312,7 +334,12 @@ export async function distributeToPlatforms({
  */
 export async function performMultiPlatformUpload(params: UploadParams): Promise<{ platformResults: PlatformUploadResult[]; stagedFileId: string }> {
   const file = params.formData.get('file') as File;
-  const { stagedFileId, fileName } = await stageVideoFile({ file, onStatusUpdate: params.onStatusUpdate, platforms: [], metadata: {} as any });
+  const { stagedFileId, fileName } = await stageVideoFile({ 
+    file, 
+    onStatusUpdate: params.onStatusUpdate, 
+    platforms: [], 
+    metadata: { title: params.formData.get('title') as string } 
+  });
   const results = await distributeToPlatforms({ ...params, stagedFileId, fileName, historyId: '' });
   return { ...results, stagedFileId };
 }

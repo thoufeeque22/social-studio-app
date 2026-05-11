@@ -52,12 +52,12 @@ describe('Video Lifecycle Logic', () => {
     it('should calculate current usage correctly', async () => {
       vi.mocked(prisma.galleryAsset.aggregate).mockResolvedValue({
         _sum: { fileSize: BigInt(1024 * 1024 * 100) },
-      } as any);
+      } as never);
 
       const usage = await prisma.galleryAsset.aggregate({
         where: { userId: 'user_123' },
         _sum: { fileSize: true }
-      });
+      }) as { _sum: { fileSize: bigint } };
 
       expect(Number(usage._sum.fileSize)).toBe(100 * 1024 * 1024);
     });
@@ -80,7 +80,7 @@ describe('Video Lifecycle Logic', () => {
         expiresAt: new Date(Date.now() - 1000),
       };
 
-      vi.mocked(prisma.galleryAsset.findMany).mockResolvedValueOnce([mockExpiredAsset] as any)
+      vi.mocked(prisma.galleryAsset.findMany).mockResolvedValueOnce([mockExpiredAsset] as never)
                                            .mockResolvedValue([]);
       vi.mocked(prisma.postHistory.findMany).mockResolvedValue([]);
       
@@ -101,8 +101,8 @@ describe('Video Lifecycle Logic', () => {
 
       vi.mocked(prisma.galleryAsset.findMany).mockResolvedValue([]);
       vi.mocked(prisma.postHistory.findMany).mockResolvedValue([]);
-      vi.mocked(fsLib.promises.readdir).mockResolvedValue(['orphaned.mp4'] as any);
-      vi.mocked(fsLib.promises.stat).mockResolvedValue({ isFile: () => true, mtimeMs: dayAgo } as any);
+      vi.mocked(fsLib.promises.readdir).mockResolvedValue(['orphaned.mp4'] as never);
+      vi.mocked(fsLib.promises.stat).mockResolvedValue({ isFile: () => true, mtimeMs: dayAgo } as never);
 
       await purgeExpiredAssets();
 

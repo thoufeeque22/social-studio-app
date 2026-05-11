@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { PLATFORMS } from '@/lib/core/constants';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 
@@ -37,7 +41,10 @@ export const AIContentReview: React.FC<AIContentReviewProps> = ({
   return (
     <GlassCard style={{ padding: '2rem', animation: 'slideUp 0.4s ease-out' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>✨ Review AI Strategy</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <AutoAwesomeIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Review AI Strategy</h2>
+        </div>
         <span style={{ 
           fontSize: '0.75rem', 
           padding: '4px 10px', 
@@ -247,10 +254,14 @@ export const AIContentReview: React.FC<AIContentReviewProps> = ({
             background: 'transparent',
             color: 'white',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
           }}
         >
-          ⬅ Back to Step 1
+          <RefreshIcon sx={{ fontSize: 18, transform: 'rotate(-90deg)' }} /> Back to Step 1
         </button>
         <button
           onClick={() => onConfirm(editedContent)}
@@ -264,10 +275,15 @@ export const AIContentReview: React.FC<AIContentReviewProps> = ({
             color: 'white',
             fontWeight: 700,
             cursor: isProcessing ? 'not-allowed' : 'pointer',
-            boxShadow: '0 4px 12px hsla(var(--primary) / 0.3)'
+            boxShadow: '0 4px 12px hsla(var(--primary) / 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
           }}
         >
-          {isProcessing ? '🚀 Distributing...' : 'Confirm Strategy & Distribute'}
+          {isProcessing ? <RocketLaunchIcon className="animate-pulse" /> : <RocketLaunchIcon />}
+          {isProcessing ? 'Distributing...' : 'Confirm Strategy & Distribute'}
         </button>
       </div>
     </GlassCard>

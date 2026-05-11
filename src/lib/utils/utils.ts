@@ -17,7 +17,16 @@ export const formatHandle = (name: string | null, fallback: string) => {
   return `@${name.replace(/\s+/g, '').toLowerCase()}`;
 };
 
-export function extractAccountName(profile: any): string {
+interface ProfileInfo {
+  username?: string;
+  handle?: string;
+  login?: string;
+  screen_name?: string;
+  email?: string;
+  name?: string;
+}
+
+export function extractAccountName(profile: ProfileInfo): string {
   // 1. Try to get a native handle (TikTok, Instagram, Twitter)
   let accountName = profile.username || profile.handle || profile.login || profile.screen_name;
   

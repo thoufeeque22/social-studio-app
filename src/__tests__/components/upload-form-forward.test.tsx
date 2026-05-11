@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { UploadForm } from '../../components/dashboard/UploadForm';
+import { UploadForm, UploadFormProps } from '../../components/dashboard/UploadForm';
 import React from 'react';
+import { StyleMode, AITier } from '@/lib/core/constants';
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -21,11 +22,14 @@ describe('UploadForm Forward Navigation', () => {
       getItem: vi.fn().mockReturnValue(''),
       setItem: vi.fn(),
       clear: vi.fn(),
+      removeItem: vi.fn(),
+      length: 0,
+      key: vi.fn(),
     };
     Object.defineProperty(globalThis, 'localStorage', { value: mockLocalStorage, writable: true });
   });
 
-  const mockProps: any = {
+  const mockProps: UploadFormProps = {
     isUploading: false,
     uploadStatus: null,
     accounts: [],
@@ -33,8 +37,8 @@ describe('UploadForm Forward Navigation', () => {
     selectedAccountIds: [],
     successfulAccountIds: [],
     platformStatuses: {},
-    contentMode: 'Smart',
-    aiTier: 'Manual',
+    contentMode: 'Smart' as StyleMode,
+    aiTier: 'Manual' as AITier,
     videoFormat: 'short',
     videoDuration: 45,
     draftFileName: 'test.mp4',

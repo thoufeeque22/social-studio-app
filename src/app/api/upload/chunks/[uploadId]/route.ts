@@ -32,8 +32,8 @@ export async function GET(
       .filter(idx => !isNaN(idx));
 
     return NextResponse.json({ chunks: indices });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to list chunks:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

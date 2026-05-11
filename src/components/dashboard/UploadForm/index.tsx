@@ -11,10 +11,20 @@ import { MediaPicker } from './MediaPicker';
 import { MetadataTemplates } from './MetadataTemplates';
 import { useUploadForm } from '@/hooks/dashboard/useUploadForm';
 
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import UploadIcon from '@mui/icons-material/Upload';
+import LanguageIcon from '@mui/icons-material/Language';
+
 import { StyleMode, AITier } from '@/lib/core/constants';
 import { Account, PlatformPreference } from '@/lib/core/types';
 
-interface UploadFormProps {
+export interface UploadFormProps {
   isUploading: boolean;
   uploadStatus: React.ReactNode;
   accounts: Account[];
@@ -28,7 +38,6 @@ interface UploadFormProps {
   onVisualScan: (file: File) => Promise<void>;
   onTierChange: (tier: AITier) => void;
   onModeChange: (mode: StyleMode) => void;
-  onFormatChange: (format: 'short' | 'long') => void;
   onToggleAccount: (id: string) => void;
   onFileChange: (file: File) => void;
   onGallerySelect: (fileId: string, fileName: string) => void;
@@ -39,12 +48,6 @@ interface UploadFormProps {
   isComplete: boolean;
   customStyleText: string;
   onCustomStyleChange: (text: string) => void;
-  successfulAccountIds: string[];
-  platformStatuses: Record<string, 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled'>;
-  platformErrors: Record<string, string>;
-  onAbort: (id: string) => void;
-  onAbortAll: () => void;
-  hasFailures: boolean;
   hasCachedPreviews?: boolean;
   onResumeReview?: () => void;
 }
@@ -63,7 +66,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   onVisualScan,
   onTierChange,
   onModeChange,
-  onFormatChange,
   onToggleAccount,
   onFileChange,
   onGallerySelect,
@@ -74,12 +76,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   isComplete,
   customStyleText,
   onCustomStyleChange,
-  successfulAccountIds,
-  platformStatuses,
-  platformErrors,
-  onAbort,
-  onAbortAll,
-  hasFailures,
   hasCachedPreviews,
   onResumeReview
 }) => {
@@ -144,7 +140,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             border: '1px solid hsla(var(--primary) / 0.3)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
-              <span style={{ fontSize: '1.1rem' }}>✨</span>
+              <AutoAwesomeIcon sx={{ fontSize: 18, color: 'hsl(var(--primary))' }} />
               <div style={{ fontWeight: 600 }}>{uploadStatus}</div>
             </div>
             <Link 
@@ -346,8 +342,12 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div key={platform} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1rem' }}>
-                      {platform === 'youtube' ? '📺' : platform === 'tiktok' ? '🎵' : platform === 'instagram' ? '📸' : platform === 'facebook' ? '👥' : '🌐'}
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                      {platform === 'youtube' ? <YouTubeIcon sx={{ fontSize: 18, color: '#FF0000' }} /> : 
+                       platform === 'tiktok' ? <MusicNoteIcon sx={{ fontSize: 18, color: 'white' }} /> : 
+                       platform === 'instagram' ? <InstagramIcon sx={{ fontSize: 18, color: '#E4405F' }} /> : 
+                       platform === 'facebook' ? <FacebookIcon sx={{ fontSize: 18, color: '#1877F2' }} /> : 
+                       <LanguageIcon sx={{ fontSize: 18 }} />}
                     </span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary))' }}>
                       {platform} Details
@@ -396,7 +396,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         {aiTier !== 'Manual' && (
           <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'hsla(var(--primary)/0.05)', border: '1px solid hsla(var(--primary)/0.15)' }}>
             <p style={{ fontSize: '0.8rem', color: 'hsl(var(--primary))', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>✨</span>
+              <AutoAwesomeIcon sx={{ fontSize: 16 }} />
               <span><strong>AI Strategy:</strong> {aiTier === 'Enrich' ? 'Refining draft' : 'Generating content'} in <strong>{contentMode}</strong> style.</span>
             </p>
           </div>
@@ -459,10 +459,15 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               fontWeight: 700, 
               cursor: isUploading ? 'not-allowed' : 'pointer', 
               boxShadow: '0 4px 12px hsla(var(--primary) / 0.2)', 
-              fontSize: '1rem' 
+              fontSize: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
             }}
           >
-            {isUploading ? '📤 Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? '🔄 Regenerate Strategy' : '✨ Review AI Strategy') : '🚀 Post Video')}
+            {isUploading ? <UploadIcon className="animate-pulse" /> : (aiTier !== 'Manual' ? (hasCachedPreviews ? <RefreshIcon /> : <AutoAwesomeIcon />) : <RocketLaunchIcon />)}
+            {isUploading ? 'Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? 'Regenerate Strategy' : 'Review AI Strategy') : 'Post Video')}
           </button>
         </div>
 
@@ -479,9 +484,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               form.requestSubmit();
               setTimeout(() => hidden.remove(), 100);
             }}
-            style={{ background: 'transparent', border: '1px solid hsla(var(--border)/0.5)', color: 'hsl(var(--muted-foreground))', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: '1px solid hsla(var(--border)/0.5)', color: 'hsl(var(--muted-foreground))', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
-            🚀 Skip Review & Post Directly
+            <RocketLaunchIcon sx={{ fontSize: 16 }} /> Skip Review & Post Directly
           </button>
         )}
       </form>

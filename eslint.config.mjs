@@ -24,7 +24,15 @@ const eslintConfig = defineConfig([
     }
   },
   {
-    files: ["src/__tests__/**/*.ts", "src/__tests__/**/*.tsx"],
+    files: [
+      "src/app/api/**/*.ts", 
+      "src/app/actions/**/*.ts", 
+      "src/lib/worker/**/*.ts",
+      "src/lib/platforms/**/*.ts",
+      "src/__tests__/**/*.ts", 
+      "src/__tests__/**/*.tsx",
+      "scripts/**/*.ts"
+    ],
     rules: {
       "no-restricted-imports": "off"
     }

@@ -18,14 +18,28 @@ vi.mock('../../app/actions/user', () => ({
   togglePlatformPreference: vi.fn(),
 }));
 
+interface MockAccount {
+  id: string;
+  provider: string;
+  accountName: string | null;
+  isDistributionEnabled: boolean;
+}
+
+interface MockPreference {
+  id: string;
+  userId: string;
+  platformId: string;
+  isEnabled: boolean;
+}
+
 describe('Settings Multi-Account Management', () => {
-  const mockAccounts = [
+  const mockAccounts: MockAccount[] = [
     { id: 'acc_yt_1', provider: 'google', accountName: 'thoufiq.ar', isDistributionEnabled: true },
     { id: 'acc_yt_2', provider: 'google', accountName: 'other.channel', isDistributionEnabled: true },
     { id: 'acc_tk_1', provider: 'tiktok', accountName: 'tiktok_handle', isDistributionEnabled: false },
   ];
 
-  const mockPreferences = [
+  const mockPreferences: MockPreference[] = [
     { id: 'p1', userId: 'u1', platformId: 'youtube', isEnabled: true },
     { id: 'p2', userId: 'u1', platformId: 'tiktok', isEnabled: true },
     { id: 'p3', userId: 'u1', platformId: 'instagram', isEnabled: false },
@@ -33,10 +47,14 @@ describe('Settings Multi-Account Management', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useSession).mockReturnValue({ data: { user: { id: 'u1' } }, status: 'authenticated' } as any);
-    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
-    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as any);
-    vi.mocked(togglePlatformPreference).mockResolvedValue({ success: true });
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { id: 'u1' }, expires: '' },
+      status: 'authenticated',
+      update: vi.fn(),
+    } as ReturnType<typeof useSession>);
+    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as Awaited<ReturnType<typeof getUserAccounts>>);
+    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as Awaited<ReturnType<typeof getPlatformPreferences>>);
+    vi.mocked(togglePlatformPreference).mockResolvedValue({ success: true } as Awaited<ReturnType<typeof togglePlatformPreference>>);
   });
 
   it('renders the hardcoded platform list in the grid', async () => {
@@ -78,8 +96,8 @@ describe('Settings Multi-Account Management', () => {
   });
 
   it('allows enabling a platform even with 0 accounts (to reveal connect button)', async () => {
-    vi.mocked(getUserAccounts).mockResolvedValue([] as any);
-    vi.mocked(getPlatformPreferences).mockResolvedValue([] as any);
+    vi.mocked(getUserAccounts).mockResolvedValue([] as Awaited<ReturnType<typeof getUserAccounts>>);
+    vi.mocked(getPlatformPreferences).mockResolvedValue([] as Awaited<ReturnType<typeof getPlatformPreferences>>);
     
     render(<SettingsPage />);
     
@@ -101,7 +119,7 @@ describe('Settings Multi-Account Management', () => {
     vi.mocked(getPlatformPreferences).mockResolvedValue([
       { id: 'p_li', userId: 'u1', platformId: 'linkedin', isEnabled: true },
       { id: 'p_tw', userId: 'u1', platformId: 'twitter', isEnabled: false },
-    ] as any);
+    ] as Awaited<ReturnType<typeof getPlatformPreferences>>);
 
     render(<SettingsPage />);
 

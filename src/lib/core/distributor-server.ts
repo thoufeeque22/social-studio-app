@@ -28,7 +28,7 @@ export async function distributeSinglePlatform({
   description: string;
   videoFormat: 'short' | 'long';
   accountId?: string;
-  fields?: Record<string, any>;
+  fields?: Record<string, unknown>;
   onProgress?: (percent: number) => void;
 }) {
   const finalCaption = formatPlatformCaption({
@@ -49,9 +49,9 @@ export async function distributeSinglePlatform({
       filePath,
       title,
       description: finalCaption,
-      privacy: (fields.privacy as any) || 'public',
+      privacy: (fields.privacy as string) || 'public',
       accountId,
-      resumableUrl: fields.resumableUrl,
+      resumableUrl: fields.resumableUrl as string | undefined,
       onProgress: progressCallback
     });
     return result.data;
@@ -60,23 +60,22 @@ export async function distributeSinglePlatform({
   if (platform === 'facebook') {
     const { publishFacebookVideo, publishFacebookReel } = await import('@/lib/platforms/facebook');
     if (videoFormat === 'short') {
-      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId, onProgress: progressCallback });
+      return await publishFacebookReel({ userId, filePath, description: finalCaption, accountId, videoId: fields.videoId as string | undefined, onProgress: progressCallback });
     } else {
-      return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId });
+      return await publishFacebookVideo({ userId, filePath, title, description: finalCaption, accountId, videoId: fields.videoId as string | undefined });
     }
   } 
   
   if (platform === 'instagram') {
     const { publishInstagramReel } = await import('@/lib/platforms/instagram');
-    const videoUrl = constructPublicVideoUrl(path.basename(filePath));
     
     return await publishInstagramReel({ 
       userId, 
       filePath,
       caption: finalCaption,
       accountId,
-      creationId: fields.creationId,
-      musicId: fields.musicId,
+      creationId: fields.creationId as string | undefined,
+      musicId: fields.musicId as string | undefined,
       onProgress: progressCallback
     });
   } 

@@ -47,14 +47,28 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
+interface MockAccount {
+  id: string;
+  provider: string;
+  accountName: string | null;
+  isDistributionEnabled: boolean;
+}
+
+interface MockPreference {
+  id: string;
+  userId: string;
+  platformId: string;
+  isEnabled: boolean;
+}
+
 describe.skip('Dashboard Account Selection', () => {
-  const mockAccounts = [
+  const mockAccounts: MockAccount[] = [
     { id: 'acc_yt_1', provider: 'google', accountName: 'thoufiq.ar', isDistributionEnabled: true },
     { id: 'acc_tk_1', provider: 'tiktok', accountName: 'tiktok_handle', isDistributionEnabled: true },
     { id: 'acc_yt_2', provider: 'google', accountName: 'other.channel', isDistributionEnabled: false },
   ];
   
-  const mockPreferences = [
+  const mockPreferences: MockPreference[] = [
     { id: 'p1', userId: 'user_1', platformId: 'youtube', isEnabled: true },
     { id: 'p2', userId: 'user_1', platformId: 'tiktok', isEnabled: true },
   ];
@@ -64,13 +78,17 @@ describe.skip('Dashboard Account Selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.clear();
-    vi.mocked(useSession).mockReturnValue({ data: mockSession, status: 'authenticated' } as any);
-    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as any);
-    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as any);
+    vi.mocked(useSession).mockReturnValue({
+      data: mockSession,
+      status: 'authenticated',
+      update: vi.fn(),
+    } as ReturnType<typeof useSession>);
+    vi.mocked(getUserAccounts).mockResolvedValue(mockAccounts as Awaited<ReturnType<typeof getUserAccounts>>);
+    vi.mocked(getPlatformPreferences).mockResolvedValue(mockPreferences as Awaited<ReturnType<typeof getPlatformPreferences>>);
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: {} }),
-    } as any);
+    } as Response);
   });
 
   it('renders correctly and allows toggling selection', async () => {
@@ -108,10 +126,10 @@ describe.skip('Dashboard Account Selection', () => {
     // Wait for the useEffect to sync the updated selection to localStorage
     await waitFor(() => {
       const calls = localStorageMock.setItem.mock.calls.filter(
-        (c: string[]) => c[0] === 'SS_SELECTED_PLATFORMS'
+        (c: [string, string]) => c[0] === 'SS_SELECTED_PLATFORMS'
       );
       expect(calls.length).toBeGreaterThan(0);
-      const lastSaved = JSON.parse(calls[calls.length - 1][1]);
+      const lastSaved = JSON.parse(calls[calls.length - 1][1]) as string[];
       expect(lastSaved).not.toContain('acc_yt_1');
     });
   });

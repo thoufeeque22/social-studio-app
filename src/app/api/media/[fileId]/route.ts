@@ -138,8 +138,9 @@ export async function DELETE(
         fileId: fileId,
         userId: session.user.id
       }
-    }).catch((e: Error) => {
-       console.warn(`⚠️ [GALLERY] DB record already gone or inaccessible for ${fileId}`);
+    }).catch((e: unknown) => {
+       const msg = e instanceof Error ? e.message : String(e);
+       console.warn(`⚠️ [GALLERY] DB record already gone or inaccessible for ${fileId}: ${msg}`);
        return null;
     });
 
@@ -161,7 +162,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true, dbDeleted: !!dbDelete, diskDeleted });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ [GALLERY] Deletion Failed:", error);
     return NextResponse.json({ error: "Failed to delete asset" }, { status: 500 });
   }
