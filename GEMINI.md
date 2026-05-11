@@ -95,12 +95,13 @@
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## Routing
-  - Vague/New Features → `discovery-agent`
-  - Code/Bugs/Refactor → `dev-agent`
-  - Audit/Review → `review-agent`
-  - Writing Tests → `qa-write-agent`
-  - Running Tests/UAT → `qa-run-agent`
-  - Docs/PRs → `doc-agent`
+  - Vague/New Features → discovery-agent
+  - Code/Bugs/Refactor → dev-agent
+  - Audit/Review → review-agent
+  - Writing Tests → qa-write-agent
+  - Running Tests/UAT → qa-run-agent
+  - Docs/PRs → doc-agent
+  - Issues/Project Management → project-agent
 
 ## Directory Ownership & Guardrails
 - **discovery-agent:** WRITE: `docs/`, `AGENTS.md`. READ: Full Codebase.
