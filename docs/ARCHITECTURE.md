@@ -12,6 +12,8 @@ Social Studio is a multi-platform social media management application that allow
 - **Language:** TypeScript
 - **Authentication:** [Auth.js (NextAuth)](https://authjs.dev/)
 - **Database:** PostgreSQL with [Prisma ORM](https://www.prisma.io/)
+- **Validation:** [Zod](https://zod.dev/) (Runtime & API validation)
+- **Rate Limiting:** [Upstash Redis](https://upstash.com/)
 - **Video Processing:** [FFmpeg](https://ffmpeg.org/) (via `fluent-ffmpeg`)
 - **Mobile Wrapper:** [Capacitor](https://capacitorjs.com/) (iOS & Android)
 - **Monitoring:** [Sentry](https://sentry.io/)
@@ -227,6 +229,14 @@ Unit tests for utility functions and integration tests for server actions are lo
 ### 3. Agent Orchestration
 
 The project uses specialized AI agents (Discovery, Dev, Review, QA) to manage the development lifecycle, ensuring that every change is planned, implemented, audited, and verified before merging.
+
+## Production Readiness
+
+To ensure stability, security, and traceability in a production environment, Social Studio implements:
+
+- **Observability:** Sentry is integrated on both the client (`sentry.edge.config.ts`, `sentry.server.config.ts`) and server, capturing unhandled exceptions and performance metrics. Sentry error reporting is used across server actions and API routes.
+- **Rate Limiting:** Upstash Redis is used for distributed rate limiting. Critical endpoints (like upload API routes and AI actions) are protected to prevent abuse and manage API costs.
+- **Runtime Validation:** Zod schemas enforce strict validation of request payloads and function arguments across server actions (`action-utils.ts`) and API routes, acting as a guard against malformed data and ensuring type safety at the boundary layer.
 
 ## Deployment & Infrastructure
 
