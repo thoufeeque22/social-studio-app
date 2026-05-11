@@ -7,6 +7,12 @@
   - **Icons:** Exclusively use **Material UI Icons** (MUI). Avoid generic icon libraries unless MUI lacks a specific icon.
   - **No Emojis:** Strictly forbid the use of chat emojis in code, documentation, or UI.
   - **Human-Centric Design:** Focus on accessibility, clean spacing, clear visual hierarchy, and intuitive user flows.
+- **Production Readiness Standards (Anti-"Vibe Coding"):**
+  - **Reliability:** Implement robust error handling with Sentry logging. Never swallow errors.
+  - **Performance:** Consider caching strategies (Next.js Data Cache, Redis) and database index optimization.
+  - **Security:** Implement rate limiting on all public API routes and actions. Ensure strict input validation (Zod).
+  - **Scalability:** Design for high throughput (queues for long-running tasks, efficient sharding/partitioning for large datasets).
+  - **Observability:** Log critical business events and system health metrics.
 
 # Agent Orchestration (Scrum Master Rules)
 
@@ -28,6 +34,7 @@
 - **Ambiguity Check:** STOP and ask follow-up questions if requirements are vague.
 - **Impact Radius:** Map dependencies and existing patterns before proposing changes.
 - **Handoff:** Update `.gemini_agent_context.json` with technical specs for the developer.
+- **Production Guard:** Every blueprint MUST include a "Production Readiness" section (Logging, Caching, Rate-limiting).
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH).
 - **Constraints:** Never modify source code. Stick to blueprints. English only. PLN/ISO units.
 
@@ -38,6 +45,7 @@
   - **Systems Specialist (Paths: `src/lib/`, `src/app/api/`, `src/app/actions/`):** 
     - Prioritize data integrity, Prisma query efficiency, and strict error handling.
     - Ensure robust Sentry logging and retry logic for platform integrations.
+    - **Production Logic:** Implement rate limits and input validation as first-class citizens.
   - **UX Specialist (Paths: `src/components/`, `src/app/**/*.tsx`):**
     - Prioritize A11y (ARIA, labels), React 19 Form Actions, and interactive feedback.
     - Focus on loading states, hydration safety, and responsive layout polish.
@@ -59,7 +67,7 @@
 - **Verification:** If `fixes_applied` exists, verify they work and check for regressions.
 - **Audit Checklist:**
   - Architecture: Match `docs/` specs and API contracts.
-  - Security: No hardcoded secrets/PII.
+  - Security: No hardcoded secrets/PII. Verify rate limiting.
   - Data: PLN currency, Metric units, English names.
   - Modularity: Flag functions > 50 lines or mixed responsibilities.
 - **Static Checks:** 
