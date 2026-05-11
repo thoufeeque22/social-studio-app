@@ -1,11 +1,13 @@
 import { auth } from "@/auth";
+import { logger } from "./logger";
+import { Session } from "next-auth";
 
 /**
  * A wrapper for server actions that requires authentication.
  * Handles session verification and provides a consistent error format.
  */
 export async function protectedAction<T>(
-  action: (userId: string, session: any) => Promise<T>
+  action: (userId: string, session: Session) => Promise<T>
 ): Promise<T> {
   const session = await auth();
 
@@ -15,9 +17,14 @@ export async function protectedAction<T>(
 
   try {
     return await action(session.user.id, session);
-  } catch (error: any) {
-    console.error("Server Action Error:", error);
-    throw new Error(error.message || "An unexpected error occurred.");
+  } catch (error: unknown) {
+    // Logger now automatically captures in Sentry
+    logger.error("Server Action Error", error);
+    
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("An unexpected error occurred.");
   }
 }
 

@@ -10,7 +10,7 @@ if (!fs.existsSync(logDir)) {
 }
 
 export const logger = {
-  info: (message: string, ...args: any[]) => {
+  info: (message: string, ...args: unknown[]) => {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${timestamp}] [INFO] ${message} ${args.length ? JSON.stringify(args) : ''}\n`;
     
@@ -25,7 +25,7 @@ export const logger = {
     }
   },
 
-  error: (message: string, error?: any) => {
+  error: (message: string, error?: unknown) => {
     const timestamp = new Date().toISOString();
     const errorDetail = error instanceof Error ? error.stack : JSON.stringify(error);
     const formattedMessage = `[${timestamp}] [ERROR] ${message} | Detail: ${errorDetail}\n`;
@@ -33,7 +33,23 @@ export const logger = {
     // 1. Print to console
     console.error(`❌ [ERROR] ${message}`, error);
     
-    // 2. Append to file
+    // 2. Capture in Sentry
+    if (error instanceof Error) {
+      import('@sentry/nextjs').then(Sentry => {
+        Sentry.captureException(error, {
+          extra: { message }
+        });
+      });
+    } else {
+      import('@sentry/nextjs').then(Sentry => {
+        Sentry.captureMessage(message, {
+          level: 'error',
+          extra: { errorDetail }
+        });
+      });
+    }
+    
+    // 3. Append to file
     try {
       fs.appendFileSync(LOG_FILE, formattedMessage);
     } catch (err) {
@@ -41,7 +57,7 @@ export const logger = {
     }
   },
 
-  warn: (message: string, ...args: any[]) => {
+  warn: (message: string, ...args: unknown[]) => {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${timestamp}] [WARN] ${message} ${args.length ? JSON.stringify(args) : ''}\n`;
     
