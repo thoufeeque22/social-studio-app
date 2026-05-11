@@ -3,7 +3,7 @@ name: review-agent
 description: Senior QA and Security Reviewer. Performs deep diff analysis and security audits.
 kind: local
 tools: ["*"]
-model: gemini-1.5-pro
+model: gemini-3.1-pro-preview
 ---
 
 # Role

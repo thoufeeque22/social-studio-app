@@ -27,7 +27,8 @@ test.describe('Metadata Templates (Snippets)', () => {
   });
 
   test('should save a new snippet and close the menu on success', async ({ page }) => {
-    const descriptionField = page.getByTestId('video-description');
+    page.on('console', msg => console.log(`[Browser Console]: ${msg.text()}`));
+    const descriptionField = page.getByTestId('video-description').first();
     const testContent = `E2E Test Snippet ${Date.now()}`;
     const snippetName = `Name ${Date.now()}`;
 
@@ -35,7 +36,7 @@ test.describe('Metadata Templates (Snippets)', () => {
     await descriptionField.fill(testContent);
 
     // Open menu
-    await page.getByTestId('snippets-trigger').click();
+    await page.getByTestId('snippets-trigger').first().click();
     
     // Open save form
     await page.getByTestId('save-snippet-form-trigger').click();
@@ -50,7 +51,7 @@ test.describe('Metadata Templates (Snippets)', () => {
     await expect(page.getByTestId('snippets-menu')).not.toBeVisible();
 
     // Verification: Re-open and check if it exists in list
-    await page.getByTestId('snippets-trigger').click();
+    await page.getByTestId('snippets-trigger').first().click();
     await expect(page.getByText(snippetName)).toBeVisible();
   });
 

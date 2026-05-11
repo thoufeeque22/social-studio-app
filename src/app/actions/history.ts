@@ -11,19 +11,36 @@ import path from 'path';
 import fs from 'fs';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 
-export interface PlatformResultInput {
-  platform: string;
-  accountId?: string;
-  accountName?: string | null;
-  platformPostId?: string | null;
-  permalink?: string | null;
-  status: 'success' | 'failed' | 'retrying' | 'pending' | 'cancelled';
-  errorMessage?: string | null;
-  resumableUrl?: string | null;
-  videoId?: string | null;
-  creationId?: string | null;
-  metadata?: any;
-}
+import { z } from "zod";
+import { logger } from '@/lib/core/logger';
+
+const PlatformResultSchema = z.object({
+  platform: z.string(),
+  accountId: z.string().optional(),
+  accountName: z.string().nullable().optional(),
+  platformPostId: z.string().nullable().optional(),
+  permalink: z.string().nullable().optional(),
+  status: z.enum(['success', 'failed', 'retrying', 'pending', 'cancelled']),
+  errorMessage: z.string().nullable().optional(),
+  resumableUrl: z.string().nullable().optional(),
+  videoId: z.string().nullable().optional(),
+  creationId: z.string().nullable().optional(),
+  metadata: z.any().optional(),
+});
+
+export type PlatformResultInput = z.infer<typeof PlatformResultSchema>;
+
+const SavePostHistorySchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  videoFormat: z.enum(['short', 'long']),
+  platforms: z.array(PlatformResultSchema),
+  stagedFileId: z.string().optional(),
+  scheduledAt: z.union([z.date(), z.string(), z.number()]).transform(val => val ? new Date(val) : null).nullable().optional(),
+  isPublished: z.boolean().optional(),
+});
+
+export type SavePostHistoryInput = z.infer<typeof SavePostHistorySchema>;
 
 /**
  * Upserts a single platform result (Internal version for Worker).
@@ -56,20 +73,14 @@ export async function upsertPlatformResult(historyId: string, result: PlatformRe
   });
 }
 
-export interface SavePostHistoryInput {
-  title: string;
-  description?: string;
-  videoFormat: 'short' | 'long';
-  platforms: PlatformResultInput[];
-  stagedFileId?: string; 
-  scheduledAt?: Date | null;
-  isPublished?: boolean;
-}
-
-export async function savePostHistory(data: SavePostHistoryInput) {
+export async function savePostHistory(rawInput: SavePostHistoryInput) {
   return protectedAction(async (userId) => {
+    // 1. Runtime Validation
+    const validated = SavePostHistorySchema.parse(rawInput);
+    const { title, description, videoFormat, platforms, stagedFileId, scheduledAt, isPublished } = validated;
+
     // 🛠️ DEVELOPMENTAL AUTO-TITLE LOGIC
-    let finalTitle = data.title;
+    let finalTitle = title;
     if (!finalTitle || finalTitle.trim() === "" || /^\d+$/.test(finalTitle)) {
       const lastPost = await prisma.postHistory.findFirst({
         where: { userId },
@@ -77,20 +88,20 @@ export async function savePostHistory(data: SavePostHistoryInput) {
       });
       const lastNum = parseInt(lastPost?.title.match(/\d+/)?.[0] || "0", 10);
       finalTitle = `${lastNum + 1}`;
-      console.log(`🪄 [DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
+      logger.info(`🪄 [DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
     }
 
     const postHistory = await prisma.postHistory.create({
       data: {
         userId,
         title: finalTitle,
-        description: data.description,
-        videoFormat: data.videoFormat,
-        stagedFileId: data.stagedFileId,
-        scheduledAt: data.scheduledAt ?? new Date(),
-        isPublished: data.isPublished ?? false,
+        description: description,
+        videoFormat: videoFormat,
+        stagedFileId: stagedFileId,
+        scheduledAt: scheduledAt ?? new Date(),
+        isPublished: isPublished ?? false,
         platforms: {
-          create: data.platforms.map((p) => ({
+          create: platforms.map((p) => ({
             platform: p.platform,
             accountId: p.accountId,
             accountName: p.accountName || null,
@@ -156,7 +167,7 @@ export async function retryUploadAction(resultId: string) {
         filePath,
         title: result.postHistory.title,
         description: result.postHistory.description || "",
-        videoFormat: result.postHistory.videoFormat as any,
+        videoFormat: result.postHistory.videoFormat as "short" | "long",
         accountId: result.accountId || undefined,
         fields: {
           resumableUrl: result.resumableUrl,
@@ -166,32 +177,34 @@ export async function retryUploadAction(resultId: string) {
       });
 
       // 3. Update with success
+      const castResult = platformResult as { videoId?: string; id?: string; creationId?: string };
       await prisma.postPlatformResult.update({
         where: { id: resultId },
         data: { 
           status: 'success',
           platformPostId: extractPlatformPostId(result.platform, platformResult),
           permalink: generatePermalink(result.platform, platformResult),
-          videoId: (platformResult as any).videoId || (platformResult as any).id,
-          creationId: (platformResult as any).creationId,
+          videoId: castResult.videoId || castResult.id,
+          creationId: castResult.creationId,
           errorMessage: null
         }
       });
 
       return { success: true };
-    } catch (err: any) {
-      console.error(`Retry attempt failed for ${result.platform}:`, err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown retry error";
+      logger.error(`Retry attempt failed for ${result.platform}`, err);
       await prisma.postPlatformResult.update({
         where: { id: resultId },
         data: { 
           status: 'failed', 
-          errorMessage: err.message,
-          resumableUrl: err.resumableUrl || result.resumableUrl,
-          videoId: err.videoId || result.videoId,
-          creationId: err.creationId || result.creationId
+          errorMessage: message,
+          resumableUrl: (err as { resumableUrl?: string }).resumableUrl || result.resumableUrl,
+          videoId: (err as { videoId?: string }).videoId || result.videoId,
+          creationId: (err as { creationId?: string }).creationId || result.creationId
         }
       });
-      return { success: false, error: err.message };
+      return { success: false, error: message };
     }
   });
 }
@@ -293,7 +306,7 @@ export async function updateScheduledPost(id: string, data: { title?: string; de
       await prisma.galleryAsset.updateMany({
         where: { fileId: updated.stagedFileId },
         data: { expiresAt: newExpiry }
-      }).catch((e: Error) => console.warn("Failed to sync gallery expiry:", e));
+      }).catch((e: unknown) => logger.warn("Failed to sync gallery expiry", e));
     }
 
     await revalidateDashboard();
@@ -323,7 +336,7 @@ export async function publishNowAction(id: string) {
       await prisma.galleryAsset.updateMany({
         where: { fileId: updated.stagedFileId },
         data: { expiresAt: newExpiry }
-      }).catch((e: Error) => console.warn("Failed to sync gallery expiry:", e));
+      }).catch((e: unknown) => logger.warn("Failed to sync gallery expiry", e));
     }
 
     await revalidateDashboard();
@@ -346,8 +359,8 @@ export async function deleteScheduledPost(id: string) {
       try {
         const filePath = path.join(process.cwd(), "src/tmp", post.stagedFileId);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      } catch (e) {
-        console.warn("Failed to delete temp file:", e);
+      } catch (e: unknown) {
+        logger.warn("Failed to delete temp file", e);
       }
     }
 
@@ -362,7 +375,7 @@ export async function deleteScheduledPost(id: string) {
  * Saves AI-reviewed platform metadata for scheduled/pending posts.
  */
 export async function saveStagedMetadata(stagedFileId: string, reviewedContent: Record<string, AIWriteResult>) {
-  return protectedAction(async (userId) => {
+  return protectedAction(async () => {
     const metadataPath = path.join(process.cwd(), "src/tmp", `${stagedFileId}.metadata.json`);
     fs.writeFileSync(metadataPath, JSON.stringify(reviewedContent, null, 2), "utf8");
     return { success: true };
@@ -382,7 +395,7 @@ export async function updatePlatformResultsAction(historyId: string, reviewedCon
     if (!history) throw new Error("History record not found.");
 
     // Update each platform result with its specific custom content
-    await Promise.all(history.platforms.map((p: any) => {
+    await Promise.all(history.platforms.map((p) => {
       const custom = reviewedContent[p.platform];
       if (!custom) return Promise.resolve();
 

@@ -3,7 +3,7 @@ name: project-agent
 description: Project Manager & Issue Architect. Handles GitHub issue creation, ticket enhancement, and Project Board management.
 kind: local
 tools: ["*"]
-model: gemini-1.5-flash
+model: gemini-3-flash-preview
 ---
 
 # Role

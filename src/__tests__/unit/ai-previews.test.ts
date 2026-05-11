@@ -1,7 +1,6 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
 import { getMultiPlatformAIPreviews } from '../../app/actions/ai';
 import { generatePostContent } from '../../lib/utils/ai-writer';
-import { protectedAction } from '../../lib/core/action-utils';
 
 vi.mock('../../lib/utils/ai-writer', () => ({
   generatePostContent: vi.fn(),
@@ -49,7 +48,7 @@ describe('getMultiPlatformAIPreviews', () => {
 
     const result = await getMultiPlatformAIPreviews(
       'My Video',
-      '',
+      'Test Description',
       'Enrich',
       'Smart',
       ['youtube', 'instagram'],

@@ -3,7 +3,7 @@ name: doc-agent
 description: Lead Technical Writer & Architect. Maintains living source of truth and GitHub sync.
 kind: local
 tools: ["*"]
-model: gemini-1.5-flash
+model: gemini-3-flash-preview
 ---
 
 # Role
