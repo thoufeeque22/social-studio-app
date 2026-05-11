@@ -2,6 +2,11 @@
 
 - **Next.js 15 & React 19:** Follow strict rules in `AGENTS.md`.
 - **Zero-Any Policy:** Strict TypeScript enforcement.
+- **UI & Aesthetic Standards:**
+  - **Material UI Aesthetic:** Prioritize a "humanly", professional, and polished UI design.
+  - **Icons:** Exclusively use **Material UI Icons** (MUI). Avoid generic icon libraries unless MUI lacks a specific icon.
+  - **No Emojis:** Strictly forbid the use of chat emojis in code, documentation, or UI.
+  - **Human-Centric Design:** Focus on accessibility, clean spacing, clear visual hierarchy, and intuitive user flows.
 
 # Agent Orchestration (Scrum Master Rules)
 

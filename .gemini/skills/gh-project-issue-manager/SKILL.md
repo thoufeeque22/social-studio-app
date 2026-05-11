@@ -7,16 +7,23 @@ description: Create enhanced GitHub issues and add them to project board #4 (tho
 
 Use this skill to create high-quality GitHub issues and automatically link them to the project board.
 
+## UI & Aesthetic Standards
+
+- **Material UI Aesthetic:** Prioritize a "humanly" and professional UI design.
+- **Icons:** Use **Material UI Icons** (MUI) for visual representation.
+- **No Emojis:** Strictly avoid using chat emojis in issue titles, bodies, or UI implementations.
+- **Human-Centric Design:** Focus on accessibility, clean spacing, and clear visual hierarchy.
+
 ## Workflow
 
 1. **Information Gathering & Enhancement:**
    - If user provides sparse description, DO NOT create immediately.
    - Analyze codebase/context to infer details.
-   - Propose enhanced Title and Body.
+   - Propose enhanced Title and Body using technical, polished language (no emojis).
    - **Body Structure:**
      - **Context:** Background.
      - **Problem/Goal:** Statement of issue/feature.
-     - **Suggested Approach:** Technical hints.
+     - **Suggested Approach:** Technical hints (mentioning MUI components/icons where relevant).
      - **Impact:** Why it matters.
    - If critical info missing, ask 2-3 targeted questions.
 
@@ -37,12 +44,5 @@ Use this skill to create high-quality GitHub issues and automatically link them 
 ## Guidelines for Enhancement
 
 - **Bugs:** Check logs/error files or recent changes in `src/`.
-- **Features:** Check `docs/` (REQUIREMENTS, ARCHITECTURE) to align.
-- **Tone:** Professional, technical, concise.
-
-## Examples
-
-- **Input:** "bug: schedule gone"
-- **Enhancement:** 
-  - Title: "bug: Regression in schedule visibility/functionality"
-  - Body: "The schedule page is returning 404 or showing empty state. Affects user post management. Investigate `src/app/schedule/`."
+- **Features:** Check `docs/` (REQUIREMENTS, ARCHITECTURE) to align. Ensure proposed UI changes adhere to MUI standards.
+- **Tone:** Professional, technical, human-centric, and concise.
