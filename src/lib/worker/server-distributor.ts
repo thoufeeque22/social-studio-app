@@ -68,8 +68,8 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       if (existingResult?.status === 'cancelled') {
         logger.info(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
         results.push({
-          platform: existingResult.platform,
-          accountId: existingResult.accountId,
+          platform: p.platform,
+          accountId: p.accountId,
           accountName: existingResult.accountName,
           status: 'cancelled',
           errorMessage: existingResult.errorMessage || undefined,

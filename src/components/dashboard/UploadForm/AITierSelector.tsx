@@ -1,4 +1,7 @@
 import React from 'react';
+import EditIcon from '@mui/icons-material/Edit';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { AITier, AI_TIERS } from '@/lib/core/constants';
 
 interface AITierSelectorProps {
@@ -34,7 +37,9 @@ export const AITierSelector: React.FC<AITierSelectorProps> = ({ selectedTier, on
               boxShadow: selectedTier === tier ? '0 0 15px hsla(var(--primary) / 0.3)' : 'none'
             }}
           >
-            <span style={{ fontSize: '1.2rem' }}>{tier === 'Manual' ? '✍️' : tier === 'Enrich' ? '🪄' : '🤖'}</span>
+            <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>
+              {tier === 'Manual' ? <EditIcon fontSize="small" /> : tier === 'Enrich' ? <AutoFixHighIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
+            </span>
             {tier}
           </button>
         ))}

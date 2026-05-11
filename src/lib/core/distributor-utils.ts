@@ -4,7 +4,7 @@
  * API routes, Client-side uploads, and the Background Worker.
  */
 
-interface PlatformData {
+export interface PlatformData {
   id?: string;
   videoId?: string;
   publish_id?: string;

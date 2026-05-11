@@ -88,7 +88,7 @@ export async function savePostHistory(rawInput: SavePostHistoryInput) {
       });
       const lastNum = parseInt(lastPost?.title.match(/\d+/)?.[0] || "0", 10);
       finalTitle = `${lastNum + 1}`;
-      logger.info(`🪄 [DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
+      logger.info(`[DEV-AUTO-TITLE] Incrementing title to: ${finalTitle}`);
     }
 
     const postHistory = await prisma.postHistory.create({

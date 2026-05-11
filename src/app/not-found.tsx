@@ -17,7 +17,7 @@ export default function NotFound() {
         padding: '3rem', 
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔍</div>
+        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}></div>
         <Heading level={1} style={{ marginBottom: '1rem' }}>Page Not Found</Heading>
         <p style={{ 
           color: 'hsl(var(--muted-foreground))', 

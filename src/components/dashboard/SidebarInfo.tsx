@@ -6,8 +6,13 @@ import { Heading } from '@/components/ui/Heading';
 import { getUpcomingPosts } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
 import type { PostHistory } from '@prisma/client';
+import type { Account } from '@/lib/core/types';
 
-export const SidebarInfo: React.FC = () => {
+interface SidebarInfoProps {
+  accounts: Account[];
+}
+
+export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
   const [upcoming, setUpcoming] = useState<PostHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,6 +37,7 @@ export const SidebarInfo: React.FC = () => {
   }, []);
 
   const hasActivePosts = upcoming.some(post => {
+    if (!post.scheduledAt) return false;
     const scheduledTime = new Date(post.scheduledAt).getTime();
     return now > 0 && scheduledTime <= now + 30000;
   });
@@ -76,14 +82,14 @@ export const SidebarInfo: React.FC = () => {
                   <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>{post.title}</p>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-                      {new Date(post.scheduledAt).toLocaleString(undefined, { 
+                      {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString(undefined, { 
                         month: 'short', 
                         day: 'numeric', 
                         hour: '2-digit', 
                         minute: '2-digit' 
-                      })}
+                      }) : 'Not scheduled'}
                     </p>
-                    {new Date(post.scheduledAt) < new Date() && (
+                    {post.scheduledAt && new Date(post.scheduledAt) < new Date() && (
                       <Badge variant="success">QUEUED</Badge>
                     )}
                   </div>
@@ -100,3 +106,4 @@ export const SidebarInfo: React.FC = () => {
     </section>
   );
 };
+

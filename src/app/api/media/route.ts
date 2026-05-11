@@ -117,7 +117,7 @@ export async function DELETE(req: NextRequest) {
     logger.error("Bulk Delete Error", error);
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
     }
     
     return NextResponse.json({ error: "Failed to delete assets" }, { status: 500 });

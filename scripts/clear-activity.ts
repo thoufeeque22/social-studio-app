@@ -6,7 +6,7 @@ import fsSync from "fs";
 const prisma = new PrismaClient();
 
 async function clearActivity() {
-  console.log("🧹 Starting Activity Hub Cleanup...");
+  console.log(" Starting Activity Hub Cleanup...");
 
   try {
     // 1. Delete Platform Results first (FK dependency)
@@ -55,9 +55,9 @@ async function clearActivity() {
       console.log(`- Purged ${deletedFiles} physical temp files/folders from src/tmp.`);
     }
 
-    console.log("✨ Cleanup Complete! Your Activity Hub and Gallery are now fresh.");
+    console.log(" Cleanup Complete! Your Activity Hub and Gallery are now fresh.");
   } catch (error) {
-    console.error("❌ Cleanup Failed:", error);
+    console.error(" Cleanup Failed:", error);
   } finally {
     await prisma.$disconnect();
   }

@@ -145,7 +145,7 @@ export const MediaLibrary: React.FC = () => {
         }
       });
 
-      setUploadStatus("✨ Upload complete!");
+      setUploadStatus(" Upload complete!");
       setTimeout(() => {
         setIsUploading(false);
         setUploadStatus(null);
@@ -154,7 +154,7 @@ export const MediaLibrary: React.FC = () => {
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`❌ Error: ${message}`);
+      setUploadStatus(` Error: ${message}`);
       setTimeout(() => {
         setIsUploading(false);
         setUploadStatus(null);
@@ -228,7 +228,7 @@ export const MediaLibrary: React.FC = () => {
   };
 
   const handleClearAll = async () => {
-    if (!globalThis.confirm('⚠️ WARNING: This will permanently delete EVERY video in your staged gallery. Are you absolutely sure?')) return;
+    if (!globalThis.confirm('️ WARNING: This will permanently delete EVERY video in your staged gallery. Are you absolutely sure?')) return;
     if (!globalThis.confirm('FINAL CONFIRMATION: Are you really sure you want to wipe your entire media gallery?')) return;
     
     try {

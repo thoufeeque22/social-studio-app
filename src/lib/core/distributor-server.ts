@@ -49,7 +49,7 @@ export async function distributeSinglePlatform({
       filePath,
       title,
       description: finalCaption,
-      privacy: (fields.privacy as string) || 'public',
+      privacy: ((fields.privacy as string) || 'public') as "private" | "public" | "unlisted",
       accountId,
       resumableUrl: fields.resumableUrl as string | undefined,
       onProgress: progressCallback

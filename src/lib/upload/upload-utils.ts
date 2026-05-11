@@ -82,7 +82,7 @@ export async function stageVideoFile({
     }
   };
 
-  broadcast("🔍 Synchronizing cockpit state...");
+  broadcast(" Synchronizing cockpit state...");
   let existingChunks: number[] = [];
   try {
     const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });

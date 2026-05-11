@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Film } from 'lucide-react';
+import MovieIcon from '@mui/icons-material/Movie';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
@@ -196,7 +196,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   gap: '4px'
                 }}
               >
-                <Film size={12} />
+                <MovieIcon sx={{ fontSize: 12 }} />
                 Browse Gallery
               </button>
             )}
@@ -271,7 +271,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                       }}
                       style={{ background: 'hsla(var(--primary)/0.1)', border: '1px solid hsla(var(--primary)/0.3)', color: 'hsl(var(--primary))', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      🪄 Auto-Scan Video
+                      Auto-Scan Video
                     </button>
                   )}
                 </div>

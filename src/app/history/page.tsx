@@ -95,7 +95,7 @@ interface CockpitPost {
   scheduledAt?: string;
   aiTier?: string;
   skipReview?: boolean;
-  contentMode?: string;
+  contentMode?: StyleMode;
   customStyleText?: string;
   stagedFileId?: string;
   fileName?: string;
@@ -113,15 +113,6 @@ export default function HistoryPage() {
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
 
-  useEffect(() => {
-    const url = new URL(globalThis.window?.location.href || '');
-    const action = url.searchParams.get('action');
-    if (action === 'distribute' && !cockpitStartedRef.current && accounts.length > 0) {
-      cockpitStartedRef.current = true;
-      handleCockpitStart();
-    }
-  }, [accounts, handleCockpitStart]);
-
   const fetchHistory = useCallback(async (cursor?: string) => {
     const params = new URLSearchParams({ limit: '20' });
     if (cursor) params.set('cursor', cursor);
@@ -131,6 +122,168 @@ export default function HistoryPage() {
     const data = await res.json();
     return data;
   }, []);
+
+  const executeCockpitDistribution = useCallback(async (stagedFileId: string, fileName: string, historyId: string, post: CockpitPost, reviewedContent?: Record<string, AIWriteResult>) => {
+    setInPlaceStatus(" Launching Mission...");
+    
+    try {
+      if (reviewedContent) {
+        const { updatePlatformResultsAction } = await import('@/app/actions/history');
+        await updatePlatformResultsAction(historyId, reviewedContent);
+      }
+
+      const selectedAccountIds = post.platforms.map((p: PlatformResult) => {
+         const account = accounts.find(acc => acc.id === p.accountId);
+         if (!account) {
+           // Allow injected local-dev accounts to pass through
+           if (p.accountId && String(p.accountId).startsWith('local-dev-')) {
+             return p.accountId;
+           }
+           return null;
+         }
+         return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
+      }).filter((id): id is string => id !== null);
+
+      const fd = new FormData();
+      fd.append('title', post.title || '');
+      fd.append('description', post.description || '');
+
+      setInPlaceStatus("️ Distributing to Platforms...");
+      await distributeToPlatforms({
+        stagedFileId,
+        fileName,
+        formData: fd,
+        accounts,
+        selectedAccountIds,
+        contentMode: post.contentMode || 'Smart',
+        videoFormat: post.videoFormat as "short" | "long",
+        onStatusUpdate: setInPlaceStatus,
+        historyId,
+        reviewedContent,
+        onAccountSuccess: async () => {
+           const updated = await fetchHistory();
+           setPosts(updated.data || []);
+        }
+      });
+
+      setInPlaceStatus(" Mission Accomplished!");
+      localStorage.removeItem('SS_PENDING_POST');
+      const data = await fetchHistory();
+      setPosts(data.data || []);
+      setTimeout(() => {
+        setActiveResumingId(null);
+        // Clear URL param
+        window.history.replaceState({}, '', '/history');
+      }, 2000);
+
+    } catch (err: unknown) {
+      setInPlaceStatus(` Distribution Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [accounts, fetchHistory]);
+
+  const handleCockpitStart = useCallback(async () => {
+    if (accounts.length === 0) {
+      setInPlaceStatus("⏳ Waiting for platform accounts...");
+      return;
+    }
+    
+    const pending = localStorage.getItem('SS_PENDING_POST');
+    if (!pending) {
+      setInPlaceStatus("️ No pending post found in storage.");
+      return;
+    }
+    
+    const post = JSON.parse(pending) as CockpitPost;
+
+    const hId = post.resumeHistoryId;
+    if (hId) {
+      setActiveResumingId(hId);
+    } else {
+      setActiveResumingId('cockpit-active');
+    }
+
+    setInPlaceStatus(" Synchronizing Activity Hub...");
+    // REFRESH LIST TO SHOW THE NEW ROW
+    try {
+      const freshData = await fetchHistory();
+      setPosts(freshData.data || []);
+    } catch (e) { console.error("Initial list refresh failed", e); }
+    
+    try {
+      setInPlaceStatus(" Accessing local video storage...");
+      let stagedFileId = post.galleryFileId;
+      let fileName = post.galleryFileName || '';
+      let historyId = post.resumeHistoryId || '';
+
+      // 1. Stage Physical File if needed
+      if (!stagedFileId) {
+        setInPlaceStatus(" Searching for draft file...");
+        const file = await getDraftFile();
+        if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
+        
+        setInPlaceStatus(` Initializing upload for ${file.name}...`);
+        const stageResult = await stageVideoFile({
+          file,
+          onStatusUpdate: setInPlaceStatus,
+          metadata: {
+            title: post.title,
+            description: post.description,
+            videoFormat: post.videoFormat,
+            scheduledAt: post.isScheduled ? post.scheduledAt : undefined,
+            isPublished: false
+          },
+          platforms: post.platforms.map(p => ({
+            platform: p.platform,
+            accountId: p.accountId || ''
+          })),
+          resumeHistoryId: post.resumeHistoryId
+        });
+        stagedFileId = stageResult.stagedFileId;
+        fileName = stageResult.fileName;
+        historyId = stageResult.historyId;
+      }
+
+      // 2. AI Generation if needed (Auto-Pilot)
+      let reviewedContentToPass: Record<string, AIWriteResult> | undefined = undefined;
+      if (post.aiTier !== 'Manual' && post.skipReview) {
+        setInPlaceStatus(" Generating AI Strategy...");
+        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
+        const targetPlatformNames = post.platforms.map((p: PlatformResult) => p.platform);
+        
+        const previews = await getMultiPlatformAIPreviews(
+          post.title, 
+          post.description || '', 
+          post.aiTier as AITier, 
+          post.contentMode || 'Smart', 
+          targetPlatformNames, 
+          [], 
+          post.customStyleText
+        );
+        
+        const { updatePlatformResultsAction } = await import('@/app/actions/history');
+        await updatePlatformResultsAction(historyId, previews);
+        reviewedContentToPass = previews;
+      }
+
+      // 3. Final Distribution
+      await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
+
+    } catch (err: unknown) {
+      setInPlaceStatus(` Cockpit Error: ${err instanceof Error ? err.message : String(err)}`);
+      setTimeout(() => {
+        setActiveResumingId(null);
+      }, 5000);
+    }
+  }, [accounts, fetchHistory, executeCockpitDistribution]);
+
+  useEffect(() => {
+    const url = new URL(globalThis.window?.location.href || '');
+    const action = url.searchParams.get('action');
+    if (action === 'distribute' && !cockpitStartedRef.current && accounts.length > 0) {
+      cockpitStartedRef.current = true;
+      handleCockpitStart();
+    }
+  }, [accounts, handleCockpitStart]);
 
   useEffect(() => {
     fetchHistory().then((data) => {
@@ -245,165 +398,15 @@ export default function HistoryPage() {
     }
   };
 
-  const executeCockpitDistribution = useCallback(async (stagedFileId: string, fileName: string, historyId: string, post: CockpitPost, reviewedContent?: Record<string, AIWriteResult>) => {
-    setInPlaceStatus("🚀 Launching Mission...");
-    
-    try {
-      if (reviewedContent) {
-        const { updatePlatformResultsAction } = await import('@/app/actions/history');
-        await updatePlatformResultsAction(historyId, reviewedContent);
-      }
-
-      const selectedAccountIds = post.platforms.map((p: PlatformResult) => {
-         const account = accounts.find(acc => acc.id === p.accountId);
-         if (!account) {
-           // Allow injected local-dev accounts to pass through
-           if (p.accountId && String(p.accountId).startsWith('local-dev-')) {
-             return p.accountId;
-           }
-           return null;
-         }
-         return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${account.id}` : account.id;
-      }).filter((id): id is string => id !== null);
-
-      const fd = new FormData();
-      fd.append('title', post.title || '');
-      fd.append('description', post.description || '');
-
-      setInPlaceStatus("🛰️ Distributing to Platforms...");
-      await distributeToPlatforms({
-        stagedFileId,
-        fileName,
-        formData: fd,
-        accounts,
-        selectedAccountIds,
-        contentMode: post.contentMode,
-        videoFormat: post.videoFormat as "short" | "long",
-        onStatusUpdate: setInPlaceStatus,
-        historyId,
-        reviewedContent,
-        onAccountSuccess: async () => {
-           const updated = await fetchHistory();
-           setPosts(updated.data || []);
-        }
-      });
-
-      setInPlaceStatus("✨ Mission Accomplished!");
-      localStorage.removeItem('SS_PENDING_POST');
-      const data = await fetchHistory();
-      setPosts(data.data || []);
-      setTimeout(() => {
-        setActiveResumingId(null);
-        // Clear URL param
-        window.history.replaceState({}, '', '/history');
-      }, 2000);
-
-    } catch (err: unknown) {
-      setInPlaceStatus(`❌ Distribution Error: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [accounts, fetchHistory]);
-
-  const handleCockpitStart = useCallback(async () => {
-    if (accounts.length === 0) {
-      setInPlaceStatus("⏳ Waiting for platform accounts...");
-      return;
-    }
-    
-    const pending = localStorage.getItem('SS_PENDING_POST');
-    if (!pending) {
-      setInPlaceStatus("⚠️ No pending post found in storage.");
-      return;
-    }
-    
-    const post = JSON.parse(pending) as CockpitPost;
-
-    const hId = post.resumeHistoryId;
-    if (hId) {
-      setActiveResumingId(hId);
-    } else {
-      setActiveResumingId('cockpit-active');
-    }
-
-    setInPlaceStatus("📡 Synchronizing Activity Hub...");
-    // REFRESH LIST TO SHOW THE NEW ROW
-    try {
-      const freshData = await fetchHistory();
-      setPosts(freshData.data || []);
-    } catch (e) { console.error("Initial list refresh failed", e); }
-    
-    try {
-      setInPlaceStatus("📂 Accessing local video storage...");
-      let stagedFileId = post.galleryFileId;
-      let fileName = post.galleryFileName || '';
-      let historyId = post.resumeHistoryId || '';
-
-      // 1. Stage Physical File if needed
-      if (!stagedFileId) {
-        setInPlaceStatus("🔍 Searching for draft file...");
-        const file = await getDraftFile();
-        if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
-        
-        setInPlaceStatus(`📤 Initializing upload for ${file.name}...`);
-        const stageResult = await stageVideoFile({
-          file,
-          onStatusUpdate: setInPlaceStatus,
-          metadata: {
-            title: post.title,
-            description: post.description,
-            videoFormat: post.videoFormat,
-            scheduledAt: post.isScheduled ? post.scheduledAt : undefined,
-            isPublished: false
-          },
-          platforms: post.platforms,
-          resumeHistoryId: post.resumeHistoryId
-        });
-        stagedFileId = stageResult.stagedFileId;
-        fileName = stageResult.fileName;
-        historyId = stageResult.historyId;
-      }
-
-      // 2. AI Generation if needed (Auto-Pilot)
-      let reviewedContentToPass: Record<string, AIWriteResult> | undefined = undefined;
-      if (post.aiTier !== 'Manual' && post.skipReview) {
-        setInPlaceStatus("🪄 Generating AI Strategy...");
-        const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
-        const targetPlatformNames = post.platforms.map((p: PlatformResult) => p.platform);
-        
-        const previews = await getMultiPlatformAIPreviews(
-          post.title, 
-          post.description || '', 
-          post.aiTier as AITier, 
-          post.contentMode as StyleMode, 
-          targetPlatformNames, 
-          [], 
-          post.customStyleText
-        );
-        
-        const { updatePlatformResultsAction } = await import('@/app/actions/history');
-        await updatePlatformResultsAction(historyId, previews);
-        reviewedContentToPass = previews;
-      }
-
-      // 3. Final Distribution
-      await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
-
-    } catch (err: unknown) {
-      setInPlaceStatus(`❌ Cockpit Error: ${err instanceof Error ? err.message : String(err)}`);
-      setTimeout(() => {
-        setActiveResumingId(null);
-      }, 5000);
-    }
-  }, [accounts, fetchHistory, executeCockpitDistribution]);
-
   const handleInPlaceResume = async (post: PostHistoryEntry) => {
     setActiveResumingId(post.id);
-    setInPlaceStatus("🔍 Checking browser storage...");
+    setInPlaceStatus(" Checking browser storage...");
     
     try {
       const file = await getDraftFile();
       
       if (!file) {
-        setInPlaceStatus("📂 Please select the video file to resume...");
+        setInPlaceStatus(" Please select the video file to resume...");
         if (fileInputRef.current) {
           fileInputRef.current.onchange = (e: Event) => {
              const target = e.target as HTMLInputElement;
@@ -417,13 +420,13 @@ export default function HistoryPage() {
       
       await executePipeline(post, file);
     } catch (err: unknown) {
-      setInPlaceStatus(`❌ Error: ${err instanceof Error ? err.message : String(err)}`);
+      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
       setTimeout(() => setActiveResumingId(null), 3000);
     }
   };
 
   const executePipeline = async (post: PostHistoryEntry, file: File) => {
-    setInPlaceStatus("🚀 Starting resumption...");
+    setInPlaceStatus(" Starting resumption...");
     try {
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
@@ -431,8 +434,8 @@ export default function HistoryPage() {
         metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
         platforms: post.platforms.map(p => ({ 
           platform: p.platform, 
-          accountId: p.accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id
-        })).filter(p => p.accountId) as { platform: string; accountId: string }[],
+          accountId: p.accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id || ''
+        })).filter(p => p.accountId !== '') as { platform: string; accountId: string }[],
         resumeHistoryId: post.id
       });
       
@@ -440,7 +443,7 @@ export default function HistoryPage() {
         const accountId = p.accountId || accounts.find(acc => (acc.provider === 'google' ? 'youtube' : acc.provider) === p.platform)?.id;
         if (!accountId) return null;
         return (p.platform === 'facebook' || p.platform === 'instagram') ? `${p.platform}:${accountId}` : accountId;
-      }).filter(Boolean) as string[];
+      }).filter((id): id is string => id !== null);
 
       await distributeToPlatforms({
         stagedFileId,
@@ -458,15 +461,16 @@ export default function HistoryPage() {
         }
       });
       
-      setInPlaceStatus("✨ All done!");
+      setInPlaceStatus(" All done!");
       const data = await fetchHistory();
       setPosts(data.data || []);
       setTimeout(() => setActiveResumingId(null), 2000);
     } catch (err: unknown) {
-      setInPlaceStatus(`❌ Error: ${err instanceof Error ? err.message : String(err)}`);
+      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
       setTimeout(() => setActiveResumingId(null), 5000);
     }
   };
+
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
     const resolvedPlatform = p.platform.toLowerCase();
@@ -476,7 +480,7 @@ export default function HistoryPage() {
                         (resolvedPlatform === 'google' ? 'youtube' : resolvedPlatform);
 
     const meta = PLATFORM_META[basePlatform] || {
-      icon: '🔗',
+      icon: '',
       label: p.platform === 'unknown' ? 'Platform' : (p.platform.length > 15 ? 'External' : p.platform),
       className: styles.platformDefault,
     };
@@ -666,7 +670,7 @@ export default function HistoryPage() {
                     </div>
                     <div className={styles.metaBadges}>
                       <span className={`${styles.formatBadge} ${post.videoFormat === 'short' ? styles.formatShort : styles.formatLong}`}>
-                        {post.videoFormat === 'short' ? '⚡ Short' : '🎬 Long'}
+                        {post.videoFormat === 'short' ? ' Short' : ' Long'}
                       </span>
                       <span className={styles.timestamp}>
                         {formatRelativeDate(post.createdAt)}

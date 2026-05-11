@@ -178,7 +178,7 @@ export default function DashboardClient({
   useEffect(() => {
     if (resumeHistoryId && accounts.length > 0) {
       const loadResumptionData = async () => {
-        setUploadStatus("🔍 Loading resumption data...");
+        setUploadStatus(" Loading resumption data...");
         try {
           const baseUrl = globalThis.window === undefined ? '' : globalThis.window.location.origin;
           const res = await fetch(`${baseUrl}/api/history/${resumeHistoryId}`);
@@ -200,7 +200,7 @@ export default function DashboardClient({
               }
             });
             if (matchingIds.length > 0) setSelectedAccountIds(matchingIds);
-            setUploadStatus(`✅ Ready to resume: "${data.title}"`);
+            setUploadStatus(` Ready to resume: "${data.title}"`);
           }
         } catch (err) {
           console.error("Failed to load resumption data", err);
@@ -219,7 +219,7 @@ export default function DashboardClient({
            if (asset) {
              setGalleryFileId(asset.fileId);
              setGalleryFileName(asset.fileName);
-             setUploadStatus(`✅ Ready to post: ${asset.fileName}`);
+             setUploadStatus(` Ready to post: ${asset.fileName}`);
            }
         })
         .catch(err => console.error("Failed to load staged asset", err));
@@ -272,12 +272,12 @@ export default function DashboardClient({
         .filter(p => p.platform !== 'unknown');
 
       if (targetPlatforms.length === 0) {
-        setUploadStatus("⚠️ No valid platforms selected.");
+        setUploadStatus("️ No valid platforms selected.");
         return;
       }
 
       // 2. Pre-Initialize in Database (So it appears in Activity Hub immediately)
-      setUploadStatus("🛰️ Initializing Cockpit...");
+      setUploadStatus("️ Initializing Cockpit...");
       const initRes = await fetch('/api/upload/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -295,7 +295,7 @@ export default function DashboardClient({
       const skipReview = formData.get('skipReview') === 'true';
 
       if (aiTier !== 'Manual' && !skipReview) {
-        setUploadStatus("🪄 Generating AI Strategy...");
+        setUploadStatus(" Generating AI Strategy...");
         const title = formData.get('title') as string;
         const description = formData.get('description') as string;
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
@@ -347,7 +347,7 @@ export default function DashboardClient({
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`❌ Error: ${message}`);
+      setUploadStatus(` Error: ${message}`);
     }
   };
 
@@ -355,13 +355,13 @@ export default function DashboardClient({
     if (!reviewContext) return;
     setIsReviewing(false);
     setIsUploading(true);
-    setUploadStatus("🪄 Applying AI magic...");
+    setUploadStatus(" Applying AI magic...");
 
     try {
       const { updatePlatformResultsAction } = await import('@/app/actions/history');
       await updatePlatformResultsAction(reviewContext.historyId, updatedPreviews);
 
-      setUploadStatus("✨ AI Content saved! Finalizing in Activity Hub...");
+      setUploadStatus(" AI Content saved! Finalizing in Activity Hub...");
       setIsComplete(true);
 
       // Reconstruct the pending post for the Cockpit UI
@@ -399,14 +399,14 @@ export default function DashboardClient({
       }, 1500);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unknown error occurred";
-      setUploadStatus(`❌ Error saving AI content: ${message}`);
+      setUploadStatus(` Error saving AI content: ${message}`);
       setIsUploading(false);
     }
   };
 
   const handleVisualScan = async (file: File) => {
     try {
-      setUploadStatus('🪄 Scanning video content with AI...');
+      setUploadStatus(' Scanning video content with AI...');
       const frames = await extractVideoFrames(file);
       const platforms = preferences.filter(p => p.isEnabled);
       const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
@@ -420,7 +420,7 @@ export default function DashboardClient({
     setGalleryFileId(fileId);
     setGalleryFileName(fileName);
     handleFileChange(null);
-    setUploadStatus(`✅ Selected: ${fileName}`);
+    setUploadStatus(` Selected: ${fileName}`);
   };
 
   const showHUD = isUploading && uploadStatus && (typeof uploadStatus === 'string' ? !uploadStatus.includes('Complete') : true);

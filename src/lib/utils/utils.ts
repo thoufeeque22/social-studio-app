@@ -18,12 +18,12 @@ export const formatHandle = (name: string | null, fallback: string) => {
 };
 
 interface ProfileInfo {
-  username?: string;
-  handle?: string;
-  login?: string;
-  screen_name?: string;
-  email?: string;
-  name?: string;
+  username?: string | null;
+  handle?: string | null;
+  login?: string | null;
+  screen_name?: string | null;
+  email?: string | null;
+  name?: string | null;
 }
 
 export function extractAccountName(profile: ProfileInfo): string {

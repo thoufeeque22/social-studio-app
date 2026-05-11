@@ -9,11 +9,11 @@ interface AIStyleSelectorProps {
 }
 
 const STYLE_DESCRIPTIONS: Record<StyleMode, string> = {
-  Smart: "✨ Let AI decide the best strategy for each platform.",
-  "Gen-Z": "🧢 High-energy, trendy, and scroll-stopping vibes.",
-  SEO: "🔍 Search-optimized content for long-term discoverability.",
-  Story: "📖 Narrative storytelling to build a human connection.",
-  Custom: "🎭 Define your own unique persona and writing style."
+  Smart: " Let AI decide the best strategy for each platform.",
+  "Gen-Z": " High-energy, trendy, and scroll-stopping vibes.",
+  SEO: " Search-optimized content for long-term discoverability.",
+  Story: " Narrative storytelling to build a human connection.",
+  Custom: " Define your own unique persona and writing style."
 };
 
 export const AIStyleSelector: React.FC<AIStyleSelectorProps> = ({ 
@@ -69,8 +69,8 @@ export const AIStyleSelector: React.FC<AIStyleSelectorProps> = ({
               <div className="custom-tooltip" style={{ bottom: '135%' }}>
                 {STYLE_DESCRIPTIONS[mode]}
               </div>
-              {isSmart && <span style={{ marginRight: '4px' }}>✨</span>}
-              {isCustom && <span style={{ marginRight: '4px' }}>🎭</span>}
+              {isSmart && <span style={{ marginRight: '4px' }}></span>}
+              {isCustom && <span style={{ marginRight: '4px' }}></span>}
               {mode}
             </button>
           );

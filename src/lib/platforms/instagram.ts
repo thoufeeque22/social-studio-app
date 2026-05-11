@@ -220,7 +220,7 @@ export const publishInstagramReel = async ({
       
       const statusRes = await fetch(statusUrl);
       const statusData = await statusRes.json();
-      logger.info(`🔍 [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
+      logger.info(` [IG-REEL-POLL] Status Response:`, JSON.stringify(statusData));
       
       status = statusData.status_code;
       console.log(`Polling status: ${status}...`);

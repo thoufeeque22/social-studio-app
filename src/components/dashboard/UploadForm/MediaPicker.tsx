@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Film, Check, X, Search, Clock, HardDrive, AlertTriangle, Trash2 } from 'lucide-react';
+import MovieIcon from '@mui/icons-material/Movie';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import StorageIcon from '@mui/icons-material/Storage';
+import WarningIcon from '@mui/icons-material/Warning';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { GlassCard } from '@/components/ui/GlassCard';
 
 interface GalleryAsset {
@@ -63,7 +70,7 @@ const MediaPreview: React.FC<{ src?: string }> = ({ src }) => {
           }}
         />
       ) : (
-        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary))' }}><Film size={18} /></div>
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary))' }}><MovieIcon sx={{ fontSize: 18 }} /></div>
       )}
     </div>
   );
@@ -164,16 +171,16 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, onClose }) =
             background: 'none', border: 'none', color: 'white', cursor: 'pointer' 
           }}
         >
-          <X size={24} />
+          <CloseIcon sx={{ fontSize: 24 }} />
         </button>
 
         <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Film className="text-primary" size={20} />
+          <MovieIcon className="text-primary" sx={{ fontSize: 20 }} />
           Choose from Staged Media
         </h3>
 
         <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} size={16} />
+          <SearchIcon style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))', fontSize: 16 }} />
           <input 
             type="text" 
             placeholder="Search filenames..."
@@ -218,7 +225,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, onClose }) =
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
                     <span style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <HardDrive size={12} />
+                      <StorageIcon sx={{ fontSize: 12 }} />
                       {formatSize(asset.fileSize)}
                     </span>
                     {(() => {
@@ -232,7 +239,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, onClose }) =
                           gap: '0.25rem',
                           fontWeight: timeInfo.isExpiringSoon ? 600 : 400
                         }}>
-                          {timeInfo.isExpiringSoon ? <AlertTriangle size={12} /> : <Clock size={12} />}
+                          {timeInfo.isExpiringSoon ? <WarningIcon sx={{ fontSize: 12 }} /> : <AccessTimeIcon sx={{ fontSize: 12 }} />}
                           {timeInfo.text}
                         </span>
                       );
@@ -251,10 +258,10 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, onClose }) =
                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                     title="Delete permanently"
                   >
-                    <Trash2 size={16} />
+                    <DeleteIcon sx={{ fontSize: 16 }} />
                   </button>
                   <div style={{ color: 'hsl(var(--primary))' }}>
-                    <Check size={18} />
+                    <CheckIcon sx={{ fontSize: 18 }} />
                   </div>
                 </div>
               </div>

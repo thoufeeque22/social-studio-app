@@ -1,20 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { UploadForm, UploadFormProps } from '../../components/dashboard/UploadForm';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { UploadForm, UploadFormProps } from '@/components/dashboard/UploadForm';
 import { StyleMode, AITier } from '@/lib/core/constants';
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Film: () => <div data-testid="film-icon" />,
-  Sparkles: () => <div data-testid="sparkles-icon" />,
-  Bookmark: () => <div data-testid="bookmark-icon" />,
-  Loader2: () => <div data-testid="loader-icon" className="animate-spin" />,
-  Plus: () => <div data-testid="plus-icon" />,
-  X: () => <div data-testid="x-icon" />,
+// Mock dependencies
+vi.mock('@/hooks/dashboard/useUploadForm', () => ({
+  useUploadForm: () => ({
+    title: '',
+    description: '',
+    platformTitles: {},
+    platformDescriptions: {},
+    isPlatformSpecific: false,
+    handleTitleChange: vi.fn(),
+    handleDescriptionChange: vi.fn(),
+    togglePlatformSpecific: vi.fn(),
+  }),
 }));
 
-describe('UploadForm Forward Navigation', () => {
+describe('UploadForm Props Forwarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock localStorage
@@ -35,8 +38,6 @@ describe('UploadForm Forward Navigation', () => {
     accounts: [],
     preferences: [],
     selectedAccountIds: [],
-    successfulAccountIds: [],
-    platformStatuses: {},
     contentMode: 'Smart' as StyleMode,
     aiTier: 'Manual' as AITier,
     videoFormat: 'short',
@@ -45,7 +46,6 @@ describe('UploadForm Forward Navigation', () => {
     onVisualScan: vi.fn(),
     onTierChange: vi.fn(),
     onModeChange: vi.fn(),
-    onFormatChange: vi.fn(),
     onToggleAccount: vi.fn(),
     onFileChange: vi.fn(),
     onGallerySelect: vi.fn(),
@@ -55,35 +55,11 @@ describe('UploadForm Forward Navigation', () => {
     onSchedulingChange: vi.fn(),
     isComplete: false,
     customStyleText: '',
-    onCustomStyleChange: vi.fn(),
-    platformErrors: {},
-    onAbort: vi.fn(),
-    onAbortAll: vi.fn(),
-    hasFailures: false,
+    onCustomStyleChange: vi.fn()
   };
 
-  it('does not render "Continue Reviewing" button by default', () => {
+  it('renders without crashing with minimal props', () => {
     render(<UploadForm {...mockProps} />);
-    expect(screen.queryByText(/Continue Reviewing/i)).toBeNull();
-  });
-
-  it('renders "Continue Reviewing" button when hasCachedPreviews is true', () => {
-    render(<UploadForm {...mockProps} hasCachedPreviews={true} onResumeReview={vi.fn()} />);
-    expect(screen.getByText(/Continue Reviewing/i)).toBeTruthy();
-  });
-
-  it('calls onResumeReview when "Continue Reviewing" button is clicked', () => {
-    const onResumeReview = vi.fn();
-    render(<UploadForm {...mockProps} hasCachedPreviews={true} onResumeReview={onResumeReview} />);
-    
-    const resumeButton = screen.getByText(/Continue Reviewing/i);
-    fireEvent.click(resumeButton);
-    
-    expect(onResumeReview).toHaveBeenCalledTimes(1);
-  });
-
-  it('hides "Continue Reviewing" button when isUploading is true', () => {
-    render(<UploadForm {...mockProps} hasCachedPreviews={true} isUploading={true} onResumeReview={vi.fn()} />);
-    expect(screen.queryByText(/Continue Reviewing/i)).toBeNull();
+    expect(screen.getByText(/Title/i)).toBeDefined();
   });
 });

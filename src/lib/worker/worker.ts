@@ -5,13 +5,13 @@ import { readFileSync, existsSync, promises as fs } from "fs";
 import { logger } from "@/lib/core/logger";
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var _ss_worker_started: boolean | undefined;
-  // eslint-disable-next-line no-var
+   
   var _ss_worker_interval: NodeJS.Timeout | undefined;
-  // eslint-disable-next-line no-var
+   
   var _ss_cleanup_interval: NodeJS.Timeout | undefined;
-  // eslint-disable-next-line no-var
+   
   var _ss_worker_version: number | undefined;
 }
 
@@ -136,7 +136,7 @@ export async function startPublishingWorker() {
       
       const totalPendingCount = await prisma.postHistory.count({ where: { isPublished: false } });
       if (totalPendingCount > 0) {
-        logger.info(`🔍 [WORKER-DEBUG] Found ${totalPendingCount} total non-published posts in DB.`);
+        logger.info(` [WORKER-DEBUG] Found ${totalPendingCount} total non-published posts in DB.`);
       }
 
       const pending = await prisma.postHistory.findMany({

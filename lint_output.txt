@@ -65,6 +65,9 @@
 /Users/thoufeeque/projects/social-studio-app/src/components/dashboard/AIContentReview.tsx
   6:8  warning  'CancelIcon' is defined but never used  @typescript-eslint/no-unused-vars
 
+/Users/thoufeeque/projects/social-studio-app/src/components/dashboard/SidebarInfo.tsx
+  15:59  warning  'accounts' is defined but never used  @typescript-eslint/no-unused-vars
+
 /Users/thoufeeque/projects/social-studio-app/src/components/layout/Header.tsx
   50:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
 
@@ -97,7 +100,7 @@
   32:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
 
 /Users/thoufeeque/projects/social-studio-app/src/lib/utils/ai-writer.ts
-  271:14  warning  'ollamaError' is defined but never used  @typescript-eslint/no-unused-vars
+  283:14  warning  'ollamaError' is defined but never used  @typescript-eslint/no-unused-vars
 
 /Users/thoufeeque/projects/social-studio-app/src/lib/video/processor.ts
   3:8  warning  'fs' is defined but never used  @typescript-eslint/no-unused-vars
@@ -108,6 +111,6 @@
   12:3  warning  Unused eslint-disable directive (no problems were reported from 'no-var')
   14:3  warning  Unused eslint-disable directive (no problems were reported from 'no-var')
 
-✖ 55 problems (0 errors, 55 warnings)
+✖ 56 problems (0 errors, 56 warnings)
   0 errors and 6 warnings potentially fixable with the `--fix` option.
 

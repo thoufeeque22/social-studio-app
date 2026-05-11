@@ -3,6 +3,7 @@ import { GET as roadmapGET } from '../../app/api/roadmap/route';
 import { GET as launchGET } from '../../app/api/launch/route';
 import { render, screen } from '@testing-library/react';
 import { UploadForm, UploadFormProps } from '../../components/dashboard/UploadForm';
+import { StyleMode, AITier } from '@/lib/core/constants';
 import React from 'react';
 
 // Mock Auth
@@ -74,18 +75,14 @@ describe('Project Management & UI Humanization', () => {
       accounts: [],
       preferences: [],
       selectedAccountIds: [],
-      successfulAccountIds: [],
-      platformStatuses: {},
-      platformErrors: {},
-      contentMode: 'Smart',
-      aiTier: 'Manual',
+      contentMode: 'Smart' as StyleMode,
+      aiTier: 'Manual' as AITier,
       videoFormat: 'short',
-      videoDuration: 45, // 45 seconds
+      videoDuration: 45,
       draftFileName: 'dance.mp4',
       onVisualScan: vi.fn(),
       onTierChange: vi.fn(),
       onModeChange: vi.fn(),
-      onFormatChange: vi.fn(),
       onToggleAccount: vi.fn(),
       onFileChange: vi.fn(),
       onGallerySelect: vi.fn(),
@@ -95,10 +92,7 @@ describe('Project Management & UI Humanization', () => {
       onSchedulingChange: vi.fn(),
       isComplete: false,
       customStyleText: '',
-      onCustomStyleChange: vi.fn(),
-      onAbort: vi.fn(),
-      onAbortAll: vi.fn(),
-      hasFailures: false,
+      onCustomStyleChange: vi.fn()
     };
 
     it('renders the Short-Form badge with duration', () => {
