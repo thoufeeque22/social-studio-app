@@ -1,8 +1,29 @@
 import { prisma } from "@/lib/core/prisma";
 import { logTokenEvent } from "@/lib/core/audit";
-import { createReadStream } from "fs";
-import fsSync from "fs";
 import { logger } from "@/lib/core/logger";
+
+interface FacebookPage {
+  id: string;
+  name: string;
+  access_token: string;
+  instagram_business_account?: {
+    id: string;
+  };
+}
+
+interface InstagramMediaContainerParams {
+  upload_type: "resumable";
+  caption: string;
+  media_type: "REELS";
+  share_to_feed: boolean;
+  access_token: string;
+  audio_id?: string;
+}
+
+interface InstagramInsight {
+  name: string;
+  values: Array<{ value: number }>;
+}
 
 export const getInstagramAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -33,9 +54,9 @@ export const getInstagramAccount = async (userId: string, accountId?: string) =>
   }
 
   // Find a page that has a connected Instagram Business Account
-  const pageWithIg = pagesData.data.find((page: any) => page.instagram_business_account);
+  const pageWithIg = pagesData.data.find((page: FacebookPage) => page.instagram_business_account);
 
-  if (!pageWithIg) {
+  if (!pageWithIg || !pageWithIg.instagram_business_account) {
     throw new Error("No Instagram Business/Creator account found linked to your Facebook Pages.");
   }
 
@@ -77,7 +98,7 @@ export const publishInstagramReel = async ({
       // STEP 1: Create Media Container (Resumable)
       const containerUrl = `https://graph.facebook.com/v20.0/${igUserId}/media`;
       
-      const bodyPayload: any = {
+      const bodyPayload: InstagramMediaContainerParams = {
         upload_type: "resumable",
         caption: caption,
         media_type: "REELS",
@@ -135,7 +156,7 @@ export const publishInstagramReel = async ({
 
       const { Transform } = await import('stream');
       const progressStream = new Transform({
-        transform(chunk, encoding, callback) {
+        transform(chunk: Buffer, encoding, callback) {
           bytesUploaded += chunk.length;
           if (onProgress) {
             const percent = (bytesUploaded / fileSize) * 100;
@@ -177,10 +198,11 @@ export const publishInstagramReel = async ({
           console.error("❌ Instagram Binary Push Failed:", JSON.stringify(uploadRes.data, null, 2));
           throw new Error(`Instagram Binary Push Failed: ${JSON.stringify(uploadRes.data)}`);
         }
-      } catch (axiosError: any) {
-        const errorData = axiosError.response?.data;
-        console.error("❌ Instagram Axios Push Error:", JSON.stringify(errorData, null, 2) || axiosError.message);
-        throw new Error(`Instagram Binary Push Failed: ${errorData?.error?.message || axiosError.message}`);
+      } catch (axiosError: unknown) {
+        const axiosErr = axiosError as { response?: { data?: { error?: { message: string } } } };
+        const errorData = axiosErr.response?.data;
+        console.error("❌ Instagram Axios Push Error:", JSON.stringify(errorData, null, 2) || (axiosError as Error).message);
+        throw new Error(`Instagram Binary Push Failed: ${errorData?.error?.message || (axiosError as Error).message}`);
       }
 
       console.log(`🚀 [IG-REEL-PUSH] Binary push complete for ${creationId}. Waiting for processing...`);
@@ -256,9 +278,10 @@ export const publishInstagramReel = async ({
       permalink: `https://www.instagram.com/reel/${publishedMediaId}/` 
     };
 
-  } catch (error: any) {
-    console.error("❌ Instagram Distribution Failed:", error);
-    throw { message: error.message, creationId, status: "failed" };
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("❌ Instagram Distribution Failed:", err);
+    throw { message: err.message, creationId, status: "failed" };
   }
 };
 
@@ -275,8 +298,8 @@ export const getInstagramStats = async (userId: string, accountId?: string) => {
 
   let reach = 0;
   if (insightsData.data) {
-    const reachData = insightsData.data.find((m: any) => m.name === 'reach');
-    if (reachData && reachData.values) {
+    const reachData = insightsData.data.find((m: InstagramInsight) => m.name === 'reach');
+    if (reachData && reachData.values && reachData.values.length > 0) {
       reach = reachData.values[0].value;
     }
   }
