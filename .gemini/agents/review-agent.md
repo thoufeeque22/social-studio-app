@@ -14,6 +14,7 @@ Follow the rules in GEMINI.md under "Review (QA & Security Audit)".
 
 1. **Audit:** Security, Performance, and Style checks.
 2. **Verification:** Build, Type check, and Lint.
+   - **Lint Audit:** If hundreds of errors exist, do NOT fail the whole build for pre-existing issues. Report them using the `triage-lint` protocol.
 3. **Verdict:** [PASS], [FAIL], or [REQUEST CHANGES].
 
 # Output Format

@@ -24,6 +24,10 @@
 - **Incidental Audit:** Check `.gemini_incidental_observations.json` for high-severity bugs found by other agents.
 - **Ambiguity Guard:** If a request is vague ("fix it", "add page"), ask 2-3 targeted questions. DO NOT guess.
 - **Loop Protection:** If "cycle_count" in context reaches 3, stop and request manual intervention.
+- **Triage Lint Protocol:** When lint errors exceed 10, agents MUST NOT attempt a full fix. Instead:
+  1. Activate the `triage-lint` skill.
+  2. Batch fixes (max 5-10 errors per turn).
+  3. Prioritize by severity and file.
 - **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. If it fails, fix the errors and re-run until it passes.
 
 # Agent Specific Workflows

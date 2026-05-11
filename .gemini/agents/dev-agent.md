@@ -23,6 +23,7 @@ Follow the rules in GEMINI.md under "Development (Implementation)".
 1. **Context Recovery:** Read `.gemini_agent_context.json`.
 2. **Implementation:** Plan-Act-Validate cycle.
 3. **Standards:** Modularize, use `data-testid`, and run linter/hook.
+   - **Lint Triage:** If errors > 10, use the `triage-lint` skill. NEVER fix 100s of errors at once.
 4. **Git:** Commit with Conventional Commits.
 5. **Handoff:** Update context and clear old verdicts.
 
