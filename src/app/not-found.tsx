@@ -24,7 +24,7 @@ export default function NotFound() {
           marginBottom: '2rem',
           lineHeight: '1.6' 
         }}>
-          The page you are looking for doesn't exist or has been moved.
+          The page you are looking for doesn&apos;t exist or has been moved.
         </p>
         
         <Link

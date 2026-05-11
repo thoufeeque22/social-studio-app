@@ -38,7 +38,7 @@ export default function Error({
           marginBottom: '2rem',
           lineHeight: '1.6' 
         }}>
-          Social Studio encountered an unexpected error. We've logged the details and our team will look into it.
+          Social Studio encountered an unexpected error. We&apos;ve logged the details and our team will look into it.
         </p>
         
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>

@@ -3,17 +3,12 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Heading } from '@/components/ui/Heading';
-import { Account } from '@/lib/core/types';
-import { PLATFORMS } from '@/lib/core/constants';
 import { getUpcomingPosts } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
+import type { PostHistory } from '@prisma/client';
 
-interface SidebarInfoProps {
-  accounts: Account[];
-}
-
-export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
-  const [upcoming, setUpcoming] = useState<any[]>([]);
+export const SidebarInfo: React.FC = () => {
+  const [upcoming, setUpcoming] = useState<PostHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchQueue = () => {
@@ -22,9 +17,23 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       .finally(() => setIsLoading(false));
   };
 
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const initialTimer = setTimeout(() => {
+      setNow(Date.now());
+      interval = setInterval(() => setNow(Date.now()), 10000);
+    }, 0);
+    return () => {
+      clearTimeout(initialTimer);
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   const hasActivePosts = upcoming.some(post => {
     const scheduledTime = new Date(post.scheduledAt).getTime();
-    return scheduledTime <= Date.now() + 30000;
+    return now > 0 && scheduledTime <= now + 30000;
   });
 
   usePolling({

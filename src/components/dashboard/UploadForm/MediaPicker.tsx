@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Film, Calendar, Check, X, Search, Clock, HardDrive, AlertTriangle, Trash2 } from 'lucide-react';
+import { Film, Check, X, Search, Clock, HardDrive, AlertTriangle, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Badge } from '@/components/ui/Badge';
 
 interface GalleryAsset {
   id: string;
@@ -103,8 +102,23 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({ onSelect, onClose }) =
     return `${mb.toFixed(1)} MB`;
   };
 
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const initialTimer = setTimeout(() => {
+      setCurrentTime(Date.now());
+      interval = setInterval(() => setCurrentTime(Date.now()), 60000);
+    }, 0);
+    return () => {
+      clearTimeout(initialTimer);
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   const getRemainingTimeInfo = (expiresAt: string) => {
-    const remaining = new Date(expiresAt).getTime() - Date.now();
+    if (currentTime === 0) return { text: 'Calculating...', isExpiringSoon: false };
+    const remaining = new Date(expiresAt).getTime() - currentTime;
     const hours = Math.max(0, Math.floor(remaining / (1000 * 60 * 60)));
     const mins = Math.max(0, Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60)));
     const isExpiringSoon = hours < 24;

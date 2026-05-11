@@ -92,7 +92,7 @@ export default function AuthSuccessPage() {
       )}
 
       <div style={{ marginTop: '40px', fontSize: '12px', opacity: 0.4 }}>
-        If the button doesn't work, ensure you are opening this page <br/> in Chrome or the system browser.
+        If the button doesn&apos;t work, ensure you are opening this page <br/> in Chrome or the system browser.
       </div>
     </div>
   );
