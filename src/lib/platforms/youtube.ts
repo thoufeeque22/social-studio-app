@@ -68,7 +68,7 @@ interface UploadParams {
 }
 
 export interface YouTubeUploadResult {
-  data: any;
+  data: Record<string, unknown>;
   resumableUrl?: string;
 }
 
@@ -97,14 +97,16 @@ export const uploadToYouTube = async ({
   if (!uploadUrl) {
     console.log("📺 [YT-RESUME] Initializing new resumable session...");
     
-    const authObj = youtube.context._options.auth as any;
+    // @ts-expect-error - context._options is internal to googleapis but needed for manual token extraction
+    const authObj = youtube.context._options.auth;
     let token = authObj?.credentials?.access_token;
     
     try {
       const authResult = typeof authObj?.getAccessToken === 'function' ? await authObj.getAccessToken() : authObj;
       token = typeof authResult === 'string' ? authResult : (authResult?.token || token);
-    } catch (tokenErr: any) {
-      console.warn("📺 [YT-RESUME] getAccessToken threw an error (likely no refresh token), falling back to raw access_token:", tokenErr.message);
+    } catch (tokenErr: unknown) {
+      const errorMessage = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
+      console.warn("📺 [YT-RESUME] getAccessToken threw an error (likely no refresh token), falling back to raw access_token:", errorMessage);
     }
     const metadataRes = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
       method: "POST",
@@ -195,8 +197,8 @@ export const uploadToYouTube = async ({
     headers: {
       "Content-Range": `bytes ${startByte}-${fileSize - 1}/${fileSize}`,
     },
-    body: fileStream.pipe(progressStream) as any,
-    // @ts-ignore
+    body: fileStream.pipe(progressStream) as unknown as BodyInit,
+    // @ts-expect-error - duplex is required for streaming bodies in Node fetch but not in standard RequestInit type
     duplex: 'half'
   });
 

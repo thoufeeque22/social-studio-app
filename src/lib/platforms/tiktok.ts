@@ -98,8 +98,8 @@ export const publishTikTokVideo = async ({
       "Content-Length": videoSize.toString(),
       "Content-Range": `bytes 0-${videoSize - 1}/${videoSize}`,
     },
-    body: videoStream as any,
-    // @ts-ignore
+    body: videoStream as unknown as BodyInit,
+    // @ts-expect-error - duplex is required for streaming bodies in Node fetch but not in standard RequestInit type
     duplex: 'half'
   });
 

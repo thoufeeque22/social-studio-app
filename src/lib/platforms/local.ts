@@ -5,7 +5,6 @@ import { logger } from "@/lib/core/logger";
 interface LocalPublishParams {
   userId: string;
   filePath: string;
-  caption: string;
   onProgress?: (progress: number) => void;
 }
 
@@ -14,7 +13,7 @@ interface LocalPublishParams {
  * Simulates a platform upload by copying the file to a 'published' directory.
  * Useful for testing the worker and distribution pipeline in development.
  */
-export const publishLocalReel = async ({ filePath, caption, onProgress }: LocalPublishParams) => {
+export const publishLocalReel = async ({ filePath, onProgress }: LocalPublishParams) => {
   logger.info(`🚀 [LOCAL-SIM] Starting simulated upload for: ${path.basename(filePath)}`);
 
   const publishedDir = path.join(process.cwd(), 'src/tmp/published');

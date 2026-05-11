@@ -96,7 +96,6 @@ export async function distributeSinglePlatform({
     return await publishLocalReel({
       userId,
       filePath,
-      caption: finalCaption,
       onProgress: progressCallback
     });
   }
