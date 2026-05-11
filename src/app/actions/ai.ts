@@ -21,7 +21,7 @@ const AIPreviewSchema = z.object({
  * GENERATES PREVIEWS FOR ALL SELECTED PLATFORMS.
  * used for the AI Review Step.
  */
-export const getMultiPlatformAIPreviews = async (
+export async function getMultiPlatformAIPreviews(
   title: string,
   description: string,
   tier: AITier,
@@ -29,7 +29,7 @@ export const getMultiPlatformAIPreviews = async (
   platforms: string[],
   visualData?: string[],
   customStyleText?: string
-) => {
+) {
   return protectedAction(async (userId) => {
     // 1. Runtime Validation
     const validated = AIPreviewSchema.parse({ 
@@ -91,4 +91,4 @@ export const getMultiPlatformAIPreviews = async (
       return acc;
     }, {} as Record<string, AIWriteResult>);
   });
-};
+}

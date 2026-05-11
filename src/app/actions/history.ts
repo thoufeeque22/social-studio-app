@@ -14,7 +14,7 @@ import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { z } from "zod";
 import { logger } from '@/lib/core/logger';
 
-export const PlatformResultSchema = z.object({
+const PlatformResultSchema = z.object({
   platform: z.string(),
   accountId: z.string().optional(),
   accountName: z.string().nullable().optional(),
@@ -30,7 +30,7 @@ export const PlatformResultSchema = z.object({
 
 export type PlatformResultInput = z.infer<typeof PlatformResultSchema>;
 
-export const SavePostHistorySchema = z.object({
+const SavePostHistorySchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   videoFormat: z.enum(['short', 'long']),
