@@ -1,7 +1,7 @@
 "use server";
 
 import { protectedAction } from "@/lib/core/action-utils";
-import { generatePostContent, AIWriteResult } from "@/lib/utils/ai-writer";
+import { generatePostContent, AIWriteResult, Platform } from "@/lib/utils/ai-writer";
 import { AITier, StyleMode } from "@/lib/core/constants";
 import { z } from "zod";
 import { aiRateLimit, checkRateLimit } from "@/lib/core/ratelimit";
@@ -67,7 +67,7 @@ export async function getMultiPlatformAIPreviews(
           vMode,
           title,
           description,
-          platform as "instagram" | "tiktok" | "youtube" | "facebook" | "linkedin" | "twitter",
+          platform as Platform,
           visualData,
           customStyleText
         );

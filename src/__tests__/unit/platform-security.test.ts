@@ -33,12 +33,12 @@ vi.mock('node:fs', () => ({
 describe('handlePlatformUploadRequest Security', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (auth as any).mockResolvedValue({ user: { id: 'user-1' } });
+    vi.mocked(auth).mockResolvedValue({ user: { id: 'user-1' } } as never);
   });
 
   it('rejects the request if the account does not belong to the user', async () => {
     // Mock prisma to return NULL (account not found for this user)
-    (prisma.account.findFirst as any).mockResolvedValue(null);
+    vi.mocked(prisma.account.findFirst).mockResolvedValue(null);
 
     const req = {
       headers: { get: () => 'multipart/form-data' },
@@ -58,7 +58,7 @@ describe('handlePlatformUploadRequest Security', () => {
 
   it('allows the request if the account belongs to the user', async () => {
     // Mock prisma to return the account
-    (prisma.account.findFirst as any).mockResolvedValue({ id: 'acc-target', userId: 'user-1' });
+    vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: 'acc-target', userId: 'user-1' } as never);
 
     const req = {
       headers: { get: (name: string) => name === 'content-type' ? 'application/json' : null },

@@ -10,6 +10,15 @@ import { TemplateManager } from '@/components/settings/TemplateManager';
 import { PLATFORMS } from '@/lib/core/constants';
 import styles from './Settings.module.css';
 
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import LinkIcon from '@mui/icons-material/Link';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import XIcon from '@mui/icons-material/X';
+
 const SettingsPage = () => {
   const { accounts, preferences, isLoading, togglePlatform, disconnectAccount } = useAccounts();
 
@@ -55,7 +64,7 @@ const SettingsPage = () => {
 
       <section className={styles.section} style={{ marginTop: '3rem' }}>
         <h2 className={styles.sectionTitle}>
-          <span>🔖</span> Reusable Snippets
+          <BookmarkIcon sx={{ fontSize: 24, marginRight: '8px', verticalAlign: 'middle' }} /> Reusable Snippets
         </h2>
         <p style={{ fontSize: '0.85rem', color: 'hsl(var(--muted-foreground))', marginBottom: '1.5rem', marginTop: '-0.5rem' }}>
           Manage your saved descriptions, credits, and links for quick insertion.
@@ -65,14 +74,14 @@ const SettingsPage = () => {
 
       <section className={styles.section} style={{ marginTop: '3rem' }}>
         <h2 className={styles.sectionTitle}>
-          <span>🔗</span> Platform Connections
+          <LinkIcon sx={{ fontSize: 24, marginRight: '8px', verticalAlign: 'middle' }} /> Platform Connections
         </h2>
         <div className={styles.connectionsGrid}>
           {isPlatformEnabled('youtube') && (
             <ConnectionSection
               title="YouTube"
               subtitle="Connect your Google account."
-              icon="📺"
+              icon={<YouTubeIcon sx={{ color: '#FF0000' }} />}
               provider="google"
               color="hsl(var(--primary))"
               onConnect={() => signIn('google')}
@@ -86,7 +95,7 @@ const SettingsPage = () => {
             <ConnectionSection
               title="Instagram"
               subtitle="Connect your Facebook account."
-              icon="📸"
+              icon={<InstagramIcon sx={{ color: '#E4405F' }} />}
               provider="facebook"
               color="#E1306C"
               onConnect={() => signIn('facebook')}
@@ -100,7 +109,7 @@ const SettingsPage = () => {
             <ConnectionSection
               title="Facebook"
               subtitle="Post directly to your Pages."
-              icon="👥"
+              icon={<FacebookIcon sx={{ color: '#1877F2' }} />}
               provider="facebook"
               color="#1877F2"
               onConnect={() => signIn('facebook')}
@@ -114,7 +123,7 @@ const SettingsPage = () => {
             <ConnectionSection
               title="TikTok"
               subtitle="Publish videos automatically."
-              icon="🎵"
+              icon={<MusicNoteIcon sx={{ color: '#000000' }} />}
               provider="tiktok"
               color="black"
               onConnect={() => signIn('tiktok')}
@@ -128,7 +137,7 @@ const SettingsPage = () => {
             <ConnectionSection
               title="LinkedIn"
               subtitle="Share to your network."
-              icon="💼"
+              icon={<BusinessCenterIcon sx={{ color: '#0A66C2' }} />}
               provider="linkedin"
               color="#0A66C2"
               onConnect={() => signIn('linkedin')}
@@ -142,7 +151,7 @@ const SettingsPage = () => {
             <ConnectionSection
               title="Twitter/X"
               subtitle="Share with your followers."
-              icon="𝕏"
+              icon={<XIcon sx={{ color: '#000000' }} />}
               provider="twitter"
               color="black"
               onConnect={() => signIn('twitter')}

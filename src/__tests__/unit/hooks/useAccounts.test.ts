@@ -34,8 +34,8 @@ describe('useAccounts', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (userActions.getUserAccounts as any).mockResolvedValue(mockAccounts);
-    (userActions.getPlatformPreferences as any).mockResolvedValue(mockPrefs);
+    vi.mocked(userActions.getUserAccounts).mockResolvedValue(mockAccounts as never);
+    vi.mocked(userActions.getPlatformPreferences).mockResolvedValue(mockPrefs as never);
   });
 
   it('fetches accounts and preferences on mount', async () => {
@@ -53,7 +53,7 @@ describe('useAccounts', () => {
   });
 
   it('supports initial data and skips fetching', async () => {
-    const { result } = renderHook(() => useAccounts(mockAccounts as any, mockPrefs as any));
+    const { result } = renderHook(() => useAccounts(mockAccounts as never, mockPrefs as never));
 
     expect(result.current.accounts).toEqual(mockAccounts);
     expect(result.current.preferences).toEqual(mockPrefs);
@@ -62,8 +62,8 @@ describe('useAccounts', () => {
   });
 
   it('optimistically updates distribution status', async () => {
-    const { result } = renderHook(() => useAccounts(mockAccounts as any, mockPrefs as any));
-    (userActions.toggleAccountDistribution as any).mockResolvedValue({ success: true });
+    const { result } = renderHook(() => useAccounts(mockAccounts as never, mockPrefs as never));
+    vi.mocked(userActions.toggleAccountDistribution).mockResolvedValue({ success: true } as never);
 
     await act(async () => {
       await result.current.toggleDistribution('facebook', false);
@@ -74,8 +74,8 @@ describe('useAccounts', () => {
   });
 
   it('rolls back state if distribution update fails', async () => {
-    const { result } = renderHook(() => useAccounts(mockAccounts as any, mockPrefs as any));
-    (userActions.toggleAccountDistribution as any).mockRejectedValue(new Error('Update failed'));
+    const { result } = renderHook(() => useAccounts(mockAccounts as never, mockPrefs as never));
+    vi.mocked(userActions.toggleAccountDistribution).mockRejectedValue(new Error('Update failed'));
 
     // We expect this to throw because the hook re-throws after rollback
     await expect(act(async () => {
@@ -87,8 +87,8 @@ describe('useAccounts', () => {
   });
 
   it('optimistically disconnects an account', async () => {
-    const { result } = renderHook(() => useAccounts(mockAccounts as any, mockPrefs as any));
-    (userActions.disconnectAccount as any).mockResolvedValue({ success: true });
+    const { result } = renderHook(() => useAccounts(mockAccounts as never, mockPrefs as never));
+    vi.mocked(userActions.disconnectAccount).mockResolvedValue({ success: true } as never);
 
     await act(async () => {
       await result.current.disconnectAccount('1');
@@ -99,8 +99,8 @@ describe('useAccounts', () => {
   });
 
   it('optimistically toggles platform preference', async () => {
-    const { result } = renderHook(() => useAccounts(mockAccounts as any, mockPrefs as any));
-    (userActions.togglePlatformPreference as any).mockResolvedValue({ success: true });
+    const { result } = renderHook(() => useAccounts(mockAccounts as never, mockPrefs as never));
+    vi.mocked(userActions.togglePlatformPreference).mockResolvedValue({ success: true } as never);
 
     await act(async () => {
       await result.current.togglePlatform('facebook', false);

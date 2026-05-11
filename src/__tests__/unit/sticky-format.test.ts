@@ -36,14 +36,14 @@ describe('Sticky Video Format Server Actions', () => {
 
   describe('getVideoFormatPreference', () => {
     it('returns default "short" if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null as any);
+      vi.mocked(auth).mockResolvedValue(null as never);
       const result = await getVideoFormatPreference();
       expect(result).toBe('short');
     });
 
     it('returns preferred format from DB', async () => {
-      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredVideoFormat: 'long' } as any);
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredVideoFormat: 'long' } as never);
       
       const result = await getVideoFormatPreference();
       expect(result).toBe('long');
@@ -56,14 +56,14 @@ describe('Sticky Video Format Server Actions', () => {
 
   describe('updateVideoFormatPreference', () => {
     it('throws an error if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null as any);
+      vi.mocked(auth).mockResolvedValue(null as never);
       await expect(updateVideoFormatPreference('long'))
         .rejects.toThrow('Unauthorized');
     });
 
     it('updates user preferences in DB', async () => {
-      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
-      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
       
       const result = await updateVideoFormatPreference('long');
       

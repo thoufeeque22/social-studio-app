@@ -1,10 +1,9 @@
-import { describe, it, beforeEach, vi, expect } from 'vitest';
+import { describe, it, beforeEach, vi, expect, Mock } from 'vitest';
 import { POST } from '../../app/api/upload/facebook/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { publishFacebookVideo, publishFacebookReel } from '@/lib/platforms/facebook';
 import { prisma } from '../../lib/core/prisma';
-import fs from 'fs/promises';
 
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
@@ -38,16 +37,25 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+interface MockSession {
+  user: { id: string };
+}
+
 describe('Facebook Long-form vs Reel Branching', () => {
+  const mockedAuth = auth as Mock;
+  const mockedPublishVideo = publishFacebookVideo as Mock;
+  const mockedPublishReel = publishFacebookReel as Mock;
+  const mockedAccountFindFirst = prisma.account.findFirst as Mock;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as any);
-    vi.mocked(publishFacebookVideo).mockResolvedValue({ success: true } as any);
-    vi.mocked(publishFacebookReel).mockResolvedValue({ success: true } as any);
-    vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: 'acc1', userId: 'u1' } as any);
+    mockedAuth.mockResolvedValue({ user: { id: 'u1' } } as MockSession);
+    mockedPublishVideo.mockResolvedValue({ success: true, platformPostId: 'p1' });
+    mockedPublishReel.mockResolvedValue({ success: true, platformPostId: 'p2' });
+    mockedAccountFindFirst.mockResolvedValue({ id: 'acc1', userId: 'u1', platform: 'facebook' });
   });
 
-  const createMockRequest = (body: any) => {
+  const createMockRequest = (body: Record<string, unknown>) => {
     return {
       headers: new Headers({ 'content-type': 'application/json' }),
       json: async () => body,
@@ -87,3 +95,4 @@ describe('Facebook Long-form vs Reel Branching', () => {
     expect(publishFacebookReel).toHaveBeenCalled();
   });
 });
+

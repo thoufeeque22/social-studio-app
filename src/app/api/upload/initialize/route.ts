@@ -3,6 +3,11 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
 import { MAX_STORAGE_PER_USER } from "@/lib/core/constants";
 
+interface PlatformInput {
+  platform: string;
+  accountId: string;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
 
@@ -42,7 +47,7 @@ export async function POST(req: NextRequest) {
         isPublished: isPublished === undefined ? true : isPublished,
         stagedFileId: null, // To be updated after assembly
         platforms: {
-          create: platforms.map((p: any) => ({
+          create: (platforms as PlatformInput[]).map((p) => ({
             platform: p.platform,
             accountId: p.accountId,
             status: 'pending' // Initial state
@@ -58,8 +63,8 @@ export async function POST(req: NextRequest) {
       success: true, 
       data: { historyId: history.id } 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Initialization Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

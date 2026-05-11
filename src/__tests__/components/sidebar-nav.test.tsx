@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import Sidebar from '../../components/layout/Sidebar';
 import { SessionProvider } from 'next-auth/react';
@@ -26,9 +26,9 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('Media Gallery')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
     
-    // Check icons or emoji representation
-    expect(screen.getByText('📊')).toBeInTheDocument(); // Dashboard icon
-    expect(screen.getByText('🖼️')).toBeInTheDocument(); // Media Gallery icon
+    // Check icons using data-testid from MUI Icons
+    expect(screen.getByTestId('DashboardIcon')).toBeInTheDocument();
+    expect(screen.getByTestId('PermMediaIcon')).toBeInTheDocument();
   });
 
   it('contains a link back to the home page via the logo', () => {

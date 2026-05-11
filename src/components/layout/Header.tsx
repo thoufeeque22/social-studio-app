@@ -26,7 +26,7 @@ const Header = ({ onToggleSidebar }: { onToggleSidebar: () => void }) => {
       </button>
 
       <div className={styles.search}>
-        <span className={styles.searchIcon}>🔍</span>
+        <span className={styles.searchIcon}></span>
         <input 
           type="text" 
           placeholder="Search posts, media, or analytics..." 

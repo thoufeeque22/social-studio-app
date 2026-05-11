@@ -24,6 +24,10 @@
 - **Incidental Audit:** Check `.gemini_incidental_observations.json` for high-severity bugs found by other agents.
 - **Ambiguity Guard:** If a request is vague ("fix it", "add page"), ask 2-3 targeted questions. DO NOT guess.
 - **Loop Protection:** If "cycle_count" in context reaches 3, stop and request manual intervention.
+- **Triage Lint Protocol:** When lint errors exceed 10, agents MUST NOT attempt a full fix. Instead:
+  1. Activate the `triage-lint` skill.
+  2. Batch fixes (max 5-10 errors per turn).
+  3. Prioritize by severity and file.
 - **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. If it fails, fix the errors and re-run until it passes.
 
 # Agent Specific Workflows
@@ -55,10 +59,11 @@
 - **Standards:**
   - Modularize if file > 50 lines.
   - UI: Add `data-testid` for QA.
-  - Formatting: Run linter after every edit.
-- **Commit:** Use Conventional Commits.
-- **Handoff:** Update `.gemini_agent_context.json`. Clear old `failure_details` and `verdicts` to reset the review cycle.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+  - **Formatting:** Run linter after every edit.
+  - **Commit:** Use Conventional Commits.
+  - **Handoff:** Update `.gemini_agent_context.json`. You MUST **append** to `modified_files` (unique list) and `fixes_applied` (running history). Clear old `failure_details` and `verdicts` to reset the review cycle.
+  - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
 - **Constraints:** No "God Files". No empty catch blocks. English only. PLN/ISO/Metric.
 
 ## Review (QA & Security Audit)
@@ -104,8 +109,18 @@
   - Visuals: Use Mermaid.js for complex flows/OAuth.
   - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
 - **Constraints:** Documentation MUST match code reality. Never modify source code.
-- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "doc-agent"` and `docs_updated: true`.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "doc-agent"` and `docs_updated: true`. If `.gemini_incidental_observations.json` is not empty, hand off to `project-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+
+## Project Agent (Management & Tracking)
+- **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.
+- **Workflow:** 
+  - **Issue Creation:** Use `mcp_github_create_issue` for new tasks or bugs.
+  - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`).
+  - **Incidental Resolution:** After a ticket is closed by `doc-agent`, the Project Agent MUST read `.gemini_incidental_observations.json`.
+  - **Verification:** For each entry, the Project Agent MUST verify if the bug still exists in the code.
+  - **Individual Logging:** If the bug persists, create an individual GitHub issue with labels (`bug`, `priority:<severity>`) and add to the project board. If the bug is already fixed, do not create an issue. Clear all processed entries from the local JSON file.
+- **Constraints:** Technical, structured, and emoji-free documentation.
 
 ## Routing
   - Vague/New Features → discovery-agent

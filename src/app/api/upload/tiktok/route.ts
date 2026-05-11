@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { handlePlatformUploadRequest } from "@/lib/core/platform-route-handler";
 import { publishTikTokVideo } from "@/lib/platforms/tiktok";
 
@@ -7,7 +8,7 @@ export const maxDuration = 300;
  * TIKTOK UPLOAD HANDLER
  * Uses the unified route handler to manage staging and SDK execution.
  */
-export async function POST(req: any) {
+export async function POST(req: NextRequest) {
   return handlePlatformUploadRequest({
     req,
     platform: "tiktok",

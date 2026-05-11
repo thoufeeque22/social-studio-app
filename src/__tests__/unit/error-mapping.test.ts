@@ -28,7 +28,7 @@ const getFriendlyError = (err: string) => {
       const parsed = JSON.parse(friendly);
       friendly = parsed.error?.message || parsed.message || friendly;
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 
   // 5. Final cap on length
   return friendly.length > 80 ? friendly.substring(0, 77) + '...' : friendly;

@@ -2,8 +2,6 @@ import { prisma } from "@/lib/core/prisma";
 import { logTokenEvent } from "@/lib/core/audit";
 import { promises as fs } from "fs";
 import fsSync from "fs";
-import path from "path";
-import { constructPublicVideoUrl } from "@/lib/core/distributor-utils";
 
 export const getFacebookPageAccount = async (userId: string, accountId?: string) => {
   const account = accountId
@@ -59,7 +57,7 @@ export const getFacebookVideoStatus = async (videoId: string, accessToken: strin
     const processingStatus = status.processing_phase?.status || 'n/a';
     
     return `State: ${videoStatus}, Processing: ${processingStatus}`;
-  } catch (e) {
+  } catch {
     return 'Unreachable';
   }
 };
@@ -96,7 +94,7 @@ export const publishFacebookVideo = async ({
   const formData = new FormData();
   
   // Note: Standard Web fetch in Node 18+ supports streams in FormData
-  formData.append("source", fileStream as any, "video.mp4");
+  formData.append("source", fileStream as unknown as Blob, "video.mp4");
   formData.append("title", title);
   formData.append("description", description);
   formData.append("access_token", pageAccessToken);

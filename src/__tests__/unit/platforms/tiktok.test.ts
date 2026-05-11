@@ -50,7 +50,7 @@ describe('TikTok Platform Integration', () => {
     vi.mocked(prisma.account.findUnique).mockResolvedValue({
       id: 'acc1',
       access_token: 'tk_token_123',
-    } as any);
+    } as never);
 
     // 2. Mock TikTok API Init
     vi.mocked(global.fetch).mockResolvedValueOnce({
@@ -59,12 +59,12 @@ describe('TikTok Platform Integration', () => {
         data: { upload_url: 'https://tiktok.com/upload/binary' },
         error: { code: 'ok' }
       }),
-    } as any);
+    } as Response);
 
     // 3. Mock TikTok Binary Upload
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
-    } as any);
+    } as Response);
 
     const result = await publishTikTokVideo({
       userId: 'user1',
@@ -89,14 +89,14 @@ describe('TikTok Platform Integration', () => {
   });
 
   it('throws error if TikTok init fails', async () => {
-    vi.mocked(prisma.account.findUnique).mockResolvedValue({ access_token: 'abc' } as any);
+    vi.mocked(prisma.account.findUnique).mockResolvedValue({ access_token: 'abc' } as never);
     
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         error: { code: 'failed', message: 'Rate limit' }
       }),
-    } as any);
+    } as Response);
 
     await expect(publishTikTokVideo({ userId: 'u1', videoPath: 'v.mp4', title: 'T', accountId: 'a1' }))
       .rejects.toThrow('TikTok Publish Failed: Rate limit');

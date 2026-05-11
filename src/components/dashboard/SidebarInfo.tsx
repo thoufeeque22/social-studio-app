@@ -3,17 +3,17 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Heading } from '@/components/ui/Heading';
-import { Account } from '@/lib/core/types';
-import { PLATFORMS } from '@/lib/core/constants';
 import { getUpcomingPosts } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
+import type { PostHistory } from '@prisma/client';
+import type { Account } from '@/lib/core/types';
 
 interface SidebarInfoProps {
   accounts: Account[];
 }
 
 export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
-  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [upcoming, setUpcoming] = useState<PostHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchQueue = () => {
@@ -22,9 +22,24 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
       .finally(() => setIsLoading(false));
   };
 
+  const [now, setNow] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const initialTimer = setTimeout(() => {
+      setNow(Date.now());
+      interval = setInterval(() => setNow(Date.now()), 10000);
+    }, 0);
+    return () => {
+      clearTimeout(initialTimer);
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   const hasActivePosts = upcoming.some(post => {
+    if (!post.scheduledAt) return false;
     const scheduledTime = new Date(post.scheduledAt).getTime();
-    return scheduledTime <= Date.now() + 30000;
+    return now > 0 && scheduledTime <= now + 30000;
   });
 
   usePolling({
@@ -67,14 +82,14 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
                   <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>{post.title}</p>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
-                      {new Date(post.scheduledAt).toLocaleString(undefined, { 
+                      {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString(undefined, { 
                         month: 'short', 
                         day: 'numeric', 
                         hour: '2-digit', 
                         minute: '2-digit' 
-                      })}
+                      }) : 'Not scheduled'}
                     </p>
-                    {new Date(post.scheduledAt) < new Date() && (
+                    {post.scheduledAt && new Date(post.scheduledAt) < new Date() && (
                       <Badge variant="success">QUEUED</Badge>
                     )}
                   </div>
@@ -91,3 +106,4 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
     </section>
   );
 };
+

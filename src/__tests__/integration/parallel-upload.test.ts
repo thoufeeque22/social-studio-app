@@ -1,5 +1,6 @@
-import { describe, it, beforeEach, vi, expect } from 'vitest';
+import { describe, it, beforeEach, vi, expect, Mock } from 'vitest';
 import { distributeToPlatforms } from '../../lib/upload/upload-utils';
+import { Account } from '@/lib/core/types';
 
 describe('Parallel Distribution Logic', () => {
   beforeEach(() => {
@@ -14,15 +15,16 @@ describe('Parallel Distribution Logic', () => {
 
   it('should trigger uploads in parallel for small files', async () => {
     const onPlatformStatus = vi.fn();
+    const mockedFetch = global.fetch as Mock;
     
     // Mock fetch to have a delay so we can see them in flight
-    vi.mocked(global.fetch).mockImplementation(async () => {
+    mockedFetch.mockImplementation(async () => {
       await new Promise(r => setTimeout(r, 100));
       return { 
         ok: true, 
         json: async () => ({ id: '123' }),
         text: async () => JSON.stringify({ id: '123' })
-      } as any;
+      };
     });
 
     const formData = new FormData();
@@ -30,7 +32,12 @@ describe('Parallel Distribution Logic', () => {
     formData.append('file', new Blob(['small'], { type: 'video/mp4' }), 'test.mp4');
 
     const selectedAccountIds = ['platform1', 'platform2', 'platform3', 'platform4'];
-    const accounts = selectedAccountIds.map(id => ({ id, provider: id, accountName: id } as any));
+    const accounts: Account[] = selectedAccountIds.map(id => ({ 
+      id, 
+      provider: id, 
+      accountName: id,
+      isDistributionEnabled: true
+    }));
 
     const distributionPromise = distributeToPlatforms({
       stagedFileId: 'stage1',
@@ -59,17 +66,18 @@ describe('Parallel Distribution Logic', () => {
 
   it('should limit concurrency for large files', async () => {
     const onPlatformStatus = vi.fn();
+    const mockedFetch = global.fetch as Mock;
     
     // Control fetch completion
     let activeRequests = 0;
     let maxConcurrent = 0;
 
-    vi.mocked(global.fetch).mockImplementation(async () => {
+    mockedFetch.mockImplementation(async () => {
       activeRequests++;
       maxConcurrent = Math.max(maxConcurrent, activeRequests);
       await new Promise(r => setTimeout(r, 50));
       activeRequests--;
-      return { ok: true, json: async () => ({ id: '123' }) } as any;
+      return { ok: true, json: async () => ({ id: '123' }) };
     });
 
     const formData = new FormData();
@@ -78,7 +86,12 @@ describe('Parallel Distribution Logic', () => {
     formData.append('file', largeBlob, 'large.mp4');
 
     const selectedAccountIds = ['p1', 'p2', 'p3'];
-    const accounts = selectedAccountIds.map(id => ({ id, provider: id, accountName: id } as any));
+    const accounts: Account[] = selectedAccountIds.map(id => ({ 
+      id, 
+      provider: id, 
+      accountName: id,
+      isDistributionEnabled: true
+    }));
 
     await distributeToPlatforms({
       stagedFileId: 'stage2',
@@ -96,3 +109,4 @@ describe('Parallel Distribution Logic', () => {
     expect(maxConcurrent).toBe(1);
   });
 });
+

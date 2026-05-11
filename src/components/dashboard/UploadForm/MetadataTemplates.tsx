@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bookmark, Plus, X, Loader2 } from 'lucide-react';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import CircularProgress from '@mui/material/CircularProgress';
 import { getMetadataTemplates, createMetadataTemplate } from '@/app/actions/metadata';
 
 interface Template {
@@ -100,7 +103,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
           gap: '4px'
         }}
       >
-        <Bookmark size={12} />
+        <BookmarkIcon sx={{ fontSize: 12 }} />
         Snippets
       </button>
 
@@ -137,14 +140,14 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
               onClick={() => setIsOpen(false)}
               style={{ background: 'transparent', border: 'none', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
             >
-              <X size={14} />
+              <CloseIcon sx={{ fontSize: 14 }} />
             </button>
           </div>
 
           <div style={{ padding: '0.5rem', maxHeight: '240px', overflowY: 'auto' }}>
             {isLoading ? (
               <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-                <Loader2 size={20} className="animate-spin" style={{ color: 'hsl(var(--primary))' }} />
+                <CircularProgress size={20} sx={{ color: 'hsl(var(--primary))' }} />
               </div>
             ) : templates.length === 0 ? (
               <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
@@ -223,7 +226,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                   opacity: currentContent.trim() ? 1 : 0.5
                 }}
               >
-                <Plus size={14} />
+                <AddIcon sx={{ fontSize: 14 }} />
                 Save Current as Snippet
               </button>
             ) : (
@@ -269,7 +272,7 @@ export const MetadataTemplates: React.FC<MetadataTemplatesProps> = ({ onSelect, 
                       cursor: 'pointer'
                     }}
                   >
-                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                    {isSaving ? <CircularProgress size={12} /> : 'Save'}
                   </button>
                   <button
                     type="button"

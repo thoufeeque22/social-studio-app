@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/core/prisma';
-import { RoadmapTask } from '@prisma/client';
+import type { RoadmapTask, LaunchTask, Prisma } from '@prisma/client';
 
 export interface BacklogItem {
   id: string;
@@ -26,12 +26,12 @@ export async function getBacklog() {
     'Completed': []
   };
 
-  tasks.forEach((task: any) => {
+  tasks.forEach((task: RoadmapTask) => {
     const item: BacklogItem = {
       id: task.id,
       title: task.title,
       description: task.description || '',
-      status: task.status as any,
+      status: task.status as BacklogItem['status'],
       priority: task.priority
     };
 
@@ -56,7 +56,7 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
   if (!task) throw new Error('Task not found');
 
   // 2. Prepare updates
-  const updateData: any = {};
+  const updateData: Prisma.RoadmapTaskUpdateInput = {};
   if (newStatus) updateData.status = newStatus;
   
   const prioritySections = ['Critical', 'High Priority', 'Medium Priority', 'Low Priority', 'On-Hold'];
@@ -65,8 +65,8 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
   }
 
   // 3. Handle ordering (Re-order all tasks in the target section)
-  const targetPriority = updateData.priority || task.priority;
-  const targetStatus = updateData.status || task.status;
+  const targetPriority = (updateData.priority as string) || task.priority;
+  const targetStatus = (updateData.status as string) || task.status;
 
   // Fetch all tasks in the target category to recalculate order
   const siblingTasks = await prisma.roadmapTask.findMany({
@@ -80,10 +80,10 @@ export async function moveBacklogItem(id: string, newSection: string, newStatus?
 
   // Insert current task at desired index
   const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, siblingTasks.length) : siblingTasks.length;
-  siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as any);
+  siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as RoadmapTask);
 
   // Perform bulk update for order
-  await Promise.all(siblingTasks.map((t: any, idx: number) => 
+  await Promise.all(siblingTasks.map((t: RoadmapTask, idx: number) => 
     prisma.roadmapTask.update({
       where: { id: t.id },
       data: { 
@@ -141,12 +141,12 @@ export async function getLaunchTasks() {
     'Completed': []
   };
 
-  tasks.forEach((task: any) => {
+  tasks.forEach((task: LaunchTask) => {
     const item: LaunchItem = {
       id: task.id,
       title: task.title,
       description: task.description || '',
-      status: task.status as any,
+      status: task.status as LaunchItem['status'],
       category: task.category
     };
 
@@ -166,7 +166,7 @@ export async function moveLaunchItem(id: string, newSection: string, newStatus?:
   const task = await prisma.launchTask.findUnique({ where: { id } });
   if (!task) throw new Error('Task not found');
 
-  const updateData: any = {};
+  const updateData: Prisma.LaunchTaskUpdateInput = {};
   if (newStatus) updateData.status = newStatus;
   
   const categorySections = ['App Store', 'Marketing', 'Legal'];
@@ -174,8 +174,8 @@ export async function moveLaunchItem(id: string, newSection: string, newStatus?:
     updateData.category = newSection;
   }
 
-  const targetCategory = updateData.category || task.category;
-  const targetStatus = updateData.status || task.status;
+  const targetCategory = (updateData.category as string) || task.category;
+  const targetStatus = (updateData.status as string) || task.status;
 
   const siblingTasks = await prisma.launchTask.findMany({
     where: { 
@@ -187,9 +187,9 @@ export async function moveLaunchItem(id: string, newSection: string, newStatus?:
   });
 
   const insertAt = (newIndex !== undefined && newIndex >= 0) ? Math.min(newIndex, siblingTasks.length) : siblingTasks.length;
-  siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as any);
+  siblingTasks.splice(insertAt, 0, { ...task, ...updateData } as LaunchTask);
 
-  await Promise.all(siblingTasks.map((t: any, idx: number) => 
+  await Promise.all(siblingTasks.map((t: LaunchTask, idx: number) => 
     prisma.launchTask.update({
       where: { id: t.id },
       data: { 

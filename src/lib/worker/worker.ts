@@ -4,6 +4,17 @@ import path from "path";
 import { readFileSync, existsSync, promises as fs } from "fs";
 import { logger } from "@/lib/core/logger";
 
+declare global {
+   
+  var _ss_worker_started: boolean | undefined;
+   
+  var _ss_worker_interval: NodeJS.Timeout | undefined;
+   
+  var _ss_cleanup_interval: NodeJS.Timeout | undefined;
+   
+  var _ss_worker_version: number | undefined;
+}
+
 /**
  * PURGE EXPIRED ASSETS & CLEANUP ORPHANED FILES
  * 1. Cleans up DB records and physical files for expired gallery assets.
@@ -49,8 +60,9 @@ export async function purgeExpiredAssets() {
           await prisma.galleryAsset.delete({
             where: { id: asset.id }
           });
-        } catch (err: any) {
-          logger.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, err.message);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          logger.error(`❌ [WORKER] Failed to purge asset ${asset.fileId}:`, message);
         }
       }
     }
@@ -63,8 +75,8 @@ export async function purgeExpiredAssets() {
       const dayAgo = now.getTime() - (24 * 60 * 60 * 1000);
       
       const trackedFileIds = new Set([
-        ...(await prisma.galleryAsset.findMany({ select: { fileId: true } })).map((a: any) => a.fileId),
-        ...(await prisma.postHistory.findMany({ where: { stagedFileId: { not: null } }, select: { stagedFileId: true } })).map((p: any) => p.stagedFileId!)
+        ...(await prisma.galleryAsset.findMany({ select: { fileId: true } })).map(a => a.fileId),
+        ...(await prisma.postHistory.findMany({ where: { stagedFileId: { not: null } }, select: { stagedFileId: true } })).map(p => p.stagedFileId!)
       ]);
 
       for (const file of files) {
@@ -96,24 +108,24 @@ export async function purgeExpiredAssets() {
 export async function startPublishingWorker() {
   const currentVersion = Date.now();
   
-  if ((global as any)._ss_worker_started) {
+  if (global._ss_worker_started) {
     logger.info("♻️ [WORKER] Restarting worker with new logic...");
-    if ((global as any)._ss_worker_interval) {
-        clearInterval((global as any)._ss_worker_interval);
+    if (global._ss_worker_interval) {
+        clearInterval(global._ss_worker_interval);
     }
-    if ((global as any)._ss_cleanup_interval) {
-        clearInterval((global as any)._ss_cleanup_interval);
+    if (global._ss_cleanup_interval) {
+        clearInterval(global._ss_cleanup_interval);
     }
   }
   
-  (global as any)._ss_worker_started = true;
-  (global as any)._ss_worker_version = currentVersion;
+  global._ss_worker_started = true;
+  global._ss_worker_version = currentVersion;
 
   logger.info("👷 [WORKER] Scheduled Publishing Worker Started...");
 
   const interval = setInterval(async () => {
     // Safety check: if a newer version started, stop this one
-    if ((global as any)._ss_worker_version !== currentVersion) {
+    if (global._ss_worker_version !== currentVersion) {
         clearInterval(interval);
         return;
     }
@@ -124,7 +136,7 @@ export async function startPublishingWorker() {
       
       const totalPendingCount = await prisma.postHistory.count({ where: { isPublished: false } });
       if (totalPendingCount > 0) {
-        logger.info(`🔍 [WORKER-DEBUG] Found ${totalPendingCount} total non-published posts in DB.`);
+        logger.info(` [WORKER-DEBUG] Found ${totalPendingCount} total non-published posts in DB.`);
       }
 
       const pending = await prisma.postHistory.findMany({
@@ -148,7 +160,7 @@ export async function startPublishingWorker() {
       if (pending.length > 0) {
         logger.info(`👷 [WORKER] Found ${pending.length} overdue posts to publish. Processing in parallel...`);
 
-        await Promise.allSettled(pending.map(async (post: any) => {
+        await Promise.allSettled(pending.map(async (post) => {
           logger.info(`🚀 [WORKER] Attempting to publish: "${post.title}" (ID: ${post.id})`);
           
           // Mark as published immediately so other worker ticks don't pick it up
@@ -174,7 +186,7 @@ export async function startPublishingWorker() {
             if (existsSync(metadataPath)) {
                try {
                   reviewedContent = JSON.parse(readFileSync(metadataPath, "utf8"));
-               } catch (e) {
+               } catch {
                   logger.warn("⚠️ [WORKER] Failed to parse metadata sidecar");
                }
             }
@@ -188,8 +200,8 @@ export async function startPublishingWorker() {
               historyId: post.id,
               title: post.title,
               description: post.description || "",
-              videoFormat: post.videoFormat as any,
-              platforms: post.platforms.map((p: any) => ({
+              videoFormat: post.videoFormat as 'short' | 'long',
+              platforms: post.platforms.map((p) => ({
                 platform: p.platform,
                 accountId: p.accountId!,
                 accountName: p.accountName
@@ -206,8 +218,9 @@ export async function startPublishingWorker() {
                   data: { expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) }
                }).catch(() => {});
             }
-          } catch (err: any) {
-            logger.error(`❌ [WORKER] Failed to publish ${post.title}: ${err.message}`);
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error(`❌ [WORKER] Failed to publish ${post.title}: ${message}`);
             Sentry.captureException(err, {
               extra: { postId: post.id, title: post.title }
             });
@@ -227,7 +240,7 @@ export async function startPublishingWorker() {
 
   // Asset Cleanup Interval (Every 1 hour)
   const cleanupInterval = setInterval(async () => {
-    if ((global as any)._ss_worker_version !== currentVersion) {
+    if (global._ss_worker_version !== currentVersion) {
       clearInterval(cleanupInterval);
       return;
     }
@@ -237,6 +250,6 @@ export async function startPublishingWorker() {
   // Run cleanup immediately on start
   purgeExpiredAssets();
 
-  (global as any)._ss_worker_interval = interval;
-  (global as any)._ss_cleanup_interval = cleanupInterval;
+  global._ss_worker_interval = interval;
+  global._ss_cleanup_interval = cleanupInterval;
 }

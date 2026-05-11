@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
         fileName
       } 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Staging Error:", error);
     return NextResponse.json({ 
-      error: error.message || "Staging upload failed" 
+      error: error instanceof Error ? error.message : "Staging upload failed" 
     }, { status: 500 });
   }
 }

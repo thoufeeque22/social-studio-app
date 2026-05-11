@@ -17,14 +17,14 @@ export default function NotFound() {
         padding: '3rem', 
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔍</div>
+        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}></div>
         <Heading level={1} style={{ marginBottom: '1rem' }}>Page Not Found</Heading>
         <p style={{ 
           color: 'hsl(var(--muted-foreground))', 
           marginBottom: '2rem',
           lineHeight: '1.6' 
         }}>
-          The page you are looking for doesn't exist or has been moved.
+          The page you are looking for doesn&apos;t exist or has been moved.
         </p>
         
         <Link

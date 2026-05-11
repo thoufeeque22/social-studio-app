@@ -7,6 +7,14 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useSearchParams } from 'next/navigation';
 
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import LockIcon from '@mui/icons-material/Lock';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import CloseIcon from '@mui/icons-material/Close';
+
 function LoginContent() {
   const [showWarning, setShowWarning] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
@@ -91,7 +99,9 @@ function LoginContent() {
     return (
       <div className={styles.container} style={{ justifyContent: 'center', alignItems: 'center' }}>
         <div className={styles.loadingWrapper}>
-          <div className={styles.logo}>🌌</div>
+          <div className={styles.logo}>
+            <AutoAwesomeIcon sx={{ fontSize: 40, color: 'hsl(var(--primary))' }} />
+          </div>
           <h2 className={styles.title}>Connecting to {searchParams.get('provider')}...</h2>
           <p className={styles.subtitle}>Please wait while we secure your session.</p>
         </div>
@@ -109,9 +119,11 @@ function LoginContent() {
               className={styles.closeButton}
               onClick={() => setShowWarning(false)}
             >
-              ✕
+              <CloseIcon sx={{ fontSize: 20 }} />
             </button>
-            <div className={styles.modalIcon}>🔒</div>
+            <div className={styles.modalIcon}>
+              <LockIcon sx={{ fontSize: 48, color: 'hsl(var(--primary))' }} />
+            </div>
             <div className={styles.modalContent}>
               <h2 className={styles.modalTitle}>Unified Identity Check</h2>
               <p className={styles.modalText}>
@@ -164,7 +176,9 @@ function LoginContent() {
 
           <div className={styles.featureList}>
             <div className={styles.featureItem}>
-              <div className={styles.featureIcon}>🚀</div>
+              <div className={styles.featureIcon}>
+                <RocketLaunchIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />
+              </div>
               <div className={styles.featureText}>
                 <span className={styles.featureTitle}>Native Publishing</span>
                 <span className={styles.featureDesc}>Direct API hooks for maximum reliability and speed.</span>
@@ -172,7 +186,9 @@ function LoginContent() {
             </div>
 
             <div className={styles.featureItem}>
-              <div className={styles.featureIcon}>💎</div>
+              <div className={styles.featureIcon}>
+                <WorkspacePremiumIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />
+              </div>
               <div className={styles.featureText}>
                 <span className={styles.featureTitle}>Zero Maintenance</span>
                 <span className={styles.featureDesc}>No need for complex n8n or Zapier workflows.</span>
@@ -180,7 +196,9 @@ function LoginContent() {
             </div>
 
             <div className={styles.featureItem}>
-              <div className={styles.featureIcon}>📊</div>
+              <div className={styles.featureIcon}>
+                <BarChartIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />
+              </div>
               <div className={styles.featureText}>
                 <span className={styles.featureTitle}>Unified Analytics</span>
                 <span className={styles.featureDesc}>Track performance across all platforms in one view.</span>
@@ -192,7 +210,9 @@ function LoginContent() {
         {/* Login Card */}
         <div className={styles.loginCard}>
           <div className={styles.header}>
-            <div className={styles.logo}>🌌</div>
+            <div className={styles.logo}>
+              <AutoAwesomeIcon sx={{ fontSize: 48, color: 'hsl(var(--primary))' }} />
+            </div>
             <h1 className={styles.title}>Social Studio</h1>
             <p className={styles.subtitle}>Sign in to manage your automated distribution.</p>
           </div>
@@ -262,7 +282,9 @@ function LoginContent() {
           </div>
 
           <div className={styles.linkingTip}>
-            <span className={styles.tipIcon}>💡</span>
+            <span className={styles.tipIcon}>
+              <LightbulbIcon sx={{ fontSize: 20, color: 'hsl(var(--primary))' }} />
+            </span>
             <div className={styles.tipContent}>
               <strong>One Dashboard for All Platforms</strong>
               To manage all your platforms in one place, log in with a primary method first, then connect others in <strong>Settings</strong>.

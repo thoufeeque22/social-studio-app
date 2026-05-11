@@ -7,13 +7,12 @@
  * - Resilience and error handling (e.g., missing chunks).
  */
 
-import { describe, it, beforeEach, vi, expect } from 'vitest';
+import { describe, it, beforeEach, vi, expect, Mock } from 'vitest';
 import { POST as chunkPOST } from '../../app/api/upload/chunk/route';
 import { POST as assemblePOST } from '../../app/api/upload/assemble/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { promises as fsPromises } from 'fs';
-import fsSync from 'fs';
 
 // Mock Auth
 vi.mock('@/auth', () => ({
@@ -27,6 +26,11 @@ vi.mock('@/lib/core/prisma', () => ({
       create: vi.fn().mockResolvedValue({ id: 'h1' }),
       update: vi.fn().mockResolvedValue({ id: 'h1' }),
     },
+    galleryAsset: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: 'a1' }),
+      update: vi.fn().mockResolvedValue({ id: 'a1' }),
+    }
   },
 }));
 
@@ -57,6 +61,7 @@ vi.mock('fs', () => {
       if (event === 'finish') cb();
       return { on: vi.fn() };
     }),
+    removeListener: vi.fn(),
   });
 
   return {
@@ -86,10 +91,19 @@ vi.mock('fs/promises', () => ({
   }),
 }));
 
+vi.mock('@/lib/video/processor', () => ({
+  getVideoMetadata: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
+  checkTranscodeRequirement: vi.fn().mockResolvedValue({ results: {} }),
+}));
+
 describe('Chunked Upload System Integration', () => {
+  const mockedAuth = auth as Mock;
+  const mockedReaddir = fsPromises.readdir as Mock;
+  const mockedReadFile = fsPromises.readFile as Mock;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    (auth as any).mockResolvedValue({ user: { id: 'u1' } });
+    mockedAuth.mockResolvedValue({ user: { id: 'u1' } });
   });
 
   describe('Chunk API', () => {
@@ -117,8 +131,8 @@ describe('Chunked Upload System Integration', () => {
 
   describe('Assemble API', () => {
     it('joins all chunks into a final file', async () => {
-      (fsPromises.readdir as any).mockResolvedValue(['00000000.part', '00000001.part']);
-      (fsPromises.readFile as any).mockResolvedValue(Buffer.from('part data'));
+      mockedReaddir.mockResolvedValue(['00000000.part', '00000001.part']);
+      mockedReadFile.mockResolvedValue(Buffer.from('part data'));
 
       const req = {
         json: async () => ({
@@ -138,7 +152,7 @@ describe('Chunked Upload System Integration', () => {
     });
 
     it('returns error if chunks are missing', async () => {
-      (fsPromises.readdir as any).mockResolvedValue(['00000000.part']);
+      mockedReaddir.mockResolvedValue(['00000000.part']);
 
       const req = {
         json: async () => ({
@@ -157,3 +171,4 @@ describe('Chunked Upload System Integration', () => {
     });
   });
 });
+

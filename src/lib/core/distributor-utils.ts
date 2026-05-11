@@ -4,10 +4,20 @@
  * API routes, Client-side uploads, and the Background Worker.
  */
 
+export interface PlatformData {
+  id?: string;
+  videoId?: string;
+  publish_id?: string;
+  permalink?: string;
+  data?: {
+    id?: string;
+  };
+}
+
 /**
  * Extracts a platform-native post ID from the API response.
  */
-export function extractPlatformPostId(platform: string, data: any): string | null {
+export function extractPlatformPostId(platform: string, data: PlatformData): string | null {
   if (!data) return null;
   switch (platform) {
     case 'youtube': return data.id || data.data?.id || null;
@@ -21,7 +31,7 @@ export function extractPlatformPostId(platform: string, data: any): string | nul
 /**
  * Generates a direct permalink to the published content on each platform.
  */
-export function generatePermalink(platform: string, data: any): string | null {
+export function generatePermalink(platform: string, data: PlatformData): string | null {
   if (!data) return null;
   
   // Use official platform permalink if provided (Gold Standard)
@@ -98,14 +108,14 @@ export function formatPlatformCaption({
   const hashtagString = hashtags.length > 0 ? `\n\n${hashtags.join(" ")}` : "";
   
   if (title === description || !description) {
-    let base = `${title}${hashtagString}`;
+    const base = `${title}${hashtagString}`;
     if (platform === 'tiktok' && base.length > 150) {
       return base.substring(0, 147) + "...";
     }
     return base;
   }
 
-  let full = `${title}\n\n${description}${hashtagString}`;
+  const full = `${title}\n\n${description}${hashtagString}`;
   if (platform === 'tiktok' && full.length > 150) {
     return full.substring(0, 147) + "...";
   }

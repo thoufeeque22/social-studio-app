@@ -31,7 +31,7 @@ export async function getOptimizedVideoPath(
     if (result?.optimizedFileId) {
       const optimizedPath = path.join(process.cwd(), "src/tmp", result.optimizedFileId);
       if (fs.existsSync(optimizedPath)) {
-        logger.info(`♻️ [TRANSCODER] Reusing optimized file: ${result.optimizedFileId}`);
+        logger.info(`️ [TRANSCODER] Reusing optimized file: ${result.optimizedFileId}`);
         return optimizedPath;
       }
     }
@@ -42,11 +42,11 @@ export async function getOptimizedVideoPath(
   const platformResult = results[platform];
 
   if (!platformResult || !platformResult.needsTranscode) {
-    logger.info(`✅ [TRANSCODER] No transcoding needed for ${platform}`);
+    logger.info(` [TRANSCODER] No transcoding needed for ${platform}`);
     return originalPath;
   }
 
-  logger.info(`⚙️ [TRANSCODER] Starting optimization for ${platform}: ${platformResult.reason}`);
+  logger.info(`️ [TRANSCODER] Starting optimization for ${platform}: ${platformResult.reason}`);
 
   // 3. Mark as processing in DB (if postHistoryId provided)
   if (postHistoryId && accountId) {
@@ -74,7 +74,7 @@ export async function getOptimizedVideoPath(
     const optimizedPath = await transcodeForPlatform(originalPath, platform);
     const optimizedFileId = path.basename(optimizedPath);
 
-    logger.info(`✨ [TRANSCODER] Optimization complete: ${optimizedFileId}`);
+    logger.info(` [TRANSCODER] Optimization complete: ${optimizedFileId}`);
 
     // 5. Update DB
     if (postHistoryId && accountId) {
@@ -94,8 +94,9 @@ export async function getOptimizedVideoPath(
     }
 
     return optimizedPath;
-  } catch (err: any) {
-    logger.error(`❌ [TRANSCODER] Optimization failed for ${platform}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(` [TRANSCODER] Optimization failed for ${platform}: ${message}`);
     
     if (postHistoryId && accountId) {
       await prisma.postPlatformResult.update({
@@ -108,7 +109,7 @@ export async function getOptimizedVideoPath(
         },
         data: {
           transcodeStatus: 'failed',
-          errorMessage: `Transcoding failed: ${err.message}`
+          errorMessage: `Transcoding failed: ${message}`
         }
       });
     }

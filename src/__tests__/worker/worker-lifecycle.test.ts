@@ -12,6 +12,9 @@ import { startPublishingWorker } from '../../lib/worker/worker';
 import { prisma } from '../../lib/core/prisma';
 import { distributeToPlatformsServer } from '../../lib/worker/server-distributor';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const g = global as any;
+
 // Mock Dependencies
 vi.mock('../../lib/core/prisma', () => ({
   prisma: {
@@ -41,9 +44,9 @@ describe('Worker Lifecycle & Polling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    (global as any)._ss_worker_started = false;
-    (global as any)._ss_worker_interval = null;
-    (global as any)._ss_worker_version = null;
+    g._ss_worker_started = false;
+    g._ss_worker_interval = null;
+    g._ss_worker_version = null;
   });
 
   afterEach(() => {
@@ -55,15 +58,17 @@ describe('Worker Lifecycle & Polling', () => {
     
     // First start
     await startPublishingWorker();
-    const firstVersion = (global as any)._ss_worker_version;
-    const firstInterval = (global as any)._ss_worker_interval;
+    const firstVersion = g._ss_worker_version;
+    const firstInterval = g._ss_worker_interval;
     
     // Second start (simulating HMR)
     vi.advanceTimersByTime(1);
     await startPublishingWorker();
     
-    expect(clearSpy).toHaveBeenCalledWith(firstInterval);
-    expect((global as any)._ss_worker_version).not.toBe(firstVersion);
+    if (firstInterval) {
+      expect(clearSpy).toHaveBeenCalledWith(firstInterval);
+    }
+    expect(g._ss_worker_version).not.toBe(firstVersion);
   });
 
   it('polls overdue posts and executes distribution', async () => {
@@ -79,8 +84,10 @@ describe('Worker Lifecycle & Polling', () => {
     };
 
     // Return one pending post
-    (prisma.postHistory.findMany as any).mockResolvedValue([mockPost]);
-    (prisma.postHistory.update as any).mockResolvedValue({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.postHistory.findMany).mockResolvedValue([mockPost] as any[]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.postHistory.update).mockResolvedValue({} as any);
 
     await startPublishingWorker();
     
@@ -110,10 +117,10 @@ describe('Worker Lifecycle & Polling', () => {
 
   it('stops execution if a newer worker version is detected', async () => {
     await startPublishingWorker();
-    const version1 = (global as any)._ss_worker_version;
+    const version1 = g._ss_worker_version;
     
     // Simulate newer version started elsewhere
-    (global as any)._ss_worker_version = version1 + 1;
+    g._ss_worker_version = (version1 || 0) + 1;
 
     // Advance time
     await vi.advanceTimersByTimeAsync(11000);

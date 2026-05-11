@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     logger.error("Upload Init Error", error);
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Validation failed", details: error.issues }, { status: 400 });
     }
     
     const message = error instanceof Error ? error.message : "An unexpected error occurred";

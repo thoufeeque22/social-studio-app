@@ -68,7 +68,7 @@ interface UploadParams {
 }
 
 export interface YouTubeUploadResult {
-  data: any;
+  data: Record<string, unknown>;
   resumableUrl?: string;
 }
 
@@ -93,18 +93,25 @@ export const uploadToYouTube = async ({
 
   let uploadUrl = resumableUrl;
 
-  // 1. Initialize session if no resumableUrl is provided
+    // Initialize session if no resumableUrl is provided
   if (!uploadUrl) {
     console.log("📺 [YT-RESUME] Initializing new resumable session...");
     
-    const authObj = youtube.context._options.auth as any;
+    interface YTInternalAuth {
+      credentials?: { access_token?: string | null };
+      getAccessToken?: () => Promise<{ token?: string | null } | string | null>;
+      token?: string | null;
+    }
+    
+    const authObj = (youtube as unknown as { context: { _options: { auth: YTInternalAuth } } }).context._options.auth;
     let token = authObj?.credentials?.access_token;
     
     try {
       const authResult = typeof authObj?.getAccessToken === 'function' ? await authObj.getAccessToken() : authObj;
-      token = typeof authResult === 'string' ? authResult : (authResult?.token || token);
-    } catch (tokenErr: any) {
-      console.warn("📺 [YT-RESUME] getAccessToken threw an error (likely no refresh token), falling back to raw access_token:", tokenErr.message);
+      token = (typeof authResult === 'string' ? authResult : (typeof authResult === 'object' ? authResult?.token : null)) || token;
+    } catch (tokenErr: unknown) {
+      const errorMessage = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
+      console.warn("📺 [YT-RESUME] getAccessToken threw an error (likely no refresh token), falling back to raw access_token:", errorMessage);
     }
     const metadataRes = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
       method: "POST",
@@ -195,8 +202,8 @@ export const uploadToYouTube = async ({
     headers: {
       "Content-Range": `bytes ${startByte}-${fileSize - 1}/${fileSize}`,
     },
-    body: fileStream.pipe(progressStream) as any,
-    // @ts-ignore
+    body: fileStream.pipe(progressStream) as unknown as BodyInit,
+    // @ts-expect-error - duplex is required for streaming bodies in Node fetch but not in standard RequestInit type
     duplex: 'half'
   });
 

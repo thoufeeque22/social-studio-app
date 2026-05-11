@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { Account } from '@/lib/core/types';
+import { StyleMode } from '@/lib/core/constants';
 
 export type PlatformStatus = 'pending' | 'uploading' | 'processing' | 'success' | 'failed' | 'cancelled';
 
@@ -103,11 +104,11 @@ export function useDistributionEngine(accounts: Account[]) {
         formData,
         accounts,
         selectedAccountIds: activeTargets,
-        contentMode: (formData.get('contentMode') as any) || 'Smart',
-        videoFormat: (formData.get('videoFormat') as any) || 'short',
+        contentMode: (formData.get('contentMode') as StyleMode) || 'Smart',
+        videoFormat: (formData.get('videoFormat') as 'short' | 'long') || 'short',
         onStatusUpdate: setUploadStatus,
         onPlatformStatus: (id, status, error) => {
-          setPlatformStatuses(prev => ({ ...prev, [id]: status as any }));
+          setPlatformStatuses(prev => ({ ...prev, [id]: status as PlatformStatus }));
           if (error) setPlatformErrors(prev => ({ ...prev, [id]: error }));
         },
         onAccountSuccess: (id, result) => {
@@ -125,7 +126,7 @@ export function useDistributionEngine(accounts: Account[]) {
       setPlatformStatuses(prev => {
         const next = { ...prev };
         finalResults.forEach(result => {
-          next[result.accountId] = result.status as any;
+          next[result.accountId] = result.status as PlatformStatus;
         });
         return next;
       });
@@ -142,9 +143,10 @@ export function useDistributionEngine(accounts: Account[]) {
 
       return distribution;
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error("Distribution engine failed", err);
-      setUploadStatus(`❌ Distribution failed: ${err.message}`);
+      setUploadStatus(`❌ Distribution failed: ${errorMessage}`);
       return null;
     } finally {
       setIsUploading(false);

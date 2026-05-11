@@ -1,4 +1,5 @@
 import React from 'react';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 interface SchedulingSelectorProps {
   isScheduled: boolean;
@@ -42,10 +43,14 @@ export const SchedulingSelector: React.FC<SchedulingSelectorProps> = ({ isSchedu
             }}
             onClick={(e) => {
               const input = e.currentTarget.querySelector('input');
-              if (input && 'showPicker' in input) (input as any).showPicker();
+              if (input && 'showPicker' in input) {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              }
             }}
           >
-            <span style={{ position: 'absolute', left: '0.75rem', pointerEvents: 'none', fontSize: '1rem' }}>📅</span>
+            <span style={{ position: 'absolute', left: '0.75rem', pointerEvents: 'none', fontSize: '1rem', display: 'flex', alignItems: 'center' }}>
+            <CalendarMonthIcon sx={{ fontSize: 20 }} />
+          </span>
             <input 
               type="datetime-local" 
               value={scheduledAt}

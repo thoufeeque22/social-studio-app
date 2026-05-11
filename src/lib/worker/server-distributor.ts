@@ -3,12 +3,23 @@ import path from 'path';
 import { logger } from '@/lib/core/logger';
 import { 
   extractPlatformPostId, 
-  generatePermalink, 
-  constructPublicVideoUrl,
-  formatPlatformCaption
+  generatePermalink
 } from '@/lib/core/distributor-utils';
 import { distributeSinglePlatform } from '@/lib/core/distributor-server';
 import { getOptimizedVideoPath } from '@/lib/video/transcode-manager';
+
+export interface DistributionResult {
+  platform: string;
+  accountId: string;
+  accountName?: string | null;
+  platformPostId?: string | null;
+  permalink?: string | null;
+  status: 'success' | 'failed' | 'cancelled' | 'pending' | 'uploading' | 'processing' | 'retrying';
+  errorMessage?: string;
+  resumableUrl?: string | null;
+  videoId?: string | null;
+  creationId?: string | null;
+}
 
 export interface ServerDistributeParams {
   stagedFileId: string;
@@ -35,7 +46,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       logger.info(`👷 [SERVER-DISTRIBUTOR] Starting distribution for post ${historyId}`);
 
   const filePath = path.join(process.cwd(), "src/tmp", stagedFileId);
-  const results: any[] = [];
+  const results: DistributionResult[] = [];
 
   await Promise.allSettled(platforms.map(async (p) => {
     try {
@@ -56,14 +67,26 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       if (existingResult?.status === 'cancelled') {
         logger.info(`⏹️ [SERVER-DISTRIBUTOR] Skipping ${p.platform} - User cancelled distribution.`);
-        results.push(existingResult as any);
+        results.push({
+          platform: p.platform,
+          accountId: p.accountId,
+          accountName: existingResult.accountName,
+          status: 'cancelled',
+          errorMessage: existingResult.errorMessage || undefined,
+          resumableUrl: existingResult.resumableUrl,
+          videoId: existingResult.videoId,
+          creationId: existingResult.creationId
+        });
         return;
       }
 
       let finalTitle = title;
       let finalDesc = description;
       
-      const customContent = (existingResult?.metadata as any)?.customContent || params.reviewedContent?.[p.platform];
+      const metadata = existingResult?.metadata as { 
+        customContent?: { title?: string; description?: string; hashtags?: string[] } 
+      } | null;
+      const customContent = metadata?.customContent || params.reviewedContent?.[p.platform];
       
       if (customContent) {
         finalTitle = customContent.title || title;
@@ -98,8 +121,8 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
       let activeFilePath = filePath;
       try {
         activeFilePath = await getOptimizedVideoPath(stagedFileId, p.platform, historyId, p.accountId);
-      } catch (optErr) {
-        logger.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original.`);
+      } catch (optErr: unknown) {
+        logger.warn(`⚠️ [SERVER-DISTRIBUTOR] Optimization failed for ${p.platform}, using original. Reason: ${optErr instanceof Error ? optErr.message : String(optErr)}`);
       }
 
       logger.info(`🚀 [SERVER-DISTRIBUTOR] Calling distributeSinglePlatform for ${p.platform}`);
@@ -124,7 +147,7 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
         }
       });
 
-      const platformResult = {
+      const platformResult: DistributionResult = {
         platform: p.platform,
         accountId: p.accountId,
         accountName: p.accountName,
@@ -150,17 +173,23 @@ export async function distributeToPlatformsServer(params: ServerDistributeParams
 
       results.push(platformResult);
 
-    } catch (err: any) {
-      logger.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}: ${err.message}`);
+    } catch (err: unknown) {
+      const error = err as { 
+        message?: string; 
+        resumableUrl?: string; 
+        videoId?: string; 
+        creationId?: string 
+      };
+      logger.error(`❌ [SERVER-DISTRIBUTOR] Failed to publish to ${p.platform}: ${error.message}`);
       
       const errorPayload = {
         platform: p.platform,
         accountId: p.accountId,
         status: 'failed' as const,
-        errorMessage: err.message,
-        resumableUrl: err.resumableUrl,
-        videoId: err.videoId,
-        creationId: err.creationId,
+        errorMessage: error.message,
+        resumableUrl: error.resumableUrl,
+        videoId: error.videoId,
+        creationId: error.creationId,
         lastRetryAt: new Date()
       };
 

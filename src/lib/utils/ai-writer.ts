@@ -6,7 +6,7 @@ import {
   OLLAMA_DEFAULT_MODEL
 } from '../core/constants';
 
-export type Platform = 'youtube' | 'instagram' | 'tiktok';
+export type Platform = 'youtube' | 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'twitter';
 
 export interface AIWriteResult {
   title: string;
@@ -62,7 +62,19 @@ Always generate exactly 5 hashtags by default.`;
 - Use emojis strategically to break up text and add personality.
 - Captions should be relatable, storyteller-focused, or highly curated.
 - Include a clear 'Link in Bio' or 'Save for Later' call to action.
-- Tone: Aesthetic, aspirational, relatable, and community-driven.`
+- Tone: Aesthetic, aspirational, relatable, and community-driven.`,
+    facebook: `\nConstraints: 
+- Facebook is a COMMUNITY engine. Prioritize Engagement and Sharing.
+- Captions should encourage conversation or tagging friends.
+- Keep the tone friendly, accessible, and inclusive.`,
+    linkedin: `\nConstraints: 
+- LinkedIn is a PROFESSIONAL engine. Prioritize Authority and Value.
+- Use professional tone, focus on insights, learning, or career growth.
+- Include industry-relevant keywords.`,
+    twitter: `\nConstraints: 
+- Twitter (X) is a NEWS engine. Prioritize Brevity and Buzz.
+- Keep the description extremely short and punchy.
+- Use trending topics or mentions if relevant.`
   };
   
   if (platformConstraints[platform]) {

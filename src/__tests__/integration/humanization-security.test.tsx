@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET as roadmapGET } from '../../app/api/roadmap/route';
 import { GET as launchGET } from '../../app/api/launch/route';
 import { render, screen } from '@testing-library/react';
-import { UploadForm } from '../../components/dashboard/UploadForm';
+import { UploadForm, UploadFormProps } from '../../components/dashboard/UploadForm';
+import { StyleMode, AITier } from '@/lib/core/constants';
 import React from 'react';
 
 // Mock Auth
@@ -44,6 +45,9 @@ describe('Project Management & UI Humanization', () => {
       getItem: vi.fn().mockReturnValue(''),
       setItem: vi.fn(),
       clear: vi.fn(),
+      removeItem: vi.fn(),
+      key: vi.fn(),
+      length: 0,
     };
     Object.defineProperty(globalThis, 'localStorage', { value: mockLocalStorage });
   });
@@ -65,29 +69,30 @@ describe('Project Management & UI Humanization', () => {
   });
 
   describe('UploadForm UI (Dynamic Metadata)', () => {
-    const mockProps: any = {
+    const mockProps: UploadFormProps = {
       isUploading: false,
       uploadStatus: null,
       accounts: [],
       preferences: [],
       selectedAccountIds: [],
-      successfulAccountIds: [],
-      platformStatuses: {},
-      contentMode: 'Smart',
-      aiTier: 'Manual',
+      contentMode: 'Smart' as StyleMode,
+      aiTier: 'Manual' as AITier,
       videoFormat: 'short',
-      videoDuration: 45, // 45 seconds
+      videoDuration: 45,
       draftFileName: 'dance.mp4',
       onVisualScan: vi.fn(),
       onTierChange: vi.fn(),
       onModeChange: vi.fn(),
-      onFormatChange: vi.fn(),
       onToggleAccount: vi.fn(),
       onFileChange: vi.fn(),
+      onGallerySelect: vi.fn(),
       onSubmit: vi.fn(),
       isScheduled: false,
       scheduledAt: '',
       onSchedulingChange: vi.fn(),
+      isComplete: false,
+      customStyleText: '',
+      onCustomStyleChange: vi.fn()
     };
 
     it('renders the Short-Form badge with duration', () => {
@@ -114,3 +119,4 @@ describe('Project Management & UI Humanization', () => {
     });
   });
 });
+

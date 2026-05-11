@@ -22,7 +22,7 @@ export function usePolling({ callback, interval, isActive }: UsePollingOptions) 
   useEffect(() => {
     if (!isActive) return;
 
-    let intervalId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout | null = null;
 
     const tick = () => {
       savedCallback.current();
@@ -37,7 +37,7 @@ export function usePolling({ callback, interval, isActive }: UsePollingOptions) 
     const stopPolling = () => {
       if (intervalId) {
         clearInterval(intervalId);
-        intervalId = undefined as any;
+        intervalId = null;
       }
     };
 

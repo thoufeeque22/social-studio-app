@@ -24,7 +24,7 @@ describe('Audit Utility', () => {
       reason: 'Testing audit',
     };
 
-    vi.mocked(prisma.tokenAuditLog.create).mockResolvedValue({} as any);
+    vi.mocked(prisma.tokenAuditLog.create).mockResolvedValue({} as never);
 
     await logTokenEvent(params);
 

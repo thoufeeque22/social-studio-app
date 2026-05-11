@@ -7,7 +7,7 @@ import { formatHandle } from '@/lib/utils/utils';
 interface ConnectionSectionProps {
   title: string;
   subtitle: string;
-  icon: string;
+  icon: React.ReactNode;
   provider: string;
   color: string;
   onConnect: () => void;

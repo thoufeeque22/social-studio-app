@@ -28,7 +28,7 @@ vi.mock('@/auth', () => ({
 
 // Mock revalidateDashboard
 vi.mock('@/lib/core/action-utils', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = await importOriginal() as Record<string, unknown>;
   return {
     ...actual,
     revalidateDashboard: vi.fn(),
@@ -41,7 +41,7 @@ describe('Metadata Actions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(auth).mockResolvedValue(mockSession as any);
+    vi.mocked(auth).mockResolvedValue(mockSession as never);
   });
 
   describe('getMetadataTemplates', () => {
@@ -49,7 +49,7 @@ describe('Metadata Actions', () => {
       const mockTemplates = [
         { id: 't1', name: 'T1', content: 'C1', userId: mockUserId },
       ];
-      vi.mocked(prisma.metadataTemplate.findMany).mockResolvedValue(mockTemplates as any);
+      vi.mocked(prisma.metadataTemplate.findMany).mockResolvedValue(mockTemplates as never);
 
       const result = await getMetadataTemplates();
 
@@ -61,7 +61,7 @@ describe('Metadata Actions', () => {
     });
 
     it('throws error if unauthorized', async () => {
-      vi.mocked(auth).mockResolvedValue(null as any);
+      vi.mocked(auth).mockResolvedValue(null as never);
       await expect(getMetadataTemplates()).rejects.toThrow('Unauthorized');
     });
   });
@@ -70,7 +70,7 @@ describe('Metadata Actions', () => {
     it('creates a new template', async () => {
       const input = { name: 'New Template', content: 'New Content' };
       const mockCreated = { id: 't2', ...input, userId: mockUserId };
-      vi.mocked(prisma.metadataTemplate.create).mockResolvedValue(mockCreated as any);
+      vi.mocked(prisma.metadataTemplate.create).mockResolvedValue(mockCreated as never);
 
       const result = await createMetadataTemplate(input);
 
@@ -91,7 +91,7 @@ describe('Metadata Actions', () => {
       vi.mocked(prisma.metadataTemplate.findUnique).mockResolvedValue({
         id: templateId,
         userId: mockUserId,
-      } as any);
+      } as never);
 
       const result = await deleteMetadataTemplate(templateId);
 
@@ -106,7 +106,7 @@ describe('Metadata Actions', () => {
       vi.mocked(prisma.metadataTemplate.findUnique).mockResolvedValue({
         id: templateId,
         userId: 'other-user',
-      } as any);
+      } as never);
 
       await expect(deleteMetadataTemplate(templateId)).rejects.toThrow('unauthorized');
       expect(prisma.metadataTemplate.delete).not.toHaveBeenCalled();
@@ -122,8 +122,8 @@ describe('Metadata Actions', () => {
       vi.mocked(prisma.metadataTemplate.findUnique).mockResolvedValue({
         id: templateId,
         userId: mockUserId,
-      } as any);
-      vi.mocked(prisma.metadataTemplate.update).mockResolvedValue(mockUpdated as any);
+      } as never);
+      vi.mocked(prisma.metadataTemplate.update).mockResolvedValue(mockUpdated as never);
 
       const result = await updateMetadataTemplate(templateId, input);
 

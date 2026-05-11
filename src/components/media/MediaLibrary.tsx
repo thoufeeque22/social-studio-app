@@ -6,6 +6,11 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Heading } from '@/components/ui/Heading';
 import { stageVideoFile } from '@/lib/upload/upload-utils';
 
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import MovieIcon from '@mui/icons-material/Movie';
+
 interface GalleryAsset {
   id: string;
   fileId: string;
@@ -140,7 +145,7 @@ export const MediaLibrary: React.FC = () => {
         }
       });
 
-      setUploadStatus("✨ Upload complete!");
+      setUploadStatus(" Upload complete!");
       setTimeout(() => {
         setIsUploading(false);
         setUploadStatus(null);
@@ -149,7 +154,7 @@ export const MediaLibrary: React.FC = () => {
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`❌ Error: ${message}`);
+      setUploadStatus(` Error: ${message}`);
       setTimeout(() => {
         setIsUploading(false);
         setUploadStatus(null);
@@ -223,7 +228,7 @@ export const MediaLibrary: React.FC = () => {
   };
 
   const handleClearAll = async () => {
-    if (!globalThis.confirm('⚠️ WARNING: This will permanently delete EVERY video in your staged gallery. Are you absolutely sure?')) return;
+    if (!globalThis.confirm('️ WARNING: This will permanently delete EVERY video in your staged gallery. Are you absolutely sure?')) return;
     if (!globalThis.confirm('FINAL CONFIRMATION: Are you really sure you want to wipe your entire media gallery?')) return;
     
     try {
@@ -346,7 +351,9 @@ export const MediaLibrary: React.FC = () => {
             </div>
           ) : filteredAssets.length === 0 ? (
             <div style={{ gridColumn: '1 / -1', padding: '4rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>
-              <div style={{ marginBottom: '1rem', fontSize: '2rem' }}>🎬</div>
+              <div style={{ marginBottom: '1rem' }}>
+                <MovieIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+              </div>
               <p>{searchQuery ? 'No matching videos found.' : 'Your media library is empty. Upload a video from the dashboard to get started!'}</p>
             </div>
           ) : (
@@ -431,7 +438,7 @@ export const MediaLibrary: React.FC = () => {
 
       <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'hsla(var(--warning) / 0.05)', border: '1px solid hsla(var(--warning) / 0.15)' }}>
         <p style={{ margin: 0, fontSize: '0.85rem', color: 'hsl(var(--warning))', textAlign: 'center' }}>
-          <strong>Note:</strong> Social Studio uses a "Lean Gallery" approach. Videos are automatically purged after 7 days to keep performance high and storage costs low.
+          <strong>Note:</strong> Social Studio uses a &quot;Lean Gallery&quot; approach. Videos are automatically purged after 7 days to keep performance high and storage costs low.
         </p>
       </div>
 
@@ -460,7 +467,9 @@ export const MediaLibrary: React.FC = () => {
           animation: 'slideUpHUD 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>{isUploading ? '📤' : '✨'}</span>
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              {isUploading ? <CloudUploadIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} className="animate-pulse" /> : <AutoAwesomeIcon sx={{ fontSize: 24, color: 'hsl(var(--primary))' }} />}
+            </span>
             <span style={{ fontWeight: 700, color: 'white', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
                {isUploading ? uploadStatus : `${selectedIds.length} ${selectedIds.length === 1 ? 'video' : 'videos'} selected`}
             </span>
@@ -504,7 +513,7 @@ export const MediaLibrary: React.FC = () => {
                     e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.4)';
                   }}
                 >
-                  ⏹️ DELETE SELECTED
+                  <DeleteIcon sx={{ fontSize: 20 }} /> DELETE SELECTED
                 </button>
               </>
             )}

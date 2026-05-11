@@ -1,32 +1,18 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { encrypt, decrypt } from "./encryption";
-
-const globalForPrisma = global as unknown as { 
-  prisma: PrismaClient | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extendedPrisma: any | undefined
-};
-
-export const basePrisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = basePrisma;
 
 const createExtendedClient = (base: PrismaClient) => base.$extends({
   query: {
     account: {
       async create({ args, query }) {
-        if (args.data.access_token) args.data.access_token = encrypt(args.data.access_token);
-        if (args.data.refresh_token) args.data.refresh_token = encrypt(args.data.refresh_token);
-        if (args.data.id_token) args.data.id_token = encrypt(args.data.id_token);
+        if (args.data.access_token) args.data.access_token = encrypt(args.data.access_token as string);
+        if (args.data.refresh_token) args.data.refresh_token = encrypt(args.data.refresh_token as string);
+        if (args.data.id_token) args.data.id_token = encrypt(args.data.id_token as string);
         
         const result = await query(args);
         
         if (result && result.userId) {
-          await (base as any).tokenAuditLog.create({
+          await base.tokenAuditLog.create({
             data: {
               userId: result.userId,
               accountId: result.id,
@@ -40,7 +26,7 @@ const createExtendedClient = (base: PrismaClient) => base.$extends({
         return result;
       },
       async update({ args, query }) {
-        const data = args.data as any;
+        const data = args.data as Prisma.AccountUpdateInput;
         const isTokenUpdate = !!(data.access_token || data.refresh_token);
         
         if (data.access_token && typeof data.access_token === 'string') data.access_token = encrypt(data.access_token);
@@ -50,7 +36,7 @@ const createExtendedClient = (base: PrismaClient) => base.$extends({
         const result = await query(args);
         
         if (isTokenUpdate && result && result.userId) {
-          await (base as any).tokenAuditLog.create({
+          await base.tokenAuditLog.create({
             data: {
               userId: result.userId,
               accountId: result.id,
@@ -76,7 +62,7 @@ const createExtendedClient = (base: PrismaClient) => base.$extends({
 
         if (result && result.userId) {
           const isTokenUpdate = !!(args.update.access_token || args.update.refresh_token);
-          await (base as any).tokenAuditLog.create({
+          await base.tokenAuditLog.create({
             data: {
               userId: result.userId,
               accountId: result.id,
@@ -114,6 +100,21 @@ const createExtendedClient = (base: PrismaClient) => base.$extends({
     }
   }
 });
+
+type ExtendedPrismaClient = ReturnType<typeof createExtendedClient>;
+
+const globalForPrisma = global as unknown as { 
+  prisma: PrismaClient | undefined,
+  extendedPrisma: ExtendedPrismaClient | undefined
+};
+
+export const basePrisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = basePrisma;
 
 export const prisma = globalForPrisma.extendedPrisma || createExtendedClient(basePrisma);
 

@@ -56,7 +56,7 @@ describe('User Account Server Actions', () => {
 
   describe('getUserAccounts', () => {
     it('returns an empty array if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null as any);
+      vi.mocked(auth).mockResolvedValue(null as never);
       const result = await getUserAccounts();
       expect(result).toEqual([]);
     });
@@ -66,8 +66,8 @@ describe('User Account Server Actions', () => {
         { id: 'acc_1', provider: 'google', accountName: 'Channel A', isDistributionEnabled: true },
         { id: 'acc_2', provider: 'tiktok', accountName: 'Profile B', isDistributionEnabled: false },
       ];
-      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
-      vi.mocked(prisma.account.findMany).mockResolvedValue(mockAccounts as any);
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as never);
+      vi.mocked(prisma.account.findMany).mockResolvedValue(mockAccounts as never);
       
       const result = await getUserAccounts();
       expect(result).toEqual(mockAccounts);
@@ -85,14 +85,14 @@ describe('User Account Server Actions', () => {
 
   describe('toggleAccountDistribution', () => {
     it('throws an error if no session exists', async () => {
-      vi.mocked(auth).mockResolvedValue(null as any);
+      vi.mocked(auth).mockResolvedValue(null as never);
       await expect(toggleAccountDistribution('acc_1', true))
         .rejects.toThrow('Unauthorized');
     });
 
     it('updates the account distribution status in DB', async () => {
-      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
-      vi.mocked(prisma.account.update).mockResolvedValue({} as any);
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as never);
+      vi.mocked(prisma.account.update).mockResolvedValue({} as never);
       
       const result = await toggleAccountDistribution('acc_1', false);
       
@@ -111,19 +111,19 @@ describe('User Account Server Actions', () => {
 
   describe('Platform & Sticky Preferences', () => {
     beforeEach(() => {
-      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as any);
+      vi.mocked(auth).mockResolvedValue({ user: { id: 'user_1' } } as never);
     });
 
     it('fetches platform preferences', async () => {
       const mockPrefs = [{ platformId: 'yt', isEnabled: true }];
-      vi.mocked(prisma.platformPreference.findMany).mockResolvedValue(mockPrefs as any);
+      vi.mocked(prisma.platformPreference.findMany).mockResolvedValue(mockPrefs as never);
       
       const result = await getPlatformPreferences();
       expect(result).toEqual(mockPrefs);
     });
 
     it('upserts platform preference', async () => {
-      vi.mocked(prisma.platformPreference.upsert).mockResolvedValue({} as any);
+      vi.mocked(prisma.platformPreference.upsert).mockResolvedValue({} as never);
       await togglePlatformPreference('tiktok', true);
       
       expect(prisma.platformPreference.upsert).toHaveBeenCalledWith({
@@ -134,11 +134,11 @@ describe('User Account Server Actions', () => {
     });
 
     it('manages video format preference', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredVideoFormat: 'long' } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredVideoFormat: 'long' } as never);
       const format = await getVideoFormatPreference();
       expect(format).toBe('long');
 
-      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
       await updateVideoFormatPreference('short');
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user_1' },
@@ -147,11 +147,11 @@ describe('User Account Server Actions', () => {
     });
 
     it('manages AI style preference', async () => {
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredAIStyle: 'Enrich' } as any);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ preferredAIStyle: 'Enrich' } as never);
       const style = await getAIStylePreference();
       expect(style).toBe('Enrich');
 
-      vi.mocked(prisma.user.update).mockResolvedValue({} as any);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
       await updateAIStylePreference('Generate');
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user_1' },

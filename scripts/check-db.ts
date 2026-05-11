@@ -6,7 +6,7 @@ async function check() {
   
   if (count > 0) {
     const sample = await prisma.roadmapTask.findFirst();
-    console.log(`🔍 Sample Task: ${sample?.title}`);
+    console.log(` Sample Task: ${sample?.title}`);
   }
 }
 

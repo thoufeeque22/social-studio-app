@@ -21,10 +21,10 @@ describe('MediaLibrary Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: mockAssets })
-    });
+    } as Response);
   });
 
   it('renders the gallery title and search bar', async () => {
@@ -49,10 +49,10 @@ describe('MediaLibrary Component', () => {
 
   it('opens confirmation on per-asset delete click', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true, data: mockAssets })
-    });
+    } as Response);
 
     render(<MediaLibrary />);
     
@@ -62,7 +62,7 @@ describe('MediaLibrary Component', () => {
       expect(deleteBtn).toBeInTheDocument();
       fireEvent.click(deleteBtn);
       expect(confirmSpy).toHaveBeenCalled();
-    } catch (err) {
+    } catch (err: unknown) {
       screen.debug(); // Show the DOM if it fails
       throw err;
     }
@@ -72,10 +72,10 @@ describe('MediaLibrary Component', () => {
 
   it('opens confirmation on Clear Gallery click', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    (global.fetch as any).mockResolvedValue({ 
+    vi.mocked(global.fetch).mockResolvedValue({ 
       ok: true, 
       json: async () => ({ success: true, data: mockAssets }) 
-    });
+    } as Response);
 
     render(<MediaLibrary />);
     
@@ -84,7 +84,7 @@ describe('MediaLibrary Component', () => {
       expect(clearButton).toBeInTheDocument();
       fireEvent.click(clearButton);
       expect(confirmSpy).toHaveBeenCalled();
-    } catch (err) {
+    } catch (err: unknown) {
       // screen.debug();
       throw err;
     }

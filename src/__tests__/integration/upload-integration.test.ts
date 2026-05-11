@@ -7,7 +7,8 @@
  * - Mocking of external platform APIs (Facebook Graph, Google APIs).
  */
 
-import { describe, it, beforeEach, vi, expect, afterEach } from 'vitest';
+import { describe, it, beforeEach, vi, expect, afterEach, Mock } from 'vitest';
+import { Readable } from 'stream';
 
 // 1. Mock Prisma BEFORE any other imports that might use it
 vi.mock('../../lib/core/prisma', () => ({
@@ -30,7 +31,6 @@ import { publishInstagramReel } from '../../lib/platforms/instagram';
 
 // Mock fs for Instagram binary push
 vi.mock('fs', () => {
-  const { Readable } = require('stream');
   const createMockStream = () => {
     const stream = new Readable();
     stream.push('video data');
@@ -60,7 +60,7 @@ vi.mock('fs', () => {
 // Mock Axios for Instagram binary push
 vi.mock('axios', () => ({
   default: {
-    post: vi.fn().mockImplementation(async (url, data, config) => {
+    post: vi.fn().mockImplementation(async (url: string, _data: unknown, config: { headers?: Record<string, string> }) => {
       if (url.includes('rupload.facebook.com')) {
         // Assert Offset header if it's the resume test
         if (config?.headers?.Offset === '500') {
@@ -91,7 +91,7 @@ describe('Upload Integrations', () => {
           json: async () => ({
             data: [{ instagram_business_account: { id: "ig_test_123" }, access_token: "page_token" }]
           })
-        } as any;
+        } as unknown as Response;
       }
 
       // Mock for Facebook Graph Container
@@ -100,7 +100,7 @@ describe('Upload Integrations', () => {
            return {
              ok: true,
              json: async () => ({ id: 'mock_creation_id' })
-           } as any;
+           } as unknown as Response;
         }
       }
 
@@ -109,7 +109,7 @@ describe('Upload Integrations', () => {
         return {
            ok: true,
            json: async () => ({ status_code: 'FINISHED' })
-        } as any;
+        } as unknown as Response;
       }
 
       // Mock for Facebook Publish
@@ -117,9 +117,9 @@ describe('Upload Integrations', () => {
         return {
            ok: true,
            json: async () => ({ id: 'mock_published_id' })
-        } as any;
+        } as unknown as Response;
       }
-      return { ok: true, json: async () => ({}) } as any;
+      return { ok: true, json: async () => ({}) } as unknown as Response;
     });
   });
 
@@ -148,17 +148,18 @@ describe('Upload Integrations', () => {
   });
 
   it('verifies metadata injection for YouTube payload', async () => {
+    const mockedFetch = global.fetch as Mock;
     // Mock the session initialization response
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockedFetch.mockResolvedValueOnce({
       ok: true,
       headers: { get: () => 'https://mock-upload-url.com' },
-    } as any);
+    } as unknown as Response);
 
     // Mock the binary upload response
-    vi.mocked(global.fetch).mockResolvedValueOnce({
+    mockedFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 'yt_video_123' }),
-    } as any);
+    } as unknown as Response);
 
     const result = await uploadToYouTube({
       userId: 'test_user',
@@ -169,7 +170,7 @@ describe('Upload Integrations', () => {
     });
 
     expect(result.data.id).toBe('yt_video_123');
-    const firstCall = vi.mocked(global.fetch).mock.calls[0];
+    const firstCall = mockedFetch.mock.calls[0];
     const body = JSON.parse(firstCall[1]?.body as string);
     expect(body.snippet.title).toBe('Short Title');
     expect(body.status.privacyStatus).toBe('public');
@@ -186,35 +187,35 @@ describe('Upload Integrations', () => {
           json: async () => ({
             data: [{ instagram_business_account: { id: "ig_test_123" }, access_token: "page_token" }]
           })
-        } as any;
+        } as unknown as Response;
       }
       // Mock the GET request to fetch offset
       if (url.includes('rupload.facebook.com') && options?.method === 'GET') {
         return {
           ok: true,
           headers: { get: () => '500' }
-        } as any;
+        } as unknown as Response;
       }
       // Mock the POST request for binary push
       if (url.includes('rupload.facebook.com') && options?.method === 'POST') {
         expect((options.headers as Record<string, string>)['Offset']).toBe('500'); // Validates it resumed from 500
-        return { ok: true, json: async () => ({ success: true }) } as any;
+        return { ok: true, json: async () => ({ success: true }) } as unknown as Response;
       }
       // Mock for Facebook Polling
       if (url.includes('status_code')) {
         return {
            ok: true,
            json: async () => ({ status_code: 'FINISHED' })
-        } as any;
+        } as unknown as Response;
       }
       // Mock for Facebook Publish
       if (url.includes('/media_publish')) {
         return {
            ok: true,
            json: async () => ({ id: 'mock_published_id' })
-        } as any;
+        } as unknown as Response;
       }
-      return { ok: false } as any;
+      return { ok: false } as unknown as Response;
     });
 
     const publishPromise = publishInstagramReel({
@@ -229,3 +230,4 @@ describe('Upload Integrations', () => {
     await publishPromise;
   });
 });
+
