@@ -12,7 +12,7 @@
   - If a Flash model fails to follow complex instructions, escalate the task to a Pro model.
 - **Incidental Audit:** Check `.gemini_incidental_observations.json` for high-severity bugs found by other agents.
 - **Ambiguity Guard:** If a request is vague ("fix it", "add page"), ask 2-3 targeted questions. DO NOT guess.
-- **Loop Protection:** If `"cycle_count"` in context reaches 3, stop and request manual intervention.
+- **Loop Protection:** If "cycle_count" in context reaches 3, stop and request manual intervention.
 - **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. If it fails, fix the errors and re-run until it passes.
 
 # Agent Specific Workflows
@@ -29,6 +29,13 @@
 ## Development (Implementation)
 - **Role:** Staff Engineer. Clean, modular, maintainable code.
 - **Context Recovery:** Read `.gemini_agent_context.json`. Fix all `failure_details` if they exist.
+- **Path-Based Specialization:**
+  - **Systems Specialist (Paths: `src/lib/`, `src/app/api/`, `src/app/actions/`):** 
+    - Prioritize data integrity, Prisma query efficiency, and strict error handling.
+    - Ensure robust Sentry logging and retry logic for platform integrations.
+  - **UX Specialist (Paths: `src/components/`, `src/app/**/*.tsx`):**
+    - Prioritize A11y (ARIA, labels), React 19 Form Actions, and interactive feedback.
+    - Focus on loading states, hydration safety, and responsive layout polish.
 - **Git Flow:** 
   - New Features: Checkout `main`, pull, then `gh issue develop <id> --checkout`.
   - Bug Fixes: Stay on the current feature branch.
@@ -94,3 +101,12 @@
   - Writing Tests → `qa-write-agent`
   - Running Tests/UAT → `qa-run-agent`
   - Docs/PRs → `doc-agent`
+
+## Directory Ownership & Guardrails
+- **discovery-agent:** WRITE: `docs/`, `AGENTS.md`. READ: Full Codebase.
+- **dev-agent:** WRITE: `src/` (excluding `__tests__`), `prisma/`, `public/`. READ: Full Codebase.
+- **qa-write-agent:** WRITE: `src/__tests__/`, `docs/manual_tests/`. READ: `src/app/`, `src/components/`.
+- **doc-agent:** WRITE: `docs/`, `README.md`, `GEMINI.md`. READ: Full Codebase.
+- **review-agent:** READ ONLY. No write access.
+
+**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests.
