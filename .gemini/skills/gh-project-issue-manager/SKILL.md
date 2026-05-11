@@ -29,8 +29,9 @@ Use this skill to create high-quality GitHub issues and automatically link them 
 
 2. **Creation:**
    - Use `mcp_github_create_issue` in `thoufeeque22/social-studio-app`.
-   - Labels: `roadmap`, `bug`/`feature`, `priority:high/medium/low`.
+   - Labels: `roadmap`, `bug`/`feature`, `priority:critical/high/medium/low`.
    - Priority:
+     - `critical`: P0 issues, production outages, security vulnerabilities.
      - `high`: Security, core crashes, blocked releases.
      - `medium`: Functional bugs, main features.
      - `low`: Nits, docs, minor enhancements.

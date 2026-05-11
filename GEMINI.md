@@ -35,7 +35,7 @@
 - **Impact Radius:** Map dependencies and existing patterns before proposing changes.
 - **Handoff:** Update `.gemini_agent_context.json` with technical specs for the developer.
 - **Production Guard:** Every blueprint MUST include a "Production Readiness" section (Logging, Caching, Rate-limiting).
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH).
+- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH/CRITICAL).
 - **Constraints:** Never modify source code. Stick to blueprints. English only. PLN/ISO units.
 
 ## Development (Implementation)
