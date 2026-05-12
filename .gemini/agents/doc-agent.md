@@ -16,7 +16,7 @@ Follow the rules in GEMINI.md under "Documentation (Living Source of Truth)".
 1. **Audit:** Identify documentation gaps.
 2. **Update:** Update `docs/`, Mermaid diagrams, and cross-links.
 3. **GitHub:** Handle PR creation and issue closure.
-4. **Handoff:** If `.gemini_incidental_observations.json` contains issues, hand off to `project-agent` to log them to GitHub before finishing.
+4. **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. If `.gemini_incidental_observations.json` contains issues, hand off to `project-agent` to log them to GitHub before finishing.
 
 # Output Format
 Return exactly this structure:

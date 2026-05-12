@@ -5,8 +5,28 @@ import { promises as fs } from "fs";
 import fsSync from "fs";
 import path from "path";
 import { getVideoMetadata, checkTranscodeRequirement, VideoMetadata } from "@/lib/video/processor";
+import { logger } from "@/lib/core/logger";
+import { z } from "zod";
 
 export const maxDuration = 300; 
+
+const assembleSchema = z.object({
+  uploadId: z.string(),
+  fileName: z.string(),
+  totalChunks: z.number(),
+  totalSize: z.number().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  videoFormat: z.string().optional(),
+  historyId: z.string().optional(),
+  platforms: z.array(z.object({
+    platform: z.string(),
+    accountId: z.string()
+  })).optional(),
+  scheduledAt: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
+    message: "Invalid date format for scheduledAt"
+  })
+});
 
 interface PlatformInput {
   platform: string;
@@ -25,12 +45,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId, platforms, scheduledAt } = await req.json();
-    
-    if (!uploadId || !fileName || totalChunks === undefined) {
-      return NextResponse.json({ error: "Missing metadata for assembly" }, { status: 400 });
+    const body = await req.json();
+    const result = assembleSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json({ error: "Invalid request data", details: result.error.format() }, { status: 400 });
     }
 
+    const { uploadId, fileName, totalChunks, totalSize, title, description, videoFormat, historyId, platforms, scheduledAt } = result.data;
+    
     const chunkDir = path.join(process.cwd(), "src/tmp/chunks", path.basename(uploadId));
     const tempDir = path.join(process.cwd(), "src/tmp");
     await fs.mkdir(tempDir, { recursive: true });
@@ -39,7 +62,7 @@ export async function POST(req: NextRequest) {
     const fileId = `${crypto.randomUUID()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const finalPath = path.join(tempDir, fileId);
 
-    console.log(`🧩 [ASSEMBLE] Joining ${totalChunks} chunks into: ${finalPath}`);
+    logger.info(`🧩 [ASSEMBLE] Joining ${totalChunks} chunks into: ${finalPath}`);
 
     // Verify all chunks exist before starting
     const chunkFiles = (await fs.readdir(chunkDir)).sort();
@@ -107,13 +130,13 @@ export async function POST(req: NextRequest) {
         await fs.unlink(finalPath);
         throw new Error(`Integrity Check Failed: Expected ${totalSize} bytes, got ${stats.size} bytes.`);
       }
-      console.log(`📏 [INTEGRITY] Size verified: ${stats.size} bytes`);
+      logger.info(`📏 [INTEGRITY] Size verified: ${stats.size} bytes`);
     }
 
     // Cleanup the empty chunk directory
     await fs.rmdir(chunkDir);
 
-    console.log(`✅ [ASSEMBLE] Success: ${fileId}`);
+    logger.info(`✅ [ASSEMBLE] Success: ${fileId}`);
 
     // REGISTER OR UPDATE IN GALLERY (LEAN GALLERY #388) - DEDUPLICATION LOGIC
     try {
@@ -121,7 +144,8 @@ export async function POST(req: NextRequest) {
       
       // Calculate Expiry: Scheduled time + 48 hours (Grace period)
       // Default to 7 days if no schedule is provided
-      const baseExpiryDate = scheduledAt ? new Date(scheduledAt) : new Date();
+      const parsedScheduledAt = scheduledAt ? new Date(scheduledAt) : null;
+      const baseExpiryDate = (parsedScheduledAt && !isNaN(parsedScheduledAt.getTime())) ? parsedScheduledAt : new Date();
       const expiresAt = new Date(baseExpiryDate.getTime() + (scheduledAt ? 48 : 7 * 24) * 60 * 60 * 1000);
 
       // Check for existing asset with same name and size for this user
@@ -137,13 +161,13 @@ export async function POST(req: NextRequest) {
       let videoMetadata: VideoMetadata | null = null;
       try {
         videoMetadata = await getVideoMetadata(finalPath);
-        console.log(`🎬 [METADATA] Extracted for ${fileName}: ${videoMetadata.width}x${videoMetadata.height}`);
+        logger.info(`🎬 [METADATA] Extracted for ${fileName}: ${videoMetadata.width}x${videoMetadata.height}`);
       } catch (me) {
-        console.warn("⚠️ [METADATA] Extraction failed (non-critical):", me);
+        logger.warn("⚠️ [METADATA] Extraction failed (non-critical):", me);
       }
 
       if (existingAsset) {
-        console.log(`🔄 [GALLERY] Updating existing asset to prevent duplicate: ${fileName}`);
+        logger.info(`🔄 [GALLERY] Updating existing asset to prevent duplicate: ${fileName}`);
         await prisma.galleryAsset.update({
           where: { id: existingAsset.id },
           data: {
@@ -167,7 +191,7 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (e) {
-      console.warn("⚠️ [ASSEMBLE] Gallery registration failed (non-critical):", e);
+      logger.warn("⚠️ [ASSEMBLE] Gallery registration failed (non-critical):", e);
     }
 
     // UPSERT POST HISTORY RECORD (RELIABILITY FIX V4)
@@ -182,6 +206,8 @@ export async function POST(req: NextRequest) {
       };
     })) : [];
 
+    const finalScheduledAt = (scheduledAt && !isNaN(new Date(scheduledAt).getTime())) ? new Date(scheduledAt) : new Date();
+
     if (historyId) {
       history = await prisma.postHistory.update({
         where: { id: historyId, userId: session.user.id },
@@ -190,7 +216,7 @@ export async function POST(req: NextRequest) {
           title: title || undefined,
           description: description || undefined,
           isPublished: false,
-          scheduledAt: new Date(),
+          scheduledAt: finalScheduledAt,
           platforms: {
             upsert: initialPlatformData.map(p => ({
               where: { 
@@ -218,7 +244,7 @@ export async function POST(req: NextRequest) {
           videoFormat: videoFormat || "short",
           stagedFileId: fileId,
           isPublished: false, // Background worker will pick this up
-          scheduledAt: new Date(), // Publish ASAP
+          scheduledAt: finalScheduledAt, // Publish at scheduled time or ASAP
           platforms: {
             create: initialPlatformData
           }
@@ -235,7 +261,7 @@ export async function POST(req: NextRequest) {
       } 
     });
   } catch (error: unknown) {
-    console.error("Assembly Error:", error);
+    logger.error("Assembly Error:", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }
 }

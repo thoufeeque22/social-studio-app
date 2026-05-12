@@ -6,6 +6,7 @@ import path from "node:path";
 import { streamMultipartFormData } from "@/lib/upload/streaming-parser";
 import { formatPlatformCaption, PlatformData } from "./distributor-utils";
 import { getOptimizedVideoPath } from "@/lib/video/transcode-manager";
+import { logger } from "@/lib/core/logger";
 
 interface PlatformHandlerParams {
   req: NextRequest;
@@ -47,7 +48,7 @@ export async function handlePlatformUploadRequest({
     if (contentType.includes("application/json")) {
       const body = await req.json();
       if (!body.stagedFileId) {
-        console.log(" [PLATFORM] JSON request missing stagedFileId");
+        logger.info(" [PLATFORM] JSON request missing stagedFileId");
         return NextResponse.json({ error: "JSON request missing stagedFileId" }, { status: 400 });
       }
       // Security check: ensure the file is strictly within src/tmp
@@ -61,12 +62,12 @@ export async function handlePlatformUploadRequest({
       fields = parsed.fields;
       fileName = parsed.fileName;
     } else {
-      console.log(` [PLATFORM] Unsupported Content-Type: ${contentType}`);
+      logger.info(` [PLATFORM] Unsupported Content-Type: ${contentType}`);
       return NextResponse.json({ error: `Unsupported Content-Type: ${contentType}` }, { status: 400 });
     }
 
     if (!filePath || !fsSync.existsSync(filePath)) {
-      console.log(` [PLATFORM] File not found or path invalid. Path: "${filePath}". Exists: ${filePath ? fsSync.existsSync(filePath) : 'false'}`);
+      logger.info(` [PLATFORM] File not found or path invalid. Path: "${filePath}". Exists: ${filePath ? fsSync.existsSync(filePath) : 'false'}`);
       return NextResponse.json({ error: "No file uploaded or streaming failed" }, { status: 400 });
     }
 
@@ -82,7 +83,7 @@ export async function handlePlatformUploadRequest({
       const stagedFileId = fields.stagedFileId || path.basename(filePath);
       activeFilePath = await getOptimizedVideoPath(stagedFileId, platform, historyId);
     } catch (transError) {
-      console.warn(`️ [${platform}] Optimization failed, falling back to original:`, transError);
+      logger.warn(`️ [${platform}] Optimization failed, falling back to original:`, transError);
     }
 
     // 3. SECURITY: Verify account ownership before proceeding
@@ -97,12 +98,12 @@ export async function handlePlatformUploadRequest({
         }, { status: 403 });
       }
       accountName = account.accountName || 'Unknown Account';
-      console.log(` [SECURITY] Account ownership verified for ${platform}: ${accountId} (${accountName})`);
+      logger.info(` [SECURITY] Account ownership verified for ${platform}: ${accountId} (${accountName})`);
     }
 
     // 3. MOCK_UPLOAD Check
     if (process.env.MOCK_UPLOAD === "true") {
-      console.log(` [MOCK MODE] Skipping actual ${platform} API upload.`);
+      logger.info(` [MOCK MODE] Skipping actual ${platform} API upload.`);
       return NextResponse.json({ 
         success: true, 
         data: { id: `mock-${platform}-${Date.now()}` } 
@@ -113,7 +114,7 @@ export async function handlePlatformUploadRequest({
     // BYPASS if already reviewed on client
     let enrichedContent: { title: string; description: string; hashtags: string[] };
     if (fields.reviewedContent) {
-      console.log(` [${platform}] Using user-reviewed AI content.`);
+      logger.info(` [${platform}] Using user-reviewed AI content.`);
       const rc = JSON.parse(fields.reviewedContent) as import('@/lib/utils/ai-writer').AIWriteResult;
       enrichedContent = {
         title: rc.title || '',
@@ -121,7 +122,7 @@ export async function handlePlatformUploadRequest({
         hashtags: rc.hashtags || []
       };
     } else {
-      console.log(` [${platform}] Using Manual content.`);
+      logger.info(` [${platform}] Using Manual content.`);
       enrichedContent = {
         title: rawTitle,
         description: rawDescription,
@@ -165,7 +166,7 @@ export async function handlePlatformUploadRequest({
         const currentPercent = Math.floor(percent);
         if (currentPercent > lastReported && historyId && accountId) {
           lastReported = currentPercent;
-          console.log(` [HEARTBEAT] ${platform} (${accountId}): ${currentPercent}%`);
+          logger.info(` [HEARTBEAT] ${platform} (${accountId}): ${currentPercent}%`);
           const { updatePlatformProgress } = await import("./heartbeat-server");
           await updatePlatformProgress(historyId, platform, accountId, currentPercent);
         }
@@ -204,12 +205,12 @@ export async function handlePlatformUploadRequest({
             progress: 100
           }
         });
-        console.log(` [${platform}] Database updated to success for history: ${historyId}`);
+        logger.info(` [${platform}] Database updated to success for history: ${historyId}`);
       }
 
       return NextResponse.json({ success: true, data: result });
     } catch (apiError: unknown) {
-      console.error(` [${platform}] API Error:`, apiError);
+      logger.error(` [${platform}] API Error:`, apiError);
       const e = apiError as Record<string, unknown>;
       const errorMessage = (e.message as string) || String(e);
 
@@ -240,7 +241,7 @@ export async function handlePlatformUploadRequest({
       }, { status: e.status === 'failed' ? 200 : 500 });
     }
   } catch (error: unknown) {
-    console.error(` [${platform}] Route Error:`, error);
+    logger.error(` [${platform}] Route Error:`, error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
         success: false, 
