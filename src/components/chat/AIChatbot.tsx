@@ -52,7 +52,6 @@ export const AIChatbot = () => {
     
     const content = manualInput;
     setManualInput('');
-    // @ts-expect-error - sendMessage is available in this version of @ai-sdk/react but not in the base types
     await sendMessage({ text: content });
   };
 
@@ -173,7 +172,14 @@ export const AIChatbot = () => {
                     </Box>
                   )}
 
-                  {messages.map((m) => (
+                  {messages.map((m) => {
+                    const msgRecord = m as unknown as Record<string, unknown>;
+                    const msgContent = typeof msgRecord.content === 'string' ? msgRecord.content : '';
+                    
+                    // safely extract parts
+                    const parts = Array.isArray(m.parts) ? m.parts : [];
+                    
+                    return (
                     <Box 
                       key={m.id}
                       data-testid={m.role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}
@@ -201,23 +207,47 @@ export const AIChatbot = () => {
                       >
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                           {/* Render text content if available */}
-                          {m.content && (
+                          {msgContent && (
                             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                              {m.content}
+                              {msgContent}
                             </Typography>
                           )}
 
                           {/* Render parts (including tool invocations) */}
-                          {m.parts && m.parts.length > 0 && m.parts.map((part, i) => (
+                          {parts.length > 0 && parts.map((part, i) => {
+                            const partRecord = part as unknown as Record<string, unknown>;
+                            const isText = part.type === 'text';
+                            const textVal = typeof partRecord.text === 'string' ? partRecord.text : '';
+                            
+                            const isLegacyTool = part.type === 'tool-invocation';
+                            const isModernTool = typeof part.type === 'string' && (part.type.startsWith('tool-') || part.type === 'dynamic-tool');
+                            const isTool = isLegacyTool || isModernTool;
+                            
+                            let toolState = '';
+                            let toolName = '';
+                            let toolResult: unknown = null;
+                            
+                            if (isLegacyTool && partRecord.toolInvocation && typeof partRecord.toolInvocation === 'object') {
+                              const invocation = partRecord.toolInvocation as Record<string, unknown>;
+                              toolState = typeof invocation.state === 'string' ? invocation.state : '';
+                              toolName = typeof invocation.toolName === 'string' ? invocation.toolName : '';
+                              toolResult = invocation.result;
+                            } else if (isModernTool) {
+                              toolState = typeof partRecord.state === 'string' ? partRecord.state : '';
+                              toolName = typeof partRecord.toolName === 'string' ? partRecord.toolName : (typeof part.type === 'string' ? part.type.replace('tool-', '') : '');
+                              toolResult = partRecord.output || partRecord.result;
+                            }
+
+                            return (
                             <React.Fragment key={i}>
-                              {/* Only render part.text if it's different from m.content to avoid duplication */}
-                              {part.type === 'text' && part.text && part.text !== m.content && (
+                              {/* Only render part.text if it's different from msgContent to avoid duplication */}
+                              {isText && textVal && textVal !== msgContent && (
                                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                                  {part.text}
+                                  {textVal}
                                 </Typography>
                               )}
                               
-                              {part.type === 'tool-invocation' && (
+                              {isTool && (
                                 <Box 
                                   data-testid="chat-tool-invocation"
                                   sx={{ 
@@ -231,32 +261,32 @@ export const AIChatbot = () => {
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                     <AutoAwesomeIcon sx={{ fontSize: 14, color: 'primary.main' }} />
                                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                                      {part.toolInvocation.state === 'call' ? 'Using' : 'Used'} {part.toolInvocation.toolName.replace(/_/g, ' ')}
+                                      {toolState === 'call' || toolState === 'input-streaming' || toolState === 'input-available' ? 'Using' : 'Used'} {toolName.replace(/_/g, ' ')}
                                     </Typography>
                                   </Box>
-                                  {part.toolInvocation.state === 'result' && (
+                                  {(toolState === 'result' || toolResult !== undefined) && (
                                     <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', fontStyle: 'italic' }}>
-                                      {typeof part.toolInvocation.result === 'string' 
-                                        ? part.toolInvocation.result 
-                                        : Array.isArray(part.toolInvocation.result)
-                                          ? `Found ${part.toolInvocation.result.length} items.`
+                                      {typeof toolResult === 'string' 
+                                        ? toolResult 
+                                        : Array.isArray(toolResult)
+                                          ? `Found ${toolResult.length} items.`
                                           : 'Action completed.'}
                                     </Typography>
                                   )}
                                 </Box>
                               )}
                             </React.Fragment>
-                          ))}
+                          )})}
                           
                           {/* Fallback for empty assistant response after finishing */}
-                          {m.role === 'assistant' && !m.content && (!m.parts || m.parts.every(p => p.type !== 'text' || !p.text)) && status !== 'streaming' && (
+                          {m.role === 'assistant' && !msgContent && parts.every(p => p.type !== 'text' || !(p as unknown as Record<string, unknown>).text) && status !== 'streaming' && (
                             <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.8 }}>
-                              {m.parts?.some(p => p.type === 'tool-invocation') ? 'Processed your request.' : 'I couldn\'t find a way to help with that.'}
+                              {parts.some(p => typeof p.type === 'string' && p.type.includes('tool')) ? 'Processed your request.' : 'I couldn\'t find a way to help with that.'}
                             </Typography>
                           )}
                           
                           {/* Fallback for empty assistant response during streaming */}
-                          {m.role === 'assistant' && !m.content && (!m.parts || m.parts.every(p => p.type !== 'text' || !p.text)) && status === 'streaming' && (
+                          {m.role === 'assistant' && !msgContent && parts.every(p => p.type !== 'text' || !(p as unknown as Record<string, unknown>).text) && status === 'streaming' && (
                             <Box sx={{ display: 'flex', gap: 0.5, py: 0.5 }}>
                               {[0, 1, 2].map((i) => (
                                 <motion.div 
@@ -271,7 +301,7 @@ export const AIChatbot = () => {
                         </Box>
                       </Paper>
                     </Box>
-                  ))}
+                  )})}
 
                   {/* Error State */}
                   {error && (

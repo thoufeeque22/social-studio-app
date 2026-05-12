@@ -18,7 +18,6 @@ import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL } from '@/lib/core/consta
 // Initialize Google provider
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || 'no-key',
-  apiVersion: 'v1',
 });
 
 // Initialize Ollama provider
@@ -60,7 +59,6 @@ export async function POST(req: Request) {
     const result = streamText({
       model,
       messages: modelMessages,
-      maxSteps: 5,
       onFinish: (event) => {
         logger.info("Chat finished", { text: event.text });
       },

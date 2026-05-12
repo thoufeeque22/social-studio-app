@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 test.describe('AI Chatbot E2E', () => {
   test.setTimeout(60000); // 60 seconds for slow local models
@@ -10,7 +10,7 @@ test.describe('AI Chatbot E2E', () => {
     await expect(page.getByTestId('chat-fab')).toBeVisible();
   });
 
-  async function openChat(page) {
+  async function openChat(page: Page) {
     const fab = page.getByTestId('chat-fab');
     const window = page.getByTestId('chat-window');
     
