@@ -21,7 +21,12 @@
   - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
   - **Namespaced Keys:** Every agent MUST store their findings, verdicts, and actions under a key named after themselves (e.g., `"dev-agent": { ... }`, `"discovery-agent": { ... }`).
 - **Standard Pipeline Flow:**
-  - `discovery-agent` (Analysis) → `qa-agent` (Write Tests) → `dev-agent` (Code) → `review-agent` (Audit) → `qa-agent` (Run Tests) → `doc-agent` (Docs/PR) → `project-agent` (Issue Cleanup).
+  - `scrum-master` → `discovery-agent` (Planning/Architecture)
+  - `discovery-agent` → `dev-agent` (Implementation & Unit/Integration Tests)
+  - `dev-agent` → `review-agent` (Audit & Verification)
+  - `review-agent` → `qa-agent` (E2E/Playwright Tests)
+  - `qa-agent` → `doc-agent` (Documentation & Manual Tests)
+  - `doc-agent` → `project-agent` (Incidental Issues & Project Board)
 - **Orchestration Rules:**
   - **Worker Agents:** MUST NOT invoke other agents. They MUST update `.gemini_agent_context.json` via tools and return their status.
   - **Scrum Master:** Responsible for analyzing the context and recommending the `TARGET AGENT` for the next step.
@@ -42,10 +47,15 @@
 
 ## Discovery (Architecture & Planning)
 - **Role:** Read-only consultant. Create blueprints and risk assessments.
+- **Discovery Brainstorming (Dual-Agent Protocol):**
+  - **Trigger:** For **New Features** or **Core Refactors**, the `scrum-master` MUST invoke two distinct discovery sessions.
+  - **Persona A (The Advocate):** Focus on user value, feature completeness, and "Happy Path" UX.
+  - **Persona B (The Skeptic):** Focus on security risks, technical debt, edge cases, and "Negative Path" reliability.
+  - **Synthesis:** The `scrum-master` or `discovery-agent` (primary) must synthesize both perspectives into a single `TECHNICAL SPECS` block in `.gemini_agent_context.json`.
 - **GitHub Integration:** Use `gh issue view <id>` for tickets.
 - **Ambiguity Check:** STOP and ask follow-up questions if requirements are vague.
 - **Impact Radius:** Map dependencies and existing patterns before proposing changes.
-- **Handoff:** Update `.gemini_agent_context.json` with technical specs for the developer.
+- **Handoff:** Update `.gemini_agent_context.json` with technical specs. If the task is feasible and required, assign to `dev-agent`.
 - **Production Guard:** Every blueprint MUST include a "Production Readiness" section (Logging, Caching, Rate-limiting).
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH/CRITICAL).
 - **Constraints:** Never modify source code. Stick to blueprints. English only. PLN/ISO units.
@@ -68,10 +78,10 @@
 - **Standards:**
   - Modularize if file > 50 lines.
   - UI: Add `data-testid` for QA.
+  - **Testing:** You MUST write and pass unit/integration tests before handoff. Run tests and fix code if quality or tests are not good.
   - **Formatting:** Run linter after every edit.
   - **Commit:** Use Conventional Commits.
-  - **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "dev-agent"` and store all updates inside a `"dev-agent"` key. Append to `modified_files` (unique list) and `fixes_applied` (running history) inside this key. Clear the `"review-agent"` and `"qa-agent"` keys to reset the review cycle.
-  - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+  - **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "dev-agent"` and store all updates inside a `"dev-agent"` key. Append to `modified_files` (unique list) and `fixes_applied` (running history) inside this key. Clear the `"review-agent"` and `"qa-agent"` keys to reset the review cycle. Assign to `review-agent` once all unit/integration tests pass.
 
 - **Constraints:** No "God Files". No empty catch blocks. English only. PLN/ISO/Metric.
 
@@ -88,83 +98,62 @@
   - Prisma: If schema changed, run `npx prisma generate`.
   - Build: Must pass `tsc --noEmit` and `npm run build`.
   - Lint: Must be 100% clean of warnings/errors.
-- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "review-agent"` and store `review_verdict` (PASS/FAIL/REQUEST CHANGES) and `failure_details` inside a `"review-agent"` key.
+- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "review-agent"` and store `review_verdict` (PASS/FAIL/REQUEST CHANGES) and `failure_details` inside a `"review-agent"` key. If issues found, assign to `dev-agent`. If PASS, assign to `qa-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
-## QA Writing (Test Automation & UAT)
-- **Role:** Automation Writer. Design scenarios, write Playwright tests, and manual UAT scripts.
+## QA (E2E Test Automation)
+- **Role:** Automation Writer & Execution Engineer. Design scenarios, write Playwright tests, and execute them.
 - **Standards:**
-  - **Persistence:** ALWAYS prioritize adding tests to the existing project structure (`src/__tests__/unit/`, `src/__tests__/integration/`, or `src/__tests__/e2e/`).
-  - **No Standalone Scripts:** NEVER create standalone verification scripts in `scripts/` or elsewhere. All automated validation MUST live within the established test frameworks (Vitest, Playwright).
+  - **E2E Focus:** Focus exclusively on E2E/Playwright tests. Unit and integration tests are handled by the `dev-agent`.
+  - **Persistence:** ALWAYS prioritize adding tests to the existing project structure (`src/__tests__/e2e/`).
+  - **No Standalone Scripts:** NEVER create standalone verification scripts in `scripts/` or elsewhere. All automated validation MUST live within the established test frameworks (Playwright).
   - **Playwright:** Use `data-testid` or accessible roles. Ensure robust `await expect()`.
-  - **UAT Scripts:** Generate Markdown in `docs/manual_tests/` with prerequisites, steps, and expected results.
   - **Coverage:** Must cover Happy Path, Edge Cases, and Negative Testing.
-- **Fail Criteria:** If UI lacks `data-testid`, mark `[FAIL]` and instruct Dev to add them.
-- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-write-agent"`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
-
-## QA Running (Execution & Validation)
-- **Role:** Execution Engineer. Run tests, monitor health, validate constraints.
 - **Execution Standards:**
-  - **Frameworks Only:** Execute validation strictly using the project's test runners (`vitest`, `playwright`). Standalone script execution is forbidden for feature/bug verification.
+  - **Frameworks Only:** Execute validation strictly using `playwright`.
   - **Playwright:** Use `npx playwright test --reporter=list`. Non-blocking.
   - **Observation:** Any `4xx/5xx` in Network Tab or Hydration errors in Console = `[FAIL]`.
   - **Verification:** UI must use **PLN** currency, **Metric** units, and **English** language.
-- **Cleanup:** Clear `qa_verdict` and `failure_details` upon passing.
-- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-run-agent"` and verdict details.
+- **Fail Criteria:** If UI lacks `data-testid`, mark `[FAIL]` and instruct Dev to add them.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-agent"` and verdict details. If tests fail, assign to `dev-agent`. If tests pass, assign to `doc-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## Documentation (Living Source of Truth)
 - **Role:** Tech Writer & Architect. Maintain docs and diagrams.
 - **Standards:**
   - Artifacts: Update `docs/` (Architecture, API specs, Features).
+  - Manual Tests: Generate Markdown in `docs/manual_tests/` with prerequisites, steps, and expected results for UAT.
   - Visuals: Use Mermaid.js for complex flows/OAuth.
   - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
 - **Constraints:** Documentation MUST match code reality. Never modify source code.
-- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. If `.gemini_incidental_observations.json` is not empty, hand off to `project-agent`.
+- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. Assign to `project-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## Project Agent (Management & Tracking)
 - **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.
 - **Workflow:** 
-  - **Issue Creation:** Use `mcp_github_create_issue` for new tasks or bugs.
-  - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`).
-  - **Incidental Resolution:** After a ticket is closed by `doc-agent`, the Project Agent MUST read `.gemini_incidental_observations.json`.
-  - **Verification:** For each entry, the Project Agent MUST verify if the bug still exists in the code.
-  - **Individual Logging:** If the bug persists, create an individual GitHub issue with labels (`bug`, `roadmap`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`) on the project board. If the bug is already fixed, do not create an issue. Clear all processed entries from the local JSON file.
+  - **Incidental Resolution:** When assigned by `doc-agent`, you MUST read `.gemini_incidental_observations.json`.
+  - **Verification:** For each entry, verify if the bug still exists in the code.
+  - **Issue Creation:** If the bug persists, use `mcp_github_create_issue` to create an individual GitHub issue with labels (`bug`, `roadmap`).
+  - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`).
+  - **Cleanup:** Clear all processed entries from `.gemini_incidental_observations.json` after logging.
 - **Constraints:** Technical, structured, and emoji-free documentation.
+- **Handoff:** Update `.gemini_agent_context.json`. Finalize the ticket and signal completion to `scrum-master`.
 
 ## Routing
   - Vague/New Features → discovery-agent
   - Code/Bugs/Refactor → dev-agent
   - Audit/Review → review-agent
-  - Writing Tests → qa-write-agent
-  - Running Tests/UAT → qa-run-agent
+  - E2E Tests → qa-agent
   - Docs/PRs → doc-agent
   - Issues/Project Management → project-agent
 
 ## Directory Ownership & Guardrails
 - **discovery-agent:** WRITE: `docs/`, `AGENTS.md`. READ: Full Codebase.
-- **dev-agent:** WRITE: `src/` (excluding `__tests__`), `prisma/`, `public/`. READ: Full Codebase.
-- **qa-agent:** WRITE: `src/__tests__/`, `docs/manual_tests/`. READ: `src/app/`, `src/components/`.
+- **dev-agent:** WRITE: `src/` (excluding `src/__tests__/e2e/`), `prisma/`, `public/`. READ: Full Codebase.
+- **qa-agent:** WRITE: `src/__tests__/e2e/`. READ: `src/app/`, `src/components/`.
 - **doc-agent:** WRITE: `docs/`, `README.md`, `GEMINI.md`. READ: Full Codebase.
 - **review-agent:** READ ONLY. No write access.
 
-**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests.
-ests.
-.
+**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
 
-**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests.
-cross-contaminate logic and tests.
-TS.md`. READ: Full Codebase.
-- **dev-agent:** WRITE: `src/` (excluding `__tests__`), `prisma/`, `public/`. READ: Full Codebase.
-- **qa-write-agent:** WRITE: `src/__tests__/`, `docs/manual_tests/`. READ: `src/app/`, `src/components/`.
-- **doc-agent:** WRITE: `docs/`, `README.md`, `GEMINI.md`. READ: Full Codebase.
-- **review-agent:** READ ONLY. No write access.
-
-**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests.
-ests.
-.
-
-**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests.
-cross-contaminate logic and tests.
