@@ -15,6 +15,7 @@ When encountering a large number of lint errors (e.g., >10 errors), DO NOT attem
    - Priority 3: Systemic errors that can be fixed with a single rule change or global search-replace (e.g., `Date.now()` vs `new Date().getTime()`).
 3. **Categorization:** Group errors by file or directory to keep the implementation focused.
 4. **Handoff & Report:**
+   - Update the calling agent's namespaced key in `.gemini_agent_context.json` with the current lint status (e.g., `"lint_errors_fixed": 8`, `"remaining_errors": 42`).
    - Provide a concise summary of what was fixed.
    - List the remaining error count.
    - Suggest which file/batch to tackle next.
