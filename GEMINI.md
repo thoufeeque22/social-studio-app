@@ -17,7 +17,8 @@
 # Agent Orchestration (Scrum Master Rules)
 
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
-- **Context Structure:**
+- **Handoff & Commit Rule:** Every agent MUST commit their changes using Conventional Commits before updating `.gemini_agent_context.json` and assigning the task to the next agent.
+- **Context Structure:****
   - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
   - **Namespaced Keys:** Every agent MUST store their findings, verdicts, and actions under a key named after themselves (e.g., `"dev-agent": { ... }`, `"discovery-agent": { ... }`).
 - **Standard Pipeline Flow:**
@@ -98,7 +99,7 @@
   - Prisma: If schema changed, run `npx prisma generate`.
   - Build: Must pass `tsc --noEmit` and `npm run build`.
   - Lint: Must be 100% clean of warnings/errors.
-- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "review-agent"` and store `review_verdict` (PASS/FAIL/REQUEST CHANGES) and `failure_details` inside a `"review-agent"` key. If issues found, assign to `dev-agent`. If PASS, assign to `qa-agent`.
+- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "review-agent"` and store `review_verdict` (PASS/FAIL/REQUEST CHANGES) and `failure_details` inside a `"review-agent"` key. You MUST commit any review artifacts before assigning. If issues found, assign to `dev-agent`. If PASS, assign to `qa-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## QA (E2E Test Automation)
@@ -115,7 +116,7 @@
   - **Observation:** Any `4xx/5xx` in Network Tab or Hydration errors in Console = `[FAIL]`.
   - **Verification:** UI must use **PLN** currency, **Metric** units, and **English** language.
 - **Fail Criteria:** If UI lacks `data-testid`, mark `[FAIL]` and instruct Dev to add them.
-- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-agent"` and verdict details. If tests fail, assign to `dev-agent`. If tests pass, assign to `doc-agent`.
+- **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-agent"` and verdict details. You MUST commit all test changes before assigning to the next agent. If tests fail, assign to `dev-agent`. If tests pass, assign to `doc-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## Documentation (Living Source of Truth)
@@ -126,7 +127,7 @@
   - Visuals: Use Mermaid.js for complex flows/OAuth.
   - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
 - **Constraints:** Documentation MUST match code reality. Never modify source code.
-- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. Assign to `project-agent`.
+- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. You MUST commit all documentation and manual test changes before assigning to `project-agent`.
 - **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
 
 ## Project Agent (Management & Tracking)
@@ -156,4 +157,6 @@
 - **review-agent:** READ ONLY. No write access.
 
 **Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
+
+ntegration/`.
 
