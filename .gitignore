@@ -74,10 +74,6 @@ next-env.d.ts
 *.swo
 .env*.local
 
-# Gemini CLI State
-.gemini_agent_context.json
-.gemini_incidental_observations.json
-
 # Logs and Diagnostic Reports
 *.log
 lint_output.txt

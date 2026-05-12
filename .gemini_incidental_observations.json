@@ -1,9 +1,1 @@
-[
-  {
-    "file": "src/components/dashboard/DashboardClient.tsx",
-    "line": 531,
-    "severity": "HIGH",
-    "description": "'StopIcon' is not defined. This will cause a runtime crash on that line.",
-    "suggested_fix": "Import StopIcon from '@mui/icons-material/Stop'."
-  }
-]
+[]
