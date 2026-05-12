@@ -8,7 +8,6 @@ import {
   Typography, 
   TextField, 
   Avatar, 
-  CircularProgress,
   Tooltip,
   InputAdornment,
   Paper
@@ -53,7 +52,7 @@ export const AIChatbot = () => {
     
     const content = manualInput;
     setManualInput('');
-    // @ts-ignore - sendMessage is available in this version of @ai-sdk/react
+    // @ts-expect-error - sendMessage is available in this version of @ai-sdk/react but not in the base types
     await sendMessage({ text: content });
   };
 
