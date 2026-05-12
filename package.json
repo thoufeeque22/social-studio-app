@@ -17,6 +17,8 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.72",
+    "@ai-sdk/react": "^3.0.180",
     "@auth/prisma-adapter": "^2.11.1",
     "@capacitor/android": "^8.3.1",
     "@capacitor/app": "^8.1.0",
@@ -35,6 +37,8 @@
     "@sentry/nextjs": "^10.50.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "ai": "^6.0.178",
+    "ai-sdk-ollama": "^3.8.4",
     "axios": "^1.15.0",
     "busboy": "^1.6.0",
     "date-fns": "^4.1.0",

@@ -1,35 +1,45 @@
 {
   "cookies": [
     {
-      "name": "authjs.csrf-token",
-      "value": "213b9daffe91984859cb20bce0f88d437fa17b58b7971d27324c6fbb118ce2c9%7Cac4426c4dd4d7fcc003a400f386c52d57fd3d2c9fc3428a9a5c52f49eb5a6c21",
+      "name": "__Host-authjs.csrf-token",
+      "value": "61e2084d08dabf2116faffdf40b0c16cc8f3b58f1a6681ef685d5d500b8f3a6e%7C0f307470be1556611bc369b2eed0a8c565020c4e436e639aed4a4b1664906210",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": false,
+      "secure": true,
       "sameSite": "Lax"
     },
     {
-      "name": "authjs.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000%2Flogin",
+      "name": "__Secure-authjs.callback-url",
+      "value": "https%3A%2F%2Froohis-mac.tail8a2e7d.ts.net",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": false,
+      "secure": true,
       "sameSite": "Lax"
     },
     {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoicm9WX3hDaFUyS3ZSSFdCN2ZJa1k1eUpGWTlKWHdCSE1VZTBvbU1MdWk1X0F5TVdXOTJveUtDLWFzdml4cTRHWndjOGlHdmtUaGdoQ2lJN3d6X1hvdWcifQ..4FsQfOsAYjIhcFNYwvtwXg.uyTivecWgLQQg1x6maW1pIAoNGmHEbUW7KXH4EgWCZ3uUJg7yYSFwEj8NhAHeDuzSRqNrQKIw0FRMPxkj7Nt0_fduf0Bn7EE9_KEEIm72umGoEmWLSOxTcunqEyO4f9BiYaq40p4eDEojYQK1WsVJ8uAB6wCR30WD8_OH6NLLT18XSyHqlFJwnsAJZzWUb7j6ezerFlGyf9KOHafPzjLUgHNLHGc9RBTStEfztB4DetUlBxuKeq8FomG4O5JiKJBZs7awWe3W9PyDafdfpzVSg.xToIyKu86S7_5-8PXbKIEU1_e1rRw08WBuEyyITdiWU",
+      "name": "__Secure-authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiV1JvTE9pVjlvNVVsNzJKMC10cnZEdmdjRjhqbzBKdXhpUWpqdjZYbG5jMEZucVZhMm5hZ0tRUTBzTlFJZmQxdDYwWExKRU0ta1IyRmNROVpzSERxRHcifQ..lRVVGbaqKqakJe51MUMmdg.WjZY1RwXjh0uJOwaLyAKOnb2sSvCKDl7tZOypPH_Cm_OcUCX4YxvpuRf1mlXHnLQ4e-a5b4CDPUeNdMvA-tuCl4D0W-Y5qr2TuRP-od8iLcYQ97y4R9LX31zcUwZ6c0gtO5xbudHTChz0FCZUO8GACCxeGZbayhV1cXIGaYyAh8N3iw759u8utS0olZldHNvkRhO3YZoo50gQ_6NkhyDVDWpN_QmsVg1YJhNFNDTPD_kqKPbpgfRosN1HldXv6KSqX-H812iP5yZFyXQd7_GgQ.SixCG-Cd0keBOo20K_xbSG3tdZu946xFQ27tt4wmBTU",
       "domain": "localhost",
       "path": "/",
-      "expires": 1781119611.120406,
+      "expires": 1781216665.401281,
       "httpOnly": true,
-      "secure": false,
+      "secure": true,
       "sameSite": "Lax"
     }
   ],
-  "origins": []
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "SS_SELECTED_PLATFORMS",
+          "value": "[\"cmoyws01d00009bz8pp5qp2fd\",\"cmoyws01d00019bz8e1zi5f2g\",\"local-dev-1\",\"local-dev-2\",\"local-dev-3\"]"
+        }
+      ]
+    }
+  ]
 }

@@ -25,6 +25,9 @@ vi.mock('@/components/layout/Sidebar', () => ({
 vi.mock('@/components/layout/Header', () => ({
   default: () => <div data-testid="header">Header Mock</div>,
 }));
+vi.mock('@/components/chat/AIChatbot', () => ({
+  AIChatbot: () => <div data-testid="ai-chatbot">Chatbot Mock</div>,
+}));
 
 // Mock NextAuth useSession to avoid errors in real components
 vi.mock('next-auth/react', () => ({

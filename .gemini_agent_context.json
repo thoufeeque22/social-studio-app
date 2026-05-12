@@ -1,25 +1,95 @@
 {
-  "last_agent": "project-agent",
-  "docs_updated": true,
-  "branch_name": "fix/518-restore-schedule",
-  "ticket_goal": "Restore broken schedule functionality by fixing regressions in API and history filtering.",
-  "modified_files": [
-    "src/app/api/upload/assemble/route.ts",
-    "src/app/api/history/route.ts",
-    "src/lib/core/platform-route-handler.ts",
-    "docs/manual_tests/verify-schedule-restoration.md"
-  ],
-  "fixes_applied": [
-    "Updated 'src/app/api/upload/assemble/route.ts' to respect the 'scheduledAt' timestamp from the request body.",
-    "Added Zod validation for 'scheduledAt' and the entire request body in 'assemble/route.ts'.",
-    "Implemented proper Sentry logging using 'logger.error' and 'logger.warn' in both 'assemble/route.ts' and 'history/route.ts'.",
-    "Refactored 'src/app/api/history/route.ts' with Zod validation, 'isPublished' filtering, and a 'try-catch' block for robust error handling.",
-    "Corrected result ordering in the history API: ASC for upcoming scheduled posts and DESC for published history.",
-    "Proactively updated 'src/lib/core/platform-route-handler.ts' to use 'logger.error' for Sentry integration.",
-    "Processed incidental observations: Verified Sentry logging fix in platform handler, created issue #523 for assemble route modularity."
-  ],
-  "failure_details": "",
-  "qa_verdict": "PASS",
-  "review_verdict": "PASS",
-  "review_summary": "All Production Readiness standards met. Zod validation for date formats, Sentry logging integration via logger.error, and History/Schedule filtering logic verified. Build and tests pass."
+  "ticket_id": "376",
+  "ticket_goal": "Develop an intelligent AI assistant capable of helping users upload, schedule, and manage their content through a conversational interface.",
+  "branch_name": "376-ai-chatbot",
+  "last_agent": "qa-agent",
+  "target_agent": "dev-agent",
+  "cycle_count": 3,
+  "discovery-agent": {
+    "verdict": "NECESSARY",
+    "impact_radius": [
+      "src/app/api/chat/route.ts",
+      "src/components/chat/AIChatbot.tsx",
+      "src/components/layout/LayoutWrapper.tsx",
+      "package.json",
+      "src/lib/actions/ai-chat.ts"
+    ],
+    "technical_specs": {
+      "dependencies": [
+        "ai",
+        "@ai-sdk/google",
+        "framer-motion"
+      ],
+      "architecture": "Next.js Route Handler with Vercel AI SDK + React Client Component with MUI and Framer Motion.",
+      "llm_config": {
+        "provider": "Google Gemini",
+        "model": "gemini-1.5-pro-latest",
+        "system_prompt": "You are the Social Studio AI Assistant. You help users manage their social media content. You can list upcoming posts, view staged media, schedule new posts, update existing ones, and cancel/delete schedules. Always be professional, helpful, and concise."
+      },
+      "tools": [
+        {
+          "name": "list_upcoming_posts",
+          "description": "Retrieve the user's scheduled posts."
+        },
+        {
+          "name": "get_media_gallery",
+          "description": "List videos available in the staged gallery for scheduling."
+        },
+        {
+          "name": "schedule_video",
+          "description": "Schedule a video from the gallery to social platforms."
+        },
+        {
+          "name": "update_post",
+          "description": "Update details of an existing scheduled post."
+        },
+        {
+          "name": "cancel_post",
+          "description": "Delete a scheduled post."
+        }
+      ],
+      "production_readiness": {
+        "logging": "Sentry for all tool calls and API route errors.",
+        "rate_limiting": "Upstash Redis on /api/chat route.",
+        "validation": "Zod for all tool parameters.",
+        "caching": "Next.js fetch cache for media library list."
+      },
+      "ui_ux": "Floating Action Button (FAB) using MUI icons (AutoAwesome). Glassmorphism chat window. Framer Motion for slide-in animations. Human-centric copy."
+    }
+  },
+  "dev-agent": {
+    "status": "SUCCESS",
+    "modified_files": [
+      "package.json",
+      "src/lib/actions/ai-chat.ts",
+      "src/app/api/chat/route.ts",
+      "src/components/chat/AIChatbot.tsx",
+      "src/components/layout/LayoutWrapper.tsx",
+      "src/__tests__/components/layout-wrapper.test.tsx"
+    ],
+    "fixes_applied": [
+      "Refactored API route for AI SDK v6: ModelMessage, inputSchema, toUIMessageStreamResponse.",
+      "Fixed streamText awaiting to allow method access.",
+      "Updated AIChatbot to manage input state manually and use sendMessage/status.",
+      "Render message parts in AIChatbot UI.",
+      "Satisfied Zero-Any policy in integration tests."
+    ]
+  },
+  "review-agent": {
+    "review_verdict": "PASS",
+    "summary": "Full audit complete. Implementation fully aligns with Vercel AI SDK v6. Client state management is robust. Security verified. Integration tests cover tool logic and satisfy Zero-Any policy."
+  },
+  "qa-agent": {
+    "qa_verdict": "FAIL",
+    "failure_details": [
+      "E2E tests (Playwright) consistently fail on 'should send a message and receive a response' and tool-calling tests.",
+      "Error: locator.toBeVisible: Timeout 20000ms exceeded while waiting for getByTestId('chat-message-assistant').",
+      "Analysis: AI response element is never rendered or found by the locator, despite the user message being visible.",
+      "Potential causes: Hydration mismatch, Framer Motion 'AnimatePresence' state issues, or streaming response stalling in test environment.",
+      "Integration tests (Vitest) for tool actions PASSED."
+    ],
+    "summary": "QA FAIL. 3/6 E2E tests timed out waiting for AI response elements. Server-side tool logic is verified, but UI stability under automation is insufficient."
+  },
+  "doc-agent": {},
+  "project-agent": {}
 }
