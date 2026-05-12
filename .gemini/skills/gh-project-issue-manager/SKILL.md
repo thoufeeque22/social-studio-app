@@ -29,18 +29,18 @@ Use this skill to create high-quality GitHub issues and automatically link them 
 
 2. **Creation:**
    - Use `mcp_github_create_issue` in `thoufeeque22/social-studio-app`.
-   - Labels: `roadmap`, `bug`/`feature`, `priority:critical/high/medium/low`.
-   - Priority:
-     - `critical`: P0 issues, production outages, security vulnerabilities.
-     - `high`: Security, core crashes, blocked releases.
-     - `medium`: Functional bugs, main features.
-     - `low`: Nits, docs, minor enhancements.
+   - Labels: `roadmap`, `bug`/`feature`.
 
-3. **Project Linking:**
+3. **Project Linking & Priority:**
    - Use `run_shell_command` to add to Project #4:
      ```bash
      gh project item-add 4 --owner "thoufeeque22" --url <ISSUE_URL>
      ```
+   - Set the **Priority** field in Project #4 using the `gh project item-edit` command:
+     - `critical`: P0 issues, production outages, security vulnerabilities.
+     - `high`: Security, core crashes, blocked releases.
+     - `medium`: Functional bugs, main features.
+     - `low`: Nits, docs, minor enhancements.
    - **Handoff:** Update the calling agent's namespaced key in `.gemini_agent_context.json` with the created issue details.
 
 ## Guidelines for Enhancement

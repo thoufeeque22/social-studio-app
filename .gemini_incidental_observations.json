@@ -1,14 +1,1 @@
-[
-  {
-    "file": "src/app/api/upload/assemble/route.ts",
-    "severity": "MED",
-    "observation": "File is 242 lines long, exceeding the 50-line modularity threshold. Contains mixed responsibilities (chunk merging, gallery registration, post creation).",
-    "status": "OPEN"
-  },
-  {
-    "file": "src/lib/core/platform-route-handler.ts",
-    "severity": "HIGH",
-    "observation": "Unified platform route handler lacks Sentry logging in catch blocks, relying only on console.error. This violates production readiness standards across all platform uploads.",
-    "status": "FIXED"
-  }
-]
+[]

@@ -78,3 +78,7 @@ next-env.d.ts
 *.log
 lint_output.txt
 lint_results.txt
+
+# Gemini Context
+.gemini_agent_context.json
+.gemini_incidental_observations.json

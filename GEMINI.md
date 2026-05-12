@@ -131,7 +131,7 @@
   - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`).
   - **Incidental Resolution:** After a ticket is closed by `doc-agent`, the Project Agent MUST read `.gemini_incidental_observations.json`.
   - **Verification:** For each entry, the Project Agent MUST verify if the bug still exists in the code.
-  - **Individual Logging:** If the bug persists, create an individual GitHub issue with labels (`bug`, `priority:<severity>`) and add to the project board. If the bug is already fixed, do not create an issue. Clear all processed entries from the local JSON file.
+  - **Individual Logging:** If the bug persists, create an individual GitHub issue with labels (`bug`, `roadmap`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`) on the project board. If the bug is already fixed, do not create an issue. Clear all processed entries from the local JSON file.
 - **Constraints:** Technical, structured, and emoji-free documentation.
 
 ## Routing
