@@ -24,6 +24,17 @@ export const aiRateLimit = new Ratelimit({
 });
 
 /**
+ * Thumbnail Generation rate limiter: 10 requests per day.
+ * Protects Vision API costs.
+ */
+export const thumbnailRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 d"),
+  analytics: true,
+  prefix: "ratelimit:thumbnail",
+});
+
+/**
  * Upload rate limiter: 3 requests per 60 seconds.
  * Prevents storage abuse and bandwidth saturation.
  */

@@ -1,92 +1,27 @@
 {
-  "ticket_id": "376",
-  "ticket_goal": "Develop an intelligent AI assistant capable of helping users upload, schedule, and manage their content through a conversational interface.",
-  "branch_name": "376-ai-chatbot",
-  "last_agent": "qa-agent",
-  "target_agent": "doc-agent",
-  "cycle_count": 3,
+  "last_agent": "discovery-agent",
+  "branch_name": "377-ai-thumbnail-suggestions",
+  "ticket_goal": "Develop functionality to extract key frames from uploaded videos and use AI to suggest high-click-through-rate (CTR) thumbnails for optimized platform performance.",
+  "ticket_id": 377,
+  "scrum-master": {
+    "verdict": "New Feature. Routing to discovery-agent for architecture planning and technical specs."
+  },
   "discovery-agent": {
     "verdict": "NECESSARY",
     "impact_radius": [
-      "src/app/api/chat/route.ts",
-      "src/components/chat/AIChatbot.tsx",
-      "src/components/layout/LayoutWrapper.tsx",
-      "package.json",
-      "src/lib/actions/ai-chat.ts"
+      "src/lib/video/processor.ts",
+      "src/lib/core/ai.ts",
+      "src/lib/core/ratelimit.ts",
+      "src/components/media/MediaLibrary.tsx"
     ],
-    "technical_specs": {
-      "dependencies": [
-        "ai",
-        "@ai-sdk/google",
-        "framer-motion"
-      ],
-      "architecture": "Next.js Route Handler with Vercel AI SDK + React Client Component with MUI and Framer Motion.",
-      "llm_config": {
-        "provider": "Google Gemini",
-        "model": "gemini-1.5-pro-latest",
-        "system_prompt": "You are the Social Studio AI Assistant. You help users manage their social media content. You can list upcoming posts, view staged media, schedule new posts, update existing ones, and cancel/delete schedules. Always be professional, helpful, and concise."
-      },
-      "tools": [
-        {
-          "name": "list_upcoming_posts",
-          "description": "Retrieve the user's scheduled posts."
-        },
-        {
-          "name": "get_media_gallery",
-          "description": "List videos available in the staged gallery for scheduling."
-        },
-        {
-          "name": "schedule_video",
-          "description": "Schedule a video from the gallery to social platforms."
-        },
-        {
-          "name": "update_post",
-          "description": "Update details of an existing scheduled post."
-        },
-        {
-          "name": "cancel_post",
-          "description": "Delete a scheduled post."
-        }
-      ],
-      "production_readiness": {
-        "logging": "Sentry for all tool calls and API route errors.",
-        "rate_limiting": "Upstash Redis on /api/chat route.",
-        "validation": "Zod for all tool parameters.",
-        "caching": "Next.js fetch cache for media library list."
-      },
-      "ui_ux": "Floating Action Button (FAB) using MUI icons (AutoAwesome). Glassmorphism chat window. Framer Motion for slide-in animations. Human-centric copy."
-    }
-  },
-  "dev-agent": {
-    "status": "SUCCESS",
-    "modified_files": [
-      "package.json",
-      "src/lib/actions/ai-chat.ts",
-      "src/app/api/chat/route.ts",
-      "src/components/chat/AIChatbot.tsx",
-      "src/components/layout/LayoutWrapper.tsx",
-      "src/__tests__/components/layout-wrapper.test.tsx",
-      "src/__tests__/e2e/chat.spec.ts"
-    ],
-    "fixes_applied": [
-      "Refactored API route for AI SDK v6: ModelMessage, inputSchema, toUIMessageStreamResponse.",
-      "Fixed streamText awaiting to allow method access.",
-      "Updated AIChatbot to manage input state manually and use sendMessage/status.",
-      "Render message parts in AIChatbot UI.",
-      "Satisfied Zero-Any policy in integration tests.",
-      "Enabled Ollama fallback with gemma4 model in API route for local testing.",
-      "Improved UI resilience in AIChatbot by handling missing content/parts gracefully and adding a fallback text.",
-      "Simplified E2E tests assertions to rely on message container existence and non-emptiness instead of exact keywords."
+    "technical_specs": [
+      "Implement frame extraction in `src/lib/video/processor.ts` using `fluent-ffmpeg` to grab 3-5 keyframes at intervals.",
+      "Resize extracted frames to max 1080px width before AI processing to save bandwidth.",
+      "Integrate Vision API (Gemini or OpenAI) in `src/lib/core/ai.ts` to rank the base64 frames based on CTR potential (faces, emotion, contrast, clarity).",
+      "Create API route `/api/media/thumbnails` for generating suggestions asynchronously.",
+      "Update `MediaLibrary.tsx` UI to allow users to trigger thumbnail suggestions and select the best one.",
+      "Apply Upstash rate limits (e.g., 10 per day per user) for the AI generation to prevent cost overruns.",
+      "Ensure extracted frames are discarded if unused or upon selection."
     ]
-  },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "summary": "Diff analysis complete. The TypeScript strict mode issues with AI SDK v6 UIMessage were properly resolved without using 'any'. Ollama fallback is implemented. Static checks (tsc, build, lint) and integration tests all pass. Handoff to qa-agent to verify E2E suite."
-  },
-  "qa-agent": {
-    "qa_verdict": "PASS",
-    "summary": "E2E Playwright test suite executed successfully. All 6 tests for the AI Chatbot, including sending messages, tool invocations, and error handling, now pass with the improved UI resilience and Ollama local fallback. Handoff to doc-agent for final documentation updates."
-  },
-  "doc-agent": {},
-  "project-agent": {}
+  }
 }

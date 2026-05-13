@@ -102,6 +102,8 @@ export const MediaLibrary: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+  const [thumbnailResult, setThumbnailResult] = useState<{ bestFrameBase64: string; reason: string; allFrames: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchAssets = async () => {
@@ -247,6 +249,28 @@ export const MediaLibrary: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleGenerateThumbnail = async (fileId: string) => {
+    setIsGeneratingThumbnail(true);
+    try {
+      const res = await fetch('/api/media/thumbnails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setThumbnailResult(data);
+      } else {
+        alert(data.error || 'Failed to generate thumbnail');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error generating thumbnail');
+    } finally {
+      setIsGeneratingThumbnail(false);
     }
   };
 
@@ -493,6 +517,37 @@ export const MediaLibrary: React.FC = () => {
                   Cancel
                 </button>
                 
+                {selectedIds.length === 1 && (
+                  <button 
+                    onClick={() => handleGenerateThumbnail(selectedIds[0])}
+                    disabled={isGeneratingThumbnail}
+                    style={{ 
+                      background: 'hsl(var(--primary))', color: 'white', border: 'none', 
+                      padding: '0.85rem 1.5rem', borderRadius: '1.1rem', 
+                      fontSize: '0.95rem', fontWeight: 800, cursor: isGeneratingThumbnail ? 'wait' : 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: '0 10px 25px hsla(var(--primary) / 0.4)',
+                      whiteSpace: 'nowrap',
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      opacity: isGeneratingThumbnail ? 0.7 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isGeneratingThumbnail) {
+                        e.currentTarget.style.transform = 'scale(1.05) translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 15px 35px hsla(var(--primary) / 0.5)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isGeneratingThumbnail) {
+                        e.currentTarget.style.transform = 'scale(1) translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 10px 25px hsla(var(--primary) / 0.4)';
+                      }
+                    }}
+                  >
+                    <AutoAwesomeIcon sx={{ fontSize: 20 }} /> {isGeneratingThumbnail ? 'ANALYZING...' : 'AI THUMBNAIL'}
+                  </button>
+                )}
+                
                 <button 
                   onClick={handleBulkDelete}
                   style={{ 
@@ -520,6 +575,69 @@ export const MediaLibrary: React.FC = () => {
             {isUploading && (
                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid hsla(var(--primary) / 0.3)', borderTopColor: 'hsl(var(--primary))', animation: 'spin 1s linear infinite' }} />
             )}
+          </div>
+        </div>
+      )}
+
+      {thumbnailResult && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000,
+          padding: '2rem'
+        }}>
+          <div style={{
+            background: 'hsl(var(--card))', border: '1px solid hsla(var(--border) / 0.5)',
+            borderRadius: '1rem', padding: '2rem', maxWidth: '600px', width: '100%',
+            display: 'flex', flexDirection: 'column', gap: '1.5rem'
+          }}>
+            <div>
+              <Heading level={2}>AI Recommended Thumbnail</Heading>
+              <p style={{ color: 'hsl(var(--muted-foreground))', margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                {thumbnailResult.reason}
+              </p>
+            </div>
+            
+            <div style={{ 
+              width: '100%', aspectRatio: '16/9', borderRadius: '0.5rem', overflow: 'hidden',
+              background: 'black', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={thumbnailResult.bestFrameBase64} 
+                alt="AI Suggested Thumbnail" 
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button 
+                onClick={() => setThumbnailResult(null)}
+                style={{ 
+                  background: 'none', border: '1px solid hsla(var(--border) / 0.5)', 
+                  color: 'white', padding: '0.5rem 1.5rem', borderRadius: '0.5rem', 
+                  cursor: 'pointer', fontWeight: 600 
+                }}
+              >
+                Close
+              </button>
+              <button 
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = thumbnailResult.bestFrameBase64;
+                  link.download = `ai-thumbnail-${Date.now()}.jpg`;
+                  link.click();
+                }}
+                style={{ 
+                  background: 'hsl(var(--primary))', color: 'white', border: 'none', 
+                  padding: '0.5rem 1.5rem', borderRadius: '0.5rem', 
+                  cursor: 'pointer', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <CloudUploadIcon sx={{ fontSize: 18 }} /> Save to Device
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -166,3 +166,50 @@ export async function transcodeForPlatform(
       .save(outputPath);
   });
 }
+
+/**
+ * Extracts keyframes from a video for analysis
+ */
+export async function extractKeyframes(
+  inputPath: string,
+  frameCount: number = 5
+): Promise<string[]> {
+  const outputDir = path.dirname(inputPath);
+  const tempDir = path.join(outputDir, `frames_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .on('end', () => {
+        try {
+          const files = fs.readdirSync(tempDir);
+          const base64Frames = files
+            .filter(f => f.endsWith('.jpg'))
+            // Sort to maintain order if possible
+            .sort()
+            .map(f => {
+              const filePath = path.join(tempDir, f);
+              const data = fs.readFileSync(filePath);
+              return `data:image/jpeg;base64,${data.toString('base64')}`;
+            });
+
+          // Cleanup
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          resolve(base64Frames);
+        } catch (err) {
+          reject(err);
+        }
+      })
+      .on('error', (err) => {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        reject(err);
+      })
+      .screenshots({
+        count: frameCount,
+        folder: tempDir,
+        size: '1080x?', // Limits width to 1080px, scales height proportionally
+        filename: 'frame-%s.jpg'
+      });
+  });
+}
+
