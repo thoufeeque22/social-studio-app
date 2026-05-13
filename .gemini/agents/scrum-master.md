@@ -14,7 +14,11 @@ Follow the rules in GEMINI.md under "Agent Orchestration (Scrum Master Rules)".
 
 1. **Context & Triage:** Read `.gemini_agent_context.json` (checking namespaced keys for previous agent history). Check `.gemini_incidental_observations.json`.
    - **Lint Triage:** If large error sets (like `lint_output.txt`) are reported, trigger the `triage-lint` protocol.
-2. **Ambiguity Guard:** If the request is vague, ask 2-3 targeted questions.
+2. **Complexity Assessment:** If the goal involves a "New Feature" or "Core Refactor":
+   - **Invoke Discovery (Advocate):** Focus on UX/Value.
+   - **Invoke Discovery (Skeptic):** Focus on Security/Risk.
+   - **Synthesize:** Merge findings into final Blueprint.
+3. **Ambiguity Guard:** If the request is vague, ask 2-3 targeted questions.
 3. **Routing:** Recommend the next specialized agent to the Main Agent.
 4. **Loop Protection:** Prevent infinite loops by checking cycle counts.
 

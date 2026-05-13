@@ -197,6 +197,32 @@ sequenceDiagram
     end
 ```
 
+### 4. AI Chatbot Assistant
+
+The AI Chatbot provides a conversational interface for users to manage their content, schedule posts, and view staged media. It leverages the Vercel AI SDK to stream responses and execute server-side tools.
+
+```mermaid
+sequenceDiagram
+    participant U as User (UI)
+    participant API as Chat API (/api/chat)
+    participant LLM as AI Provider (Gemini/Ollama)
+    participant DB as Database (Prisma)
+
+    U->>API: Send Message
+    API->>LLM: Send Context & Tools
+    LLM-->>API: Stream Response / Tool Call
+    
+    rect rgb(240, 240, 240)
+        note right of API: If Tool Call (e.g., schedule_video)
+        API->>DB: Execute Server Action
+        DB-->>API: Return Result
+        API->>LLM: Send Tool Result
+        LLM-->>API: Stream Final Summary
+    end
+    
+    API-->>U: Stream UI Updates
+```
+
 ## Platform Integrations
 
 Platform-specific logic is encapsulated in `src/lib/platforms/`.
