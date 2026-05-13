@@ -521,6 +521,7 @@ export const MediaLibrary: React.FC = () => {
                   <button 
                     onClick={() => handleGenerateThumbnail(selectedIds[0])}
                     disabled={isGeneratingThumbnail}
+                    data-testid="ai-thumbnail-button"
                     style={{ 
                       background: 'hsl(var(--primary))', color: 'white', border: 'none', 
                       padding: '0.85rem 1.5rem', borderRadius: '1.1rem', 
@@ -586,7 +587,9 @@ export const MediaLibrary: React.FC = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000,
           padding: '2rem'
         }}>
-          <div style={{
+          <div 
+            data-testid="ai-thumbnail-dialog"
+            style={{
             background: 'hsl(var(--card))', border: '1px solid hsla(var(--border) / 0.5)',
             borderRadius: '1rem', padding: '2rem', maxWidth: '600px', width: '100%',
             display: 'flex', flexDirection: 'column', gap: '1.5rem'
@@ -612,6 +615,7 @@ export const MediaLibrary: React.FC = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button 
+                data-testid="ai-thumbnail-close"
                 onClick={() => setThumbnailResult(null)}
                 style={{ 
                   background: 'none', border: '1px solid hsla(var(--border) / 0.5)', 
@@ -622,6 +626,7 @@ export const MediaLibrary: React.FC = () => {
                 Close
               </button>
               <button 
+                data-testid="ai-thumbnail-save"
                 onClick={() => {
                   const link = document.createElement('a');
                   link.href = thumbnailResult.bestFrameBase64;
