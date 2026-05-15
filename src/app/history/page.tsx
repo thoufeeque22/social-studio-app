@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { SearchField } from '@/components/ui/SearchField';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
 import { getDraftFile } from '@/lib/upload/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -109,13 +110,15 @@ export default function HistoryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
   const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
 
-  const fetchHistory = useCallback(async (cursor?: string) => {
+  const fetchHistory = useCallback(async (cursor?: string, search?: string) => {
     const params = new URLSearchParams({ limit: '20' });
     if (cursor) params.set('cursor', cursor);
+    if (search) params.set('search', search);
     params.set('_t', Date.now().toString()); // Cache buster
 
     const res = await fetch(`/api/history?${params.toString()}`);
@@ -285,13 +288,21 @@ export default function HistoryPage() {
     }
   }, [accounts, handleCockpitStart]);
 
+  // Initial load & search debounce
   useEffect(() => {
-    fetchHistory().then((data) => {
-      setPosts(data.data || []);
-      setNextCursor(data.nextCursor);
-      setIsLoading(false);
-    }).catch(() => setIsLoading(false));
-  }, [fetchHistory]);
+    const timer = setTimeout(() => {
+      // Don't show global loading for background updates if we already have posts
+      if (posts.length === 0) setIsLoading(true);
+      
+      fetchHistory(undefined, searchQuery).then(data => {
+        setPosts(data.data || []);
+        setNextCursor(data.nextCursor);
+        setIsLoading(false);
+      }).catch(() => setIsLoading(false));
+    }, searchQuery ? 400 : 0); // Only debounce if searching
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, fetchHistory, posts.length]);
 
   const hasActivePosts = posts.some(post => 
     post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status))
@@ -299,7 +310,7 @@ export default function HistoryPage() {
 
   usePolling({
     callback: async () => {
-      const data = await fetchHistory();
+      const data = await fetchHistory(undefined, searchQuery);
       setPosts(data.data || []);
     },
     interval: hasActivePosts ? 5000 : 15000,
@@ -336,7 +347,7 @@ export default function HistoryPage() {
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    const data = await fetchHistory(nextCursor);
+    const data = await fetchHistory(nextCursor, searchQuery);
     setPosts(prev => [...prev, ...(data.data || [])]);
     setNextCursor(data.nextCursor);
     setLoadingMore(false);
@@ -626,15 +637,21 @@ export default function HistoryPage() {
         <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/*" />
       </div>
 
+      <SearchField 
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Search history by title or description..."
+      />
+
       {posts.length === 0 ? (
         <GlassCard>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
               <HistoryIcon sx={{ fontSize: 48, opacity: 0.5 }} />
             </div>
-            <h3 className={styles.emptyTitle}>No activity yet</h3>
+            <h3 className={styles.emptyTitle}>{searchQuery ? 'No matching activity' : 'No activity yet'}</h3>
             <p className={styles.emptyDescription}>
-              Upload a video from the dashboard to see its distribution status here.
+              {searchQuery ? `We couldn't find any posts matching "${searchQuery}"` : 'Upload a video from the dashboard to see its distribution status here.'}
             </p>
           </div>
         </GlassCard>

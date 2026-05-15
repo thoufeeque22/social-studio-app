@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, Search, Clock, HardDrive, AlertTriangle, Trash2, ExternalLink, Plus } from 'lucide-react';
+import { Film, Trash2, Plus } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Heading } from '@/components/ui/Heading';
+import { SearchField } from '@/components/ui/SearchField';
 import { stageVideoFile } from '@/lib/upload/upload-utils';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -97,17 +98,19 @@ const MediaPreview: React.FC<{ src?: string; isGrid?: boolean }> = ({ src, isGri
 export const MediaLibrary: React.FC = () => {
   const [assets, setAssets] = useState<GalleryAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (search?: string) => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/media');
+      const url = new URL('/api/media', window.location.origin);
+      if (search) url.searchParams.set('search', search);
+      
+      const res = await fetch(url.toString());
       const data = await res.json();
       if (data.success) {
         setAssets(data.data);
@@ -120,8 +123,12 @@ export const MediaLibrary: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAssets();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchAssets(searchQuery);
+    }, searchQuery ? 400 : 0);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleAddVideo = () => {
     fileInputRef.current?.click();
@@ -162,12 +169,6 @@ export const MediaLibrary: React.FC = () => {
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
-
-  const formatSize = (bytes: number | null) => {
-    if (!bytes) return 'Unknown size';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(1)} MB`;
   };
 
   const getRemainingTimeInfo = (expiresAt: string) => {
@@ -251,19 +252,14 @@ export const MediaLibrary: React.FC = () => {
   };
 
   const toggleSelect = (fileId: string) => {
-    setSelectedIds(prev => 
-      prev.includes(fileId) 
-        ? prev.filter(id => id !== fileId) 
+    setSelectedIds(prev =>
+      prev.includes(fileId)
+        ? prev.filter(id => id !== fileId)
         : [...prev, fileId]
     );
   };
 
-  const filteredAssets = assets.filter(asset => 
-    asset.fileName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+  return (    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <header style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         position: 'sticky', top: '-2rem', zIndex: 100, 
@@ -328,28 +324,18 @@ export const MediaLibrary: React.FC = () => {
       </header>
 
       <GlassCard style={{ padding: '1.5rem' }}>
-        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--muted-foreground))' }} size={20} />
-          <input 
-            type="text" 
-            placeholder="Search your library..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ 
-              width: '100%', padding: '1rem 1rem 1rem 3rem', 
-              borderRadius: '0.75rem', border: '1px solid hsla(var(--border) / 0.5)',
-              background: 'hsla(var(--muted) / 0.2)', color: 'white',
-              fontSize: '1rem'
-            }}
-          />
-        </div>
+        <SearchField 
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search your library..."
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
           {isLoading ? (
             <div style={{ gridColumn: '1 / -1', padding: '4rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>
               Loading your media library...
             </div>
-          ) : filteredAssets.length === 0 ? (
+          ) : assets.length === 0 ? (
             <div style={{ gridColumn: '1 / -1', padding: '4rem', textAlign: 'center', color: 'hsl(var(--muted-foreground))' }}>
               <div style={{ marginBottom: '1rem' }}>
                 <MovieIcon sx={{ fontSize: 48, opacity: 0.5 }} />
@@ -357,7 +343,7 @@ export const MediaLibrary: React.FC = () => {
               <p>{searchQuery ? 'No matching videos found.' : 'Your media library is empty. Upload a video from the dashboard to get started!'}</p>
             </div>
           ) : (
-            filteredAssets.map(asset => {
+            assets.map(asset => {
               const timeInfo = getRemainingTimeInfo(asset.expiresAt);
               return (
                 <div 

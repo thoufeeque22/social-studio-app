@@ -12,7 +12,7 @@ import { logger } from "@/lib/core/logger";
  * MEDIA DISCOVERY API
  * Returns all currently staged assets for the authenticated user.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -20,12 +20,18 @@ export async function GET() {
   }
 
   try {
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get('search');
+
     const assets = await prisma.galleryAsset.findMany({
       where: {
         userId: session.user.id,
         expiresAt: {
           gt: new Date()
-        }
+        },
+        ...(search ? {
+          fileName: { contains: search, mode: 'insensitive' }
+        } : {})
       },
       orderBy: {
         createdAt: 'desc'

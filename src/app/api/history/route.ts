@@ -10,6 +10,7 @@ const querySchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
   published: z.preprocess((val) => val === 'true', z.boolean()).default(true),
+  search: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -27,12 +28,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid query parameters', details: result.error.format() }, { status: 400 });
     }
 
-    const { cursor, limit, published } = result.data;
+    const { cursor, limit, published, search } = result.data;
 
     const posts = await prisma.postHistory.findMany({
       where: { 
         userId: session.user.id,
-        isPublished: published
+        isPublished: published,
+        ...(search ? {
+          OR: [
+            { title: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ],
+        } : {}),
       },
       include: { platforms: true },
       orderBy: published ? { createdAt: 'desc' } : { scheduledAt: 'asc' },
