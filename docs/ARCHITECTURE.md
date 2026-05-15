@@ -223,6 +223,25 @@ sequenceDiagram
     API-->>U: Stream UI Updates
 ```
 
+### 5. Global Search
+
+A unified search mechanism provides server-side filtering for history and media assets.
+
+```mermaid
+sequenceDiagram
+    participant U as User (UI)
+    participant C as SearchField (Component)
+    participant API as API (/api/history or /api/media)
+    participant DB as Database (Prisma)
+
+    U->>C: Type search term
+    C->>C: Debounce (500ms)
+    C->>API: GET /api/... ?search=term
+    API->>DB: Query with 'contains' (insensitive)
+    DB-->>API: Filtered Results
+    API-->>U: Render Results
+```
+
 ## Platform Integrations
 
 Platform-specific logic is encapsulated in `src/lib/platforms/`.

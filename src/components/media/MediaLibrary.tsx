@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Film, Trash2, Plus } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Heading } from '@/components/ui/Heading';
@@ -99,6 +100,15 @@ export const MediaLibrary: React.FC = () => {
   const [assets, setAssets] = useState<GalleryAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch) {
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams]);
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);

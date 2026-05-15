@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SearchField } from '@/components/ui/SearchField';
 import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils';
@@ -114,6 +115,14 @@ export default function HistoryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    if (urlSearch) {
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams]);
 
   const fetchHistory = useCallback(async (cursor?: string, search?: string) => {
     const params = new URLSearchParams({ limit: '20' });

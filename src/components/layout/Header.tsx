@@ -10,6 +10,15 @@ const Header = ({ onToggleSidebar }: { onToggleSidebar: () => void }) => {
   const pathname = usePathname();
   const { data: session } = useSession();
 
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const targetPage = pathname.startsWith('/media') ? '/media' : '/history';
+      router.push(`${targetPage}?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   const handleCreateClick = () => {
     if (pathname === '/') {
       const element = document.getElementById('create-post-section');
@@ -27,12 +36,18 @@ const Header = ({ onToggleSidebar }: { onToggleSidebar: () => void }) => {
 
       <div className={styles.search}>
         <span className={styles.searchIcon}></span>
-        <input 
-          type="text" 
-          placeholder="Search posts, media, or analytics..." 
+        <label htmlFor="header-search" className="sr-only" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+          Search posts, media, or analytics
+        </label>
+        <input
+          id="header-search"
+          type="text"
+          placeholder="Search posts, media, or analytics..."
           className={styles.searchInput}
-        />
-      </div>
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearch}
+        />      </div>
 
       <div className={styles.actions}>
         <button className={styles.notificationBtn}>
