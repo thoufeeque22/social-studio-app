@@ -162,6 +162,10 @@ You MUST commit all documentation and manual test changes before assigning to `p
 - **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.
 - **Workflow:** 
   - **Incidental Resolution:** When assigned by `doc-agent`, you MUST read `.gemini_incidental_observations.json`.
+  - **Feature Parking:** When assigned by `discovery-agent` for a [PARKED] task:
+    - Use `mcp_github_update_issue` to add the `phase:2` label.
+    - Set the Project Board status to **Hold**.
+    - Comment with the Socratic reasoning for deferring.
   - **Verification:** For each entry, verify if the bug still exists in the code.
   - **Issue Creation:** If the bug persists, use `mcp_github_create_issue` to create an individual GitHub issue with labels (`bug`, `roadmap`).
   - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`).
@@ -185,6 +189,10 @@ You MUST commit all documentation and manual test changes before assigning to `p
 - **review-agent:** READ ONLY. No write access.
 
 **Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
+
+ntegration/`.
+
+/integration/`.
 
 ntegration/`.
 
