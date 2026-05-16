@@ -478,7 +478,7 @@ export default function DashboardClient({
                 onResumeReview={() => setIsReviewing(true)}
               />
           )}
-          <SidebarInfo accounts={devAccounts} />
+          <SidebarInfo />
         </div>
       </div>
 

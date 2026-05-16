@@ -1,0 +1,48 @@
+.postLink {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  margin: -0.75rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+
+.postLink:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.postLink:active {
+  transform: scale(0.98);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.indicator {
+  width: 2px;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.postLink:hover .indicator {
+  width: 4px;
+}
+
+.externalIcon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: hsl(var(--muted-foreground));
+  margin-left: auto;
+}
+
+.postLink:hover .externalIcon {
+  opacity: 1;
+}

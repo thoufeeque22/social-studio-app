@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { GlassCard } from '@/components/ui/GlassCard';
 import styles from './schedule.module.css';
 import { 
@@ -45,7 +46,10 @@ const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   tiktok: <MusicNoteIcon sx={{ fontSize: 16, color: '#000000' }} />
 };
 
-export default function SchedulePage() {
+function ScheduleContent() {
+  const searchParams = useSearchParams();
+  const targetId = searchParams.get('id');
+  
   const [posts, setPosts] = useState<PostHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<PostHistoryEntry | null>(null);
@@ -64,8 +68,17 @@ export default function SchedulePage() {
 
   const fetchSchedule = useCallback(async () => {
     try {
-      // Add a timestamp to bypass any browser/Next.js client-side caching
-      const res = await fetch(`/api/history?published=false&_t=${Date.now()}`);
+      const params = new URLSearchParams({
+        published: 'false',
+        _t: Date.now().toString()
+      });
+      
+      // If we have a target ID, increase limit to ensure it's found
+      if (targetId) {
+        params.set('limit', '50');
+      }
+
+      const res = await fetch(`/api/history?${params.toString()}`);
       const data = await res.json();
       setPosts(data.data || []);
     } catch (err) {
@@ -73,7 +86,7 @@ export default function SchedulePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [targetId]);
 
   // Determine if we need high-frequency polling
   const hasActivePosts = posts.some(p => {
@@ -99,6 +112,19 @@ export default function SchedulePage() {
       globalThis.removeEventListener('refresh-upcoming', fetchSchedule);
     };
   }, [fetchSchedule]);
+
+  // Handle Auto-Scroll and Highlight
+  useEffect(() => {
+    if (!isLoading && targetId && posts.length > 0) {
+      const element = document.getElementById(`post-${targetId}`);
+      if (element) {
+        const timer = setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading, targetId, posts]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to cancel this scheduled post? The video file will be deleted.')) return;
@@ -240,7 +266,12 @@ export default function SchedulePage() {
       ) : (
         <div className={styles.timeline}>
           {posts.map((post) => (
-            <div key={post.id} className={styles.postCard}>
+            <div 
+              key={post.id} 
+              id={`post-${post.id}`}
+              className={`${styles.postCard} ${targetId === post.id ? styles.highlightedPost : ''}`}
+              data-testid={`schedule-post-${post.id}`}
+            >
               <div className={styles.timelineDot} />
               <GlassCard className={styles.cardInner}>
                 <div className={styles.cardHeader}>
@@ -407,5 +438,13 @@ export default function SchedulePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={<div className={styles.schedulePage}><div className={styles.loading}>Loading scheduled posts...</div></div>}>
+      <ScheduleContent />
+    </Suspense>
   );
 }
