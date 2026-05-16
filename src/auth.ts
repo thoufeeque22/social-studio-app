@@ -1,8 +1,22 @@
-import NextAuth from "next-auth";
+import NextAuth, { type DefaultSession } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/core/prisma";
 import authConfig from "./auth.config";
 import { extractAccountName } from "@/lib/utils/utils";
+import { Role } from "@prisma/client";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role?: Role;
+    } & DefaultSession["user"];
+  }
+
+  interface User {
+    role?: Role;
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -16,15 +30,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
+        session.user.role = token.role as Role;
       }
       return session;
     },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    }
   },
   events: {
     async linkAccount({ account, profile }) {

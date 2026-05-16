@@ -1,130 +1,52 @@
 {
-  "last_agent": "project-agent",
-  "branch_name": "feature/391-ai-feature-highlighting",
-  "ticket_goal": "Implement subtle UI nudges to suggest AI features throughout the application",
-  "ticket_id": "391",
+  "last_agent": "discovery-agent",
+  "branch_name": "392-developer-analytics",
+  "ticket_goal": "Implement platform usage statistics for the admin/developer dashboard to monitor feature usage, success rates, and API consumption.",
+  "ticket_id": "392",
+  "project-agent": {},
+  "doc-agent": {},
+  "qa-agent": {},
+  "review-agent": {},
+  "dev-agent": {},
   "discovery-agent": {
+    "VERDICT": "NECESSARY",
+    "SOCRATIC_REASONING": "The system lacks visibility into platform-wide performance and feature adoption. Implementing this now is strategic for scaling and stability. While high-frequency telemetry in Postgres is risky, a hybrid approach using Redis for counters and Prisma for aggregated summaries mitigates the Skeptic's concerns about performance bottlenecks and storage bloat.",
+    "IMPACT_RADIUS": [
+      "prisma/schema.prisma",
+      "src/app/api/admin/analytics/route.ts",
+      "src/app/admin/analytics/page.tsx",
+      "src/lib/core/logger.ts",
+      "src/middleware.ts"
+    ],
     "TECHNICAL_SPECS": {
-      "Advocate_Perspective": "Users need to know AI features exist. Nudges like an 'AutoAwesome' icon or 'Try AI Polish' badge near text inputs can drive engagement. We need a reusable component that adds a gentle visual cue without being intrusive. Tooltips should explain the benefit.",
-      "Skeptic_Perspective": "Risk of the 'Clippy' effect if overused. Must allow users to dismiss or disable nudges. If the AI service is down or the user is out of quota, nudges should be hidden. Avoid layout shifts when nudges load.",
-      "Synthesis": "Create a reusable <AINudge /> component using MUI AutoAwesome icon. It should support a featureKey to track dismissal state (initially via localStorage or user DB preferences). Integrate primarily in the Post Composer and Media Caption inputs.",
+      "RBAC": "Add `role` enum (`USER`, `ADMIN`) to the `User` model in Prisma. Update middleware to protect `/admin` routes.",
+      "Telemetry_Strategy": "Use Redis (Upstash) for real-time counters (e.g., `feature:usage:ai_chatbot`, `platform:success:youtube`). Implement a background job or daily trigger to aggregate these into a `SystemMetric` model in Prisma for long-term trends.",
+      "Frontend": "Create a dashboard at `/admin/analytics` using `@mui/x-charts`. Focus on 'Distribution Health' (success rates) and 'Feature Adoption'.",
+      "Performance": "Address `logger.ts` technical debt by switching to an asynchronous logging pattern or a fire-and-forget telemetry utility to avoid blocking the main thread.",
+      "Security": "Strict PII sanitization in all telemetry events. Dashboard accessible only to users with the `ADMIN` role.",
       "Production_Readiness": {
-        "Logging": "Log clicks on the AI nudge to track engagement. Track dismissals.",
-        "Caching": "Cache the 'dismissed' state locally to prevent UI flickering on load.",
-        "Rate_Limiting": "Ensure the nudge action gracefully handles 429 Too Many Requests if the user has exhausted their AI quota, ideally hiding the nudge if quota is known to be zero."
-      },
-      "Dependency_Impact_Radius": "Low. Introduces a new UI component and modifies existing text inputs. Uses existing MUI icons and Next.js features.",
-      "expected_output": {
-        "conditions": [
-          "Synthesis of Advocate/Skeptic perspectives completed.",
-          "Production Readiness assessment (Logging/Caching/Rate-limiting) provided.",
-          "Dependency impact radius verification included.",
-          "dev-agent expected output defined."
-        ]
+        "Logging": "Log dashboard access and metric aggregation events.",
+        "Caching": "Cache aggregated analytics summaries for 5 minutes.",
+        "Rate_Limiting": "Implement strict rate limiting on the admin analytics API."
       }
     },
-    "dev_agent_expected_output": {
+    "expected_output": {
       "conditions": [
-        "src/components/ui/AINudge.tsx component created with Material UI icons.",
-        "Nudge integrated into Post Composer or relevant text inputs.",
-        "Dismissal logic (localStorage or DB) implemented.",
-        "npx tsc --noEmit success.",
-        "npm run build success.",
-        "All unit/integration tests passed.",
-        "Linter clean of errors."
+        "Synthesis of Advocate/Skeptic perspectives completed.",
+        "Production Readiness assessment (Logging/Caching/Rate-limiting) provided.",
+        "Dependency impact radius verification included.",
+        "dev-agent expected output defined."
       ]
     }
   },
-  "dev-agent": {
-    "modified_files": [
-      "src/components/ui/AINudge.tsx",
-      "src/components/dashboard/UploadForm/index.tsx",
-      "src/__tests__/unit/components/AINudge.test.tsx"
-    ],
-    "fixes_applied": [
-      "Created reusable AINudge component with MUI AutoAwesome icon and pulse animation",
-      "Implemented localStorage-based dismissal logic in AINudge",
-      "Integrated AINudge into Post Composer (UploadForm) for Title and Description prompts",
-      "Added click and dismissal logging to console.info",
-      "Verified implementation with unit tests, type check, and build"
-    ],
-    "expected_output": {
-      "conditions": [
-        "src/components/ui/AINudge.tsx component created with Material UI icons.",
-        "Nudge integrated into Post Composer or relevant text inputs.",
-        "Dismissal logic (localStorage or DB) implemented.",
-        "npx tsc --noEmit success.",
-        "npm run build success.",
-        "All unit/integration tests passed.",
-        "Linter clean of errors."
-      ]
-    }
+  "dev_agent_expected_output": {
+    "conditions": [
+      "Prisma schema updated with `role` field and `SystemMetric` model.",
+      "Middleware updated to protect `/admin` routes.",
+      "Async telemetry utility implemented in `src/lib/core/telemetry.ts`.",
+      "/admin/analytics dashboard created with functional charts.",
+      "npx tsc --noEmit and npm run build success.",
+      "Unit/Integration tests cover analytics aggregation and RBAC."
+    ]
   },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "audit_findings": [
-      "AINudge component uses standard MUI icons and follows project aesthetic.",
-      "LocalStorage dismissal logic is correctly implemented and tested.",
-      "Integration in UploadForm is surgical and does not affect existing logic.",
-      "Unit tests cover rendering, dismissal, and click events.",
-      "Static checks (tsc, build) passed successfully."
-    ],
-    "expected_output": {
-      "conditions": [
-        "Successful validation of all fixes_applied.",
-        "Adherence to docs/ and API contracts.",
-        "No security vulnerabilities found in diff."
-      ]
-    }
-  },
-  "qa-agent": {
-    "verdict": "PASS",
-    "test_results": {
-      "file": "src/__tests__/e2e/ai-nudge.spec.ts",
-      "cases": [
-        { "name": "Visibility", "status": "PASS" },
-        { "name": "Interaction (Tier Change)", "status": "PASS" },
-        { "name": "Persistence (Dismissal)", "status": "PASS" },
-        { "name": "Visual Audit", "status": "PASS" },
-        { "name": "Localization & Console Audit", "status": "PASS" }
-      ]
-    },
-    "artifacts": [
-      "verification/ai-nudge-active.png",
-      "verification/ai-nudge-hover.png"
-    ],
-    "expected_output": {
-      "conditions": [
-        "npx playwright test success report.",
-        "New or updated Playwright tests committed to src/__tests__/e2e/.",
-        "Exhaustive coverage (Happy/Edge/Negative) verified and documented.",
-        "Isolated mock data/seeding logic implemented and verified.",
-        "Zero Network (4xx/5xx) or Hydration errors observed."
-      ]
-    }
-  },
-  "doc-agent": {
-    "docs_updated": true,
-    "pr_created": true,
-    "pr_url": "https://github.com/thoufeeque22/social-studio-app/pull/527",
-    "expected_output": {
-      "conditions": [
-        "Documentation/Diagrams accurately reflect implementation.",
-        "Manual test cases verified for clarity.",
-        "Pull Request created and linked to issue."
-      ]
-    }
-  },
-  "project-agent": {
-    "status": "COMPLETED",
-    "audit_completed": true,
-    "project_board_sync": "Attempted update to 'Review' but status not found. Issue remains 'In Progress' with PR #527 linked.",
-    "incidental_observations": "None found (file was empty).",
-    "expected_output": {
-      "conditions": [
-        "All valid incidental observations converted to tracked issues.",
-        "Project board correctly reflects new tasks and priorities."
-      ]
-    }
-  }
 }

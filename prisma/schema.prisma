@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id                   String               @id @default(cuid())
   name                 String?
@@ -15,6 +20,7 @@ model User {
   image                String?
   preferredVideoFormat String               @default("short")
   preferredAIStyle     String               @default("Manual")
+  role                 Role                 @default(USER)
   accounts             Account[]
   galleryAssets        GalleryAsset[]
   metadataTemplates    MetadataTemplate[]
@@ -34,6 +40,13 @@ model MetadataTemplate {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model SystemMetric {
+  id        String   @id @default(cuid())
+  name      String
+  value     Float
+  timestamp DateTime @default(now())
 }
 
 model Account {

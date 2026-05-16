@@ -79,7 +79,8 @@ export default {
               return {
                 id: user.id,
                 name: user.name || "E2E Tester",
-                email: user.email
+                email: user.email,
+                role: user.role
               };
             }
           }
@@ -91,6 +92,13 @@ export default {
   trustHost: true,
   secret: process.env.AUTH_SECRET,
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role;
+      }
+      return token;
+    },
     authorized({ auth, request: { nextUrl } }) {
       console.log('Authorized callback - auth object:', auth);
       console.log('Authorized callback - isLoggedIn:', !!auth?.user);
@@ -106,6 +114,17 @@ export default {
 
       const isOnDashboard = nextUrl.pathname === "/";
       const isOnSettings = nextUrl.pathname.startsWith("/settings");
+      const isOnAdmin = nextUrl.pathname.startsWith("/admin");
+
+      // For admin routes, check if user is logged in and is an ADMIN
+      if (isOnAdmin) {
+        if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl));
+        // Note: role is expected to be present in auth.user if correctly passed from JWT
+        if ((auth?.user as any)?.role !== "ADMIN") {
+          return Response.redirect(new URL("/", nextUrl));
+        }
+        return true;
+      }
 
       // For dashboard and settings, allow access if logged in, otherwise redirect to login
       if (isOnDashboard || isOnSettings) {
