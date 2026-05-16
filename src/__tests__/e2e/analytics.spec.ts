@@ -1,8 +1,23 @@
 import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 test.describe('Analytics Dashboard', () => {
-  test('admin can view analytics dashboard', async ({ page }) => {
-    // Requires ADMIN role (uses default storageState from auth.setup.ts)
+  test.beforeAll(async () => {
+    // Seed mock data before running tests
+    await prisma.systemMetric.deleteMany();
+    await prisma.systemMetric.createMany({
+      data: [
+        { name: 'active_users', value: 150 },
+        { name: 'daily_posts', value: 45 },
+        { name: 'api_latency_ms', value: 120 },
+        { name: 'error_rate', value: 0.02 },
+      ],
+    });
+  });
+
+  test('admin can view analytics dashboard with populated data', async ({ page }) => {
     await page.goto('/admin/analytics');
     
     // Check for dashboard component
@@ -14,13 +29,10 @@ test.describe('Analytics Dashboard', () => {
   });
 
   test.describe('non-admin access', () => {
-    // Clear the authenticated state for this test block
     test.use({ storageState: { cookies: [], origins: [] } });
 
     test('unauthenticated user is redirected to login', async ({ page }) => {
       await page.goto('/admin/analytics');
-      
-      // Middleware should redirect to login
       await expect(page).toHaveURL(/.*\/login.*/);
     });
   });
