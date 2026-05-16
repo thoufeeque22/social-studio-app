@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import { LineChart, BarChart } from "@mui/x-charts";
 import { Heading } from "@/components/ui/Heading";
-import { GlassCard } from "@/components/ui/GlassCard";
 
 interface Metric {
   id: string;
@@ -73,6 +72,7 @@ export default function AnalyticsPage() {
     "feature:usage:snippets",
     "feature:usage:global_search",
     "feature:usage:media_picker",
+    "feature:usage:manual_mode",
   ];
 
   const featureLabels: Record<string, string> = {
@@ -81,6 +81,7 @@ export default function AnalyticsPage() {
     "feature:usage:snippets": "Snippets",
     "feature:usage:global_search": "Search",
     "feature:usage:media_picker": "Media Picker",
+    "feature:usage:manual_mode": "Manual Mode",
   };
 
   const featureSeries = featureNames.map(name => ({
@@ -88,7 +89,8 @@ export default function AnalyticsPage() {
     data: dates.map(date => {
       const metric = metrics.find(m => m.name === name && m.timestamp.split('T')[0] === date);
       return metric ? metric.value : 0;
-    })
+    }),
+    curve: "linear" as const,
   }));
 
   const platformNames = ["youtube", "instagram", "tiktok"];
@@ -114,12 +116,12 @@ export default function AnalyticsPage() {
       <Grid container spacing={3}>
         {/* Feature Adoption Chart */}
         <Grid sx={{ width: { xs: '100%', md: '66.66%' } }}>
-          <GlassCard>
+          <Paper elevation={3} sx={{ bgcolor: 'white', borderRadius: 2 }}>
             <Box sx={{ p: 3 }} data-testid="feature-adoption-chart">
               <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
                 Feature Adoption Trends
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
                 Daily usage metrics for core application features.
               </Typography>
               {dates.length > 0 ? (
@@ -137,6 +139,7 @@ export default function AnalyticsPage() {
                       data: s.data,
                       label: s.label,
                       showMark: true,
+                      curve: "linear" as const,
                     }))}
                     height={350}
                     margin={{ top: 20, right: 30, bottom: 50, left: 50 }}
@@ -148,17 +151,17 @@ export default function AnalyticsPage() {
                 </Box>
               )}
             </Box>
-          </GlassCard>
+          </Paper>
         </Grid>
 
         {/* Platform Health Chart */}
         <Grid sx={{ width: { xs: '100%', md: '33.33%' } }}>
-          <GlassCard data-testid="platform-health-chart">
+          <Paper elevation={3} sx={{ bgcolor: 'white', borderRadius: 2 }} data-testid="platform-health-chart">
             <Box sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
                 Platform Distribution Health
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
                 Success vs. failure rates across social platforms.
               </Typography>
               <Box sx={{ height: 400 }}>
@@ -176,7 +179,7 @@ export default function AnalyticsPage() {
                 />
               </Box>
             </Box>
-          </GlassCard>
+          </Paper>
         </Grid>
 
         {/* Summary Metrics */}
