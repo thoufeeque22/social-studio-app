@@ -14,7 +14,7 @@
   - **Scalability:** Design for high throughput (queues for long-running tasks, efficient sharding/partitioning for large datasets).
   - **Observability:** Log critical business events and system health metrics.
 
-# Agent Orchestration (Scrum Master Rules)
+# Agent Orchestration (Direct Routing)
 
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
 - **Handoff & Commit Rule:** Every agent MUST commit their changes using Conventional Commits before updating `.gemini_agent_context.json` and assigning the task to the next agent.
@@ -23,15 +23,15 @@
   - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
   - **Namespaced Keys:** Every agent MUST store their findings, verdicts, and actions under a key named after themselves (e.g., `"dev-agent": { ... }`, `"discovery-agent": { ... }`).
 - **Standard Pipeline Flow:**
-  - `scrum-master` → `discovery-agent` (Planning/Architecture)
-  - `discovery-agent` → `dev-agent` (Implementation & Unit/Integration Tests)
-  - `dev-agent` → `review-agent` (Audit & Verification)
-  - `review-agent` → `qa-agent` (E2E/Playwright Tests)
-  - `qa-agent` → `doc-agent` (Documentation & Manual Tests)
+  - `discovery-agent` (Planning/Architecture)
+  - `dev-agent` (Implementation & Unit/Integration Tests)
+  - `review-agent` (Audit & Verification)
+  - `qa-agent` (E2E/Playwright Tests)
+  - `doc-agent` (Documentation & Manual Tests)
   - `doc-agent` → `project-agent` (Incidental Issues & Project Board)
 - **Orchestration Rules:**
   - **Worker Agents:** MUST NOT invoke other agents. They MUST update `.gemini_agent_context.json` via tools and return their status.
-  - **Scrum Master:** Responsible for analyzing the context and recommending the `TARGET AGENT` for the next step.
+  - **Main Agent (Gemini CLI):** Responsible for analyzing the context and routing the task to the next specialized agent.
 - **Model Selection:** 
   - Use **Gemini 1.5 Pro** for complex reasoning (Discovery, Dev, Review, QA).
   - Use **Gemini 1.5 Flash** (or **Gemini 3 Flash Preview**) for execution, documentation, and simple triage.
@@ -50,10 +50,10 @@
 ## Discovery (Architecture & Planning)
 - **Role:** Read-only consultant. Create blueprints and risk assessments.
 - **Discovery Brainstorming (Dual-Agent Protocol):**
-  - **Trigger:** For **New Features** or **Core Refactors**, the `scrum-master` MUST invoke two distinct discovery sessions.
+  - **Trigger:** For **New Features** or **Core Refactors**, the **Main Agent** MUST invoke two distinct discovery sessions.
   - **Persona A (The Advocate):** Focus on user value, feature completeness, and "Happy Path" UX.
   - **Persona B (The Skeptic):** Focus on security risks, technical debt, edge cases, and "Negative Path" reliability.
-  - **Synthesis:** The `scrum-master` or `discovery-agent` (primary) must synthesize both perspectives into a single `TECHNICAL SPECS` block in `.gemini_agent_context.json`.
+  - **Synthesis:** The `discovery-agent` (primary) must synthesize both perspectives into a single `TECHNICAL SPECS` block in `.gemini_agent_context.json`.
 - **GitHub Integration:** Use `gh issue view <id>` for tickets.
 - **Ambiguity Check:** STOP and ask follow-up questions if requirements are vague.
 - **Impact Radius:** Map dependencies and existing patterns before proposing changes.
@@ -165,7 +165,7 @@ You MUST commit all documentation and manual test changes before assigning to `p
   - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`).
   - **Cleanup:** Clear all processed entries from `.gemini_incidental_observations.json` after logging.
 - **Constraints:** Technical, structured, and emoji-free documentation.
-- **Handoff:** Update `.gemini_agent_context.json`. Finalize the ticket and signal completion to `scrum-master`. You MUST include an `expected_output` block confirming:
+- **Handoff:** Update `.gemini_agent_context.json`. Finalize the ticket and signal completion to the **Main Agent**. You MUST include an `expected_output` block confirming:
   1. All valid incidental observations converted to tracked issues.
   2. Project board correctly reflects new tasks and priorities.
 
@@ -176,8 +176,6 @@ You MUST commit all documentation and manual test changes before assigning to `p
   - E2E Tests → qa-agent
   - Docs/PRs → doc-agent
   - Issues/Project Management → project-agent
-
-## Directory Ownership & Guardrails
 - **discovery-agent:** WRITE: `docs/`, `AGENTS.md`. READ: Full Codebase.
 - **dev-agent:** WRITE: `src/` (excluding `src/__tests__/e2e/`), `prisma/`, `public/`. READ: Full Codebase.
 - **qa-agent:** WRITE: `src/__tests__/e2e/`. READ: `src/app/`, `src/components/`.

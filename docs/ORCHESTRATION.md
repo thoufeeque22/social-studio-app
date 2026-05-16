@@ -17,4 +17,4 @@ The `.gemini_agent_context.json` file serves as the definitive source of truth. 
 - **Hooks:** `.gemini/hooks/post-task.sh` is executed between agent handoffs to ensure environment consistency.
 
 ## Agent Sequence
-`scrum-master` (initiator) → `discovery-agent` → `dev-agent` → `review-agent` → `qa-agent` → `doc-agent` → `project-agent`
+`discovery-agent` → `dev-agent` → `review-agent` → `qa-agent` → `doc-agent` → `project-agent`

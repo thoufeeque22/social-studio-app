@@ -2,7 +2,6 @@
 
 - **Rules:** Centralized in `GEMINI.md`. All agents MUST follow.
 - **Sub-agents:** Located in `.gemini/agents/`.
-  - `scrum-master`: Triage & Routing.
   - `discovery-agent`: Technical Blueprints.
   - `dev-agent`: Implementation.
   - `review-agent`: Audit & Verification.
