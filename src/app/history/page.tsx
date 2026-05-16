@@ -104,7 +104,7 @@ interface CockpitPost {
   historyId?: string;
 }
 
-export default function HistoryPage() {
+function HistoryContent() {
   const [posts, setPosts] = useState<PostHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -808,5 +808,13 @@ export default function HistoryPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <React.Suspense fallback={<div className={styles.historyPage}><div className={styles.loading}>Loading Activity Hub...</div></div>}>
+      <HistoryContent />
+    </React.Suspense>
   );
 }

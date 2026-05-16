@@ -1,61 +1,30 @@
 {
-  "last_agent": "qa-agent",
-  "branch_name": "380-global-search-field",
-  "ticket_goal": "Implement a unified global search bar within the History and Media Gallery views to filter past posts and uploaded videos.",
-  "ticket_id": 380,
-  "scrum-master": {
-    "verdict": "New Feature. Routing to discovery-agent for architecture planning and technical specs."
-  },
-  "discovery-agent": {
-    "verdict": "NECESSARY",
-    "impact_radius": [
-      "src/app/api/history/route.ts",
-      "src/app/api/media/route.ts",
-      "src/app/history/page.tsx",
-      "src/components/media/MediaLibrary.tsx",
-      "src/components/ui/SearchField.tsx",
-      "src/components/layout/Header.tsx"
-    ],
-    "technical_specs": [
-      "Update history and media APIs for search parameter support.",
-      "Create reusable SearchField UI component.",
-      "Implement server-side search in History and Media pages.",
-      "Make Global Header Search functional with navigation and URL sync."
-    ]
-  },
+  "last_agent": "scrum-master",
+  "branch_name": "main",
+  "ticket_goal": "Strengthen Orchestration & Fix Build Errors",
+  "ticket_id": "ORCH-001",
   "dev-agent": {
     "modified_files": [
-      "src/app/api/history/route.ts",
-      "src/app/api/media/route.ts",
+      "scripts/seed-search-data.ts",
       "src/app/history/page.tsx",
-      "src/components/media/MediaLibrary.tsx",
-      "src/components/ui/SearchField.tsx",
-      "src/components/layout/Header.tsx",
-      "playwright.config.ts",
-      "scripts/test-pw-direct.js"
+      ".gemini/hooks/post-task.sh",
+      "GEMINI.md"
     ],
     "fixes_applied": [
-      "Implemented server-side search for History and Media APIs.",
-      "Created reusable SearchField component.",
-      "Synced page-level search with debounced server-side filtering.",
-      "Implemented Global Header Search functionality with URL parameter synchronization.",
-      "Fixed A11y violation in Header Search (added hidden label).",
-      "Added support for SLOWMO environment variable in Playwright config.",
-      "Fixed lint error in playwright-direct script."
-    ]
-  },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "failure_details": "None",
-    "audit_notes": "Code reviewed for A11y, Zero-Any policy, and architectural consistency. Header search correctly syncs with sub-pages."
-  },
-  "qa-agent": {
-    "verdict": "PASS",
-    "tests_written": [
-      "src/__tests__/e2e/global-search.spec.ts",
-      "src/__tests__/e2e/header-search.spec.ts",
-      "scripts/seed-search-data.ts"
+      "Fixed BigInt literal ES2017 compatibility in seeding script",
+      "Wrapped /history page in Suspense boundary for useSearchParams() compatibility",
+      "Added tsc --noEmit and npm run build to post-task hook",
+      "Mandated Predictive Validation in GEMINI.md"
     ],
-    "test_results": "All E2E tests passed (headed, headless, and slow-mo modes verified)."
+    "expected_output": {
+      "verification_commands": [
+        "./.gemini/hooks/post-task.sh"
+      ],
+      "success_indicators": [
+        "tsc --noEmit passes",
+        "npm run build passes with all routes optimized",
+        "vitest tests pass"
+      ]
+    }
   }
 }
