@@ -5,14 +5,23 @@
   "ticket_id": "392",
   "project-agent": {},
   "doc-agent": {},
-  "qa-agent": {},
-  "review-agent": {
-    "review_verdict": "PENDING",
+  "qa-agent": {
     "expected_output": {
       "conditions": [
-        "Audit architecture against docs/ specs.",
-        "Verify security (RBAC, PII sanitization).",
-        "Confirm no regressions in build/linting."
+        "Create E2E tests for analytics dashboard visibility (ADMIN role).",
+        "Verify 401 on non-admin accounts.",
+        "Generate screenshot verification in verification/ directory."
+      ]
+    }
+  },
+  "review-agent": {
+    "review_verdict": "PASS",
+    "failure_details": null,
+    "expected_output": {
+      "conditions": [
+        "Successful validation of all fixes.",
+        "Lint errors resolved (except legacy warnings).",
+        "Build and type checks passed."
       ]
     }
   },
@@ -25,13 +34,15 @@
       "src/app/admin/analytics/page.tsx",
       "src/app/api/admin/aggregate/route.ts",
       "src/app/api/admin/analytics/route.ts",
-      "src/lib/core/telemetry.ts"
+      "src/lib/core/telemetry.ts",
+      "src/lib/core/encryption.ts"
     ],
     "fixes_applied": [
       "Added Role enum and SystemMetric model to Prisma schema.",
       "Implemented RBAC in middleware.",
       "Created async telemetry utility.",
-      "Implemented analytics dashboard UI."
+      "Implemented analytics dashboard UI.",
+      "Fixed linting error in encryption.ts."
     ],
     "expected_output": {
       "conditions": [
@@ -46,3 +57,4 @@
     "VERDICT": "NECESSARY"
   }
 }
+2
