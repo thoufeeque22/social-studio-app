@@ -40,3 +40,5 @@ model SystemMetric {
 - **Event Tracking:** Tracks critical lifecycle events (Uploads, Distributions, API failures).
 - **Dashboard UI:** Provides an aggregated view of metrics for users with the `ADMIN` role.
 - **Role-Based Access:** Access to the analytics route is restricted to `ADMIN` users via middleware.
+- **Feature Adoption Trends:** Tracks usage across Automations and 'Manual Mode'.
+- **Visual Presentation:** Charts are rendered on a white background with straight interpolation lines for clearer data interpretation.

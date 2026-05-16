@@ -19,7 +19,8 @@
   1. Log in as an `ADMIN` user.
   2. Navigate to `/admin/analytics`.
 - **Expected Result:**
-  - Metrics chart renders successfully.
+  - Metrics chart renders successfully on a white background.
+  - Straight interpolation lines are used in charts for data plotting.
   - No hydration errors.
   - All labels and data are legible.
 
