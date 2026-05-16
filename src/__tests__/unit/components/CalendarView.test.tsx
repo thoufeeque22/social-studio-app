@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CalendarView } from '@/components/schedule/CalendarView';
-import { format, startOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { vi, describe, it, expect } from 'vitest';
 
 const mockPosts = [
@@ -30,38 +30,59 @@ const mockPosts = [
 
 describe('CalendarView', () => {
   it('renders monthly view by default', () => {
-    render(<CalendarView posts={mockPosts} onEditPost={() => {}} />);
-    const currentMonth = format(new Date(), 'MMMM yyyy');
-    expect(screen.getByText(currentMonth)).toBeInTheDocument();
+    render(
+      <CalendarView 
+        posts={mockPosts} 
+        currentDate={new Date()} 
+        viewType="month"
+        onViewTypeChange={() => {}}
+        onEditPost={() => {}} 
+      />
+    );
+    // The component now shows "Monthly Content Planner" header
+    expect(screen.getByText('Monthly Content Planner')).toBeInTheDocument();
   });
 
   it('shows posts on the correct day in month view', () => {
-    render(<CalendarView posts={mockPosts} onEditPost={() => {}} />);
+    render(
+      <CalendarView 
+        posts={mockPosts} 
+        currentDate={new Date()} 
+        viewType="month"
+        onViewTypeChange={() => {}}
+        onEditPost={() => {}} 
+      />
+    );
     expect(screen.getByText('Post 1')).toBeInTheDocument();
-  });
-
-  it('navigates to next month', () => {
-    render(<CalendarView posts={mockPosts} onEditPost={() => {}} />);
-    const nextButton = screen.getByTestId('ChevronRightIcon').parentElement;
-    if (nextButton) fireEvent.click(nextButton);
-    
-    const nextMonth = format(addMonths(new Date(), 1), 'MMMM yyyy');
-    expect(screen.getByText(nextMonth)).toBeInTheDocument();
-    expect(screen.getByText('✅ Post 2')).toBeInTheDocument();
   });
 
   it('switches to weekly view', () => {
-    render(<CalendarView posts={mockPosts} onEditPost={() => {}} />);
+    const onViewTypeChange = vi.fn();
+    render(
+      <CalendarView 
+        posts={mockPosts} 
+        currentDate={new Date()} 
+        viewType="month"
+        onViewTypeChange={onViewTypeChange}
+        onEditPost={() => {}} 
+      />
+    );
     const weekButton = screen.getByText('Week');
     fireEvent.click(weekButton);
-    
-    expect(screen.getByText(/Week of/)).toBeInTheDocument();
-    expect(screen.getByText('Post 1')).toBeInTheDocument();
+    expect(onViewTypeChange).toHaveBeenCalledWith('week');
   });
 
   it('calls onEditPost when a post is clicked', () => {
     const onEditPost = vi.fn();
-    render(<CalendarView posts={mockPosts} onEditPost={onEditPost} />);
+    render(
+      <CalendarView 
+        posts={mockPosts} 
+        currentDate={new Date()} 
+        viewType="month"
+        onViewTypeChange={() => {}}
+        onEditPost={onEditPost} 
+      />
+    );
     
     const post = screen.getByText('Post 1');
     fireEvent.click(post);
@@ -70,10 +91,16 @@ describe('CalendarView', () => {
   });
 
   it('shows checkmark for published posts', () => {
-    render(<CalendarView posts={mockPosts} onEditPost={() => {}} />);
-    // Navigate to next month where mockPost[1] is
-    const nextButton = screen.getByTestId('ChevronRightIcon').parentElement;
-    if (nextButton) fireEvent.click(nextButton);
+    // Render with currentDate set to next month where mockPost[1] is
+    render(
+      <CalendarView 
+        posts={mockPosts} 
+        currentDate={addMonths(new Date(), 1)} 
+        viewType="month"
+        onViewTypeChange={() => {}}
+        onEditPost={() => {}} 
+      />
+    );
     
     expect(screen.getByText('✅ Post 2')).toBeInTheDocument();
   });

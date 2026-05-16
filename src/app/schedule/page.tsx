@@ -25,6 +25,10 @@ import InfoIcon from '@mui/icons-material/Info';
 import ViewHeadlineIcon from '@mui/icons-material/ViewHeadline';
 
 import { CalendarView } from '@/components/schedule/CalendarView';
+import { format, addMonths, subMonths, addWeeks, subWeeks, startOfWeek } from 'date-fns';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { IconButton } from '@mui/material';
 
 interface PlatformResult {
   id: string;
@@ -63,6 +67,24 @@ function ScheduleContent() {
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
   const [isAILoading, setIsAILoading] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [calendarViewType, setCalendarViewType] = useState<'month' | 'week'>('month');
+
+  const nextPeriod = () => {
+    if (calendarViewType === 'month') {
+      setCurrentDate(addMonths(currentDate, 1));
+    } else {
+      setCurrentDate(addWeeks(currentDate, 1));
+    }
+  };
+
+  const prevPeriod = () => {
+    if (calendarViewType === 'month') {
+      setCurrentDate(subMonths(currentDate, 1));
+    } else {
+      setCurrentDate(subWeeks(currentDate, 1));
+    }
+  };
 
   // Helper to format date for datetime-local input in LOCAL time
   const formatToLocalDatetime = (dateStr: string) => {
@@ -312,6 +334,9 @@ function ScheduleContent() {
       ) : viewMode === 'calendar' ? (
         <CalendarView 
           posts={posts} 
+          currentDate={currentDate}
+          viewType={calendarViewType}
+          onViewTypeChange={setCalendarViewType}
           onEditPost={(post) => setEditingPost(post)} 
         />
       ) : (

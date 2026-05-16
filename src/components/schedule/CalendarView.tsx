@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   format, 
   startOfMonth, 
@@ -10,15 +10,9 @@ import {
   eachDayOfInterval, 
   isSameMonth, 
   isSameDay, 
-  addMonths, 
-  subMonths,
-  addWeeks,
-  subWeeks,
   isToday
 } from 'date-fns';
-import { IconButton, Tooltip } from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Tooltip } from '@mui/material';
 import styles from './calendar.module.css';
 
 interface PlatformResult {
@@ -41,29 +35,20 @@ interface PostHistoryEntry {
 
 interface CalendarViewProps {
   posts: PostHistoryEntry[];
+  currentDate: Date;
+  viewType: 'month' | 'week';
+  onViewTypeChange: (type: 'month' | 'week') => void;
   onEditPost: (post: PostHistoryEntry) => void;
 }
 
-export function CalendarView({ posts, onEditPost }: CalendarViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState<'month' | 'week'>('month');
-
-  const nextPeriod = () => {
-    if (viewType === 'month') {
-      setCurrentDate(addMonths(currentDate, 1));
-    } else {
-      setCurrentDate(addWeeks(currentDate, 1));
-    }
-  };
-
-  const prevPeriod = () => {
-    if (viewType === 'month') {
-      setCurrentDate(subMonths(currentDate, 1));
-    } else {
-      setCurrentDate(subWeeks(currentDate, 1));
-    }
-  };
-
+export function CalendarView({ 
+  posts, 
+  currentDate, 
+  viewType, 
+  onViewTypeChange, 
+  onEditPost 
+}: CalendarViewProps) {
+  
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -160,7 +145,7 @@ export function CalendarView({ posts, onEditPost }: CalendarViewProps) {
                     return (
                       <div 
                         key={post.id} 
-                        className={`${styles.calendarPost} ${post.isPublished ? styles.publishedPost : ''}`}
+                        className={`${styles.calendarPost} ${post.isPublished ? styles.publishedPost : ''} ${post.videoFormat === 'short' ? styles.calendarPostShort : styles.calendarPostLong}`}
                         style={{ padding: '0.75rem', fontSize: '0.85rem' }}
                         onClick={() => onEditPost(post)}
                       >
@@ -186,38 +171,20 @@ export function CalendarView({ posts, onEditPost }: CalendarViewProps) {
   return (
     <div className={styles.calendarContainer}>
       <div className={styles.calendarHeader}>
-        <div className={styles.navigation}>
-          <IconButton onClick={prevPeriod} size="small">
-            <ChevronLeftIcon />
-          </IconButton>
-          <div className={styles.currentPeriod}>
-            {viewType === 'month' 
-              ? format(currentDate, 'MMMM yyyy')
-              : `Week of ${format(startOfWeek(currentDate), 'MMM d, yyyy')}`
-            }
-          </div>
-          <IconButton onClick={nextPeriod} size="small">
-            <ChevronRightIcon />
-          </IconButton>
-          <button 
-            className={styles.viewButton} 
-            onClick={() => setCurrentDate(new Date())}
-            style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}
-          >
-            Today
-          </button>
+        <div style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+          {viewType === 'month' ? 'Monthly Content Planner' : 'Weekly Distribution View'}
         </div>
 
         <div className={styles.viewControls}>
           <button 
             className={`${styles.viewButton} ${viewType === 'month' ? styles.activeView : ''}`}
-            onClick={() => setViewType('month')}
+            onClick={() => onViewTypeChange('month')}
           >
             Month
           </button>
           <button 
             className={`${styles.viewButton} ${viewType === 'week' ? styles.activeView : ''}`}
-            onClick={() => setViewType('week')}
+            onClick={() => onViewTypeChange('week')}
           >
             Week
           </button>
