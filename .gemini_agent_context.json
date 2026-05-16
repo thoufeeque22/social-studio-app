@@ -1,92 +1,30 @@
 {
-  "ticket_id": "376",
-  "ticket_goal": "Develop an intelligent AI assistant capable of helping users upload, schedule, and manage their content through a conversational interface.",
-  "branch_name": "376-ai-chatbot",
-  "last_agent": "qa-agent",
-  "target_agent": "doc-agent",
-  "cycle_count": 3,
-  "discovery-agent": {
-    "verdict": "NECESSARY",
-    "impact_radius": [
-      "src/app/api/chat/route.ts",
-      "src/components/chat/AIChatbot.tsx",
-      "src/components/layout/LayoutWrapper.tsx",
-      "package.json",
-      "src/lib/actions/ai-chat.ts"
-    ],
-    "technical_specs": {
-      "dependencies": [
-        "ai",
-        "@ai-sdk/google",
-        "framer-motion"
-      ],
-      "architecture": "Next.js Route Handler with Vercel AI SDK + React Client Component with MUI and Framer Motion.",
-      "llm_config": {
-        "provider": "Google Gemini",
-        "model": "gemini-1.5-pro-latest",
-        "system_prompt": "You are the Social Studio AI Assistant. You help users manage their social media content. You can list upcoming posts, view staged media, schedule new posts, update existing ones, and cancel/delete schedules. Always be professional, helpful, and concise."
-      },
-      "tools": [
-        {
-          "name": "list_upcoming_posts",
-          "description": "Retrieve the user's scheduled posts."
-        },
-        {
-          "name": "get_media_gallery",
-          "description": "List videos available in the staged gallery for scheduling."
-        },
-        {
-          "name": "schedule_video",
-          "description": "Schedule a video from the gallery to social platforms."
-        },
-        {
-          "name": "update_post",
-          "description": "Update details of an existing scheduled post."
-        },
-        {
-          "name": "cancel_post",
-          "description": "Delete a scheduled post."
-        }
-      ],
-      "production_readiness": {
-        "logging": "Sentry for all tool calls and API route errors.",
-        "rate_limiting": "Upstash Redis on /api/chat route.",
-        "validation": "Zod for all tool parameters.",
-        "caching": "Next.js fetch cache for media library list."
-      },
-      "ui_ux": "Floating Action Button (FAB) using MUI icons (AutoAwesome). Glassmorphism chat window. Framer Motion for slide-in animations. Human-centric copy."
-    }
-  },
+  "last_agent": "scrum-master",
+  "branch_name": "main",
+  "ticket_goal": "Strengthen Orchestration & Fix Build Errors",
+  "ticket_id": "ORCH-001",
   "dev-agent": {
-    "status": "SUCCESS",
     "modified_files": [
-      "package.json",
-      "src/lib/actions/ai-chat.ts",
-      "src/app/api/chat/route.ts",
-      "src/components/chat/AIChatbot.tsx",
-      "src/components/layout/LayoutWrapper.tsx",
-      "src/__tests__/components/layout-wrapper.test.tsx",
-      "src/__tests__/e2e/chat.spec.ts"
+      "scripts/seed-search-data.ts",
+      "src/app/history/page.tsx",
+      ".gemini/hooks/post-task.sh",
+      "GEMINI.md"
     ],
     "fixes_applied": [
-      "Refactored API route for AI SDK v6: ModelMessage, inputSchema, toUIMessageStreamResponse.",
-      "Fixed streamText awaiting to allow method access.",
-      "Updated AIChatbot to manage input state manually and use sendMessage/status.",
-      "Render message parts in AIChatbot UI.",
-      "Satisfied Zero-Any policy in integration tests.",
-      "Enabled Ollama fallback with gemma4 model in API route for local testing.",
-      "Improved UI resilience in AIChatbot by handling missing content/parts gracefully and adding a fallback text.",
-      "Simplified E2E tests assertions to rely on message container existence and non-emptiness instead of exact keywords."
-    ]
-  },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "summary": "Diff analysis complete. The TypeScript strict mode issues with AI SDK v6 UIMessage were properly resolved without using 'any'. Ollama fallback is implemented. Static checks (tsc, build, lint) and integration tests all pass. Handoff to qa-agent to verify E2E suite."
-  },
-  "qa-agent": {
-    "qa_verdict": "PASS",
-    "summary": "E2E Playwright test suite executed successfully. All 6 tests for the AI Chatbot, including sending messages, tool invocations, and error handling, now pass with the improved UI resilience and Ollama local fallback. Handoff to doc-agent for final documentation updates."
-  },
-  "doc-agent": {},
-  "project-agent": {}
+      "Fixed BigInt literal ES2017 compatibility in seeding script",
+      "Wrapped /history page in Suspense boundary for useSearchParams() compatibility",
+      "Added tsc --noEmit and npm run build to post-task hook",
+      "Mandated Predictive Validation in GEMINI.md"
+    ],
+    "expected_output": {
+      "verification_commands": [
+        "./.gemini/hooks/post-task.sh"
+      ],
+      "success_indicators": [
+        "tsc --noEmit passes",
+        "npm run build passes with all routes optimized",
+        "vitest tests pass"
+      ]
+    }
+  }
 }

@@ -11,9 +11,12 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    launchOptions: {
+      slowMo: process.env.SLOWMO ? parseInt(process.env.SLOWMO) : 0,
+    },
   },
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    { name: 'setup', testMatch: /.*\.setup\.ts/, use: { launchOptions: { slowMo: 0 } } },
     {
       name: 'chromium',
       use: { 
