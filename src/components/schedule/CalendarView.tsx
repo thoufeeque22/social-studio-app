@@ -37,15 +37,25 @@ interface CalendarViewProps {
   posts: PostHistoryEntry[];
   currentDate: Date;
   viewType: 'month' | 'week';
-  onViewTypeChange: (type: 'month' | 'week') => void;
   onEditPost: (post: PostHistoryEntry) => void;
 }
+
+const getPlatformClass = (platforms: PlatformResult[]) => {
+  if (!platforms || platforms.length === 0) return styles.platformDefault;
+  const p = platforms[0].platform.toLowerCase();
+  switch (p) {
+    case 'youtube': return styles.platformYoutube;
+    case 'instagram': return styles.platformInstagram;
+    case 'facebook': return styles.platformFacebook;
+    case 'tiktok': return styles.platformTiktok;
+    default: return styles.platformDefault;
+  }
+};
 
 export function CalendarView({ 
   posts, 
   currentDate, 
   viewType, 
-  onViewTypeChange, 
   onEditPost 
 }: CalendarViewProps) {
   
@@ -95,7 +105,7 @@ export function CalendarView({
                     <div 
                       className={`
                         ${styles.calendarPost} 
-                        ${post.videoFormat === 'short' ? styles.calendarPostShort : styles.calendarPostLong}
+                        ${getPlatformClass(post.platforms)}
                         ${post.isPublished ? styles.publishedPost : ''}
                       `}
                       onClick={() => onEditPost(post)}
@@ -145,7 +155,7 @@ export function CalendarView({
                     return (
                       <div 
                         key={post.id} 
-                        className={`${styles.calendarPost} ${post.isPublished ? styles.publishedPost : ''} ${post.videoFormat === 'short' ? styles.calendarPostShort : styles.calendarPostLong}`}
+                        className={`${styles.calendarPost} ${post.isPublished ? styles.publishedPost : ''} ${getPlatformClass(post.platforms)}`}
                         style={{ padding: '0.75rem', fontSize: '0.85rem' }}
                         onClick={() => onEditPost(post)}
                       >
@@ -170,27 +180,6 @@ export function CalendarView({
 
   return (
     <div className={styles.calendarContainer}>
-      <div className={styles.calendarHeader}>
-        <div style={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-          {viewType === 'month' ? 'Monthly Content Planner' : 'Weekly Distribution View'}
-        </div>
-
-        <div className={styles.viewControls}>
-          <button 
-            className={`${styles.viewButton} ${viewType === 'month' ? styles.activeView : ''}`}
-            onClick={() => onViewTypeChange('month')}
-          >
-            Month
-          </button>
-          <button 
-            className={`${styles.viewButton} ${viewType === 'week' ? styles.activeView : ''}`}
-            onClick={() => onViewTypeChange('week')}
-          >
-            Week
-          </button>
-        </div>
-      </div>
-
       {viewType === 'month' ? renderMonthView() : renderWeekView()}
     </div>
   );

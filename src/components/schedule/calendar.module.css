@@ -5,61 +5,6 @@
   animation: fadeIn 0.5s ease forwards;
 }
 
-.calendarHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: hsla(var(--background) / 0.4);
-  backdrop-filter: blur(12px);
-  padding: 1.25rem 1.5rem;
-  border-radius: 1.25rem;
-  border: 1px solid hsla(var(--border) / 0.4);
-  margin-top: 0.5rem;
-}
-
-.navigation {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.currentPeriod {
-  font-size: 1.35rem;
-  font-weight: 800;
-  min-width: 200px;
-  text-align: center;
-  background: linear-gradient(135deg, hsl(var(--foreground)), hsla(var(--foreground)/0.7));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.viewControls {
-  display: flex;
-  background: hsla(var(--muted) / 0.1);
-  padding: 0.35rem;
-  border-radius: 0.85rem;
-  border: 1px solid hsla(var(--border) / 0.4);
-}
-
-.viewButton {
-  padding: 0.45rem 1.2rem;
-  border-radius: 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  border: none;
-  background: transparent;
-  color: hsl(var(--muted-foreground));
-}
-
-.activeView {
-  background: hsla(var(--primary) / 0.15);
-  color: hsl(var(--primary));
-  box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.2);
-}
-
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -69,7 +14,7 @@
   border-radius: 1.5rem;
   overflow: hidden;
   box-shadow: 0 20px 50px hsla(0, 0%, 0%, 0.3);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(24px);
 }
 
 .weekdayHeader {
@@ -120,6 +65,7 @@
   font-weight: 800;
   box-shadow: 0 0 20px hsla(var(--primary) / 0.5);
   transform: scale(1.1);
+  opacity: 1;
 }
 
 .dayNumber {
@@ -132,6 +78,7 @@
   justify-content: center;
   width: 32px;
   height: 32px;
+  opacity: 0.6;
 }
 
 .postsContainer {
@@ -156,9 +103,8 @@
   font-size: 0.72rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.75rem;
-  background: hsla(var(--background) / 0.6);
-  color: hsl(var(--foreground));
-  border: 1px solid hsla(var(--border) / 0.8);
+  color: #FFFFFF !important;
+  border: none;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
@@ -169,30 +115,37 @@
 }
 
 .calendarPost:hover {
-  background: hsla(var(--background) / 1);
   transform: translateY(-3px) scale(1.02);
-  border-color: hsla(var(--primary) / 0.6);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
 
-.calendarPostShort {
-  border-left: 4px solid hsl(280, 80%, 65%) !important;
+.platformYoutube {
+  background: #FF0000 !important;
 }
 
-.calendarPostLong {
-  border-left: 4px solid hsl(200, 80%, 65%) !important;
+.platformInstagram {
+  background: #E4405F !important;
+}
+
+.platformFacebook {
+  background: #1877F2 !important;
+}
+
+.platformTiktok {
+  background: #000000 !important;
+}
+
+.platformDefault {
+  background: hsl(var(--primary)) !important;
 }
 
 .publishedPost {
-  background: hsla(150, 80%, 50%, 0.12);
-  color: hsl(150, 80%, 75%);
-  border-color: hsla(150, 80%, 50%, 0.4);
+  opacity: 0.75;
 }
 
 .publishedPost:hover {
-  background: hsla(150, 80%, 50%, 0.2);
-  border-color: hsl(150, 80%, 60%);
+  opacity: 1;
 }
 
 /* Weekly View */
@@ -267,22 +220,6 @@
 }
 
 @media (max-width: 768px) {
-  .calendarHeader {
-    flex-direction: column;
-    gap: 1.25rem;
-    padding: 1rem;
-  }
-  
-  .navigation {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .currentPeriod {
-    min-width: auto;
-    font-size: 1.1rem;
-  }
-
   .weekdayHeader {
     font-size: 0.7rem;
     padding: 0.75rem 0.2rem;

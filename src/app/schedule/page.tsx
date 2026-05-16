@@ -25,7 +25,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import ViewHeadlineIcon from '@mui/icons-material/ViewHeadline';
 
 import { CalendarView } from '@/components/schedule/CalendarView';
-import { format, addMonths, subMonths, addWeeks, subWeeks, startOfWeek } from 'date-fns';
+import { format, addMonths, subMonths, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { IconButton } from '@mui/material';
@@ -66,24 +66,27 @@ function ScheduleContent() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
   const [isAILoading, setIsAILoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
+  const [viewMode, setViewMode] = useState<'timeline' | 'month' | 'week'>('timeline');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [calendarViewType, setCalendarViewType] = useState<'month' | 'week'>('month');
 
   const nextPeriod = () => {
-    if (calendarViewType === 'month') {
+    if (viewMode === 'month') {
       setCurrentDate(addMonths(currentDate, 1));
-    } else {
+    } else if (viewMode === 'week') {
       setCurrentDate(addWeeks(currentDate, 1));
     }
   };
 
   const prevPeriod = () => {
-    if (calendarViewType === 'month') {
+    if (viewMode === 'month') {
       setCurrentDate(subMonths(currentDate, 1));
-    } else {
+    } else if (viewMode === 'week') {
       setCurrentDate(subWeeks(currentDate, 1));
     }
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
   };
 
   // Helper to format date for datetime-local input in LOCAL time
@@ -97,12 +100,12 @@ function ScheduleContent() {
   const fetchSchedule = useCallback(async () => {
     try {
       const params = new URLSearchParams({
-        published: viewMode === 'calendar' ? 'all' : 'false',
+        published: (viewMode === 'month' || viewMode === 'week') ? 'all' : 'false',
         _t: Date.now().toString()
       });
       
       // If we have a target ID or in calendar mode, increase limit
-      if (targetId || viewMode === 'calendar') {
+      if (targetId || viewMode === 'month' || viewMode === 'week') {
         params.set('limit', '100');
       }
 
@@ -271,8 +274,34 @@ function ScheduleContent() {
   return (
     <div className={styles.schedulePage}>
       <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <h1 className={styles.title}>Scheduled Posts</h1>
+        <div className={styles.headerTop} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 className={styles.title}>Scheduled Posts</h1>
+            <p className={styles.subtitle} style={{ marginTop: '0.25rem' }}>
+              Manage your upcoming content distribution
+            </p>
+          </div>
+
+          {(viewMode === 'month' || viewMode === 'week') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <IconButton onClick={prevPeriod} data-testid="calendar-prev-btn" size="small" sx={{ color: 'hsl(var(--foreground))', background: 'hsla(var(--muted)/0.2)' }}>
+                <ChevronLeftIcon />
+              </IconButton>
+              <button onClick={goToToday} data-testid="calendar-today-btn" style={{ background: 'transparent', border: '1px solid hsla(var(--border)/0.4)', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer', color: 'hsl(var(--foreground))', fontWeight: 600, fontSize: '0.85rem' }}>
+                Today
+              </button>
+              <span data-testid="calendar-current-period" style={{ fontWeight: 700, fontSize: '1.1rem', minWidth: '140px', textAlign: 'center', color: 'hsl(var(--foreground))' }}>
+                {viewMode === 'month' 
+                  ? format(currentDate, 'MMMM yyyy')
+                  : `${format(startOfWeek(currentDate), 'MMM d')} - ${format(endOfWeek(currentDate), 'MMM d, yyyy')}`
+                }
+              </span>
+              <IconButton onClick={nextPeriod} data-testid="calendar-next-btn" size="small" sx={{ color: 'hsl(var(--foreground))', background: 'hsla(var(--muted)/0.2)' }}>
+                <ChevronRightIcon />
+              </IconButton>
+            </div>
+          )}
+
           <div style={{ display: 'flex', background: 'hsla(var(--muted)/0.1)', padding: '4px', borderRadius: '10px', border: '1px solid hsla(var(--border)/0.4)' }}>
             <button 
               onClick={() => setViewMode('timeline')}
@@ -294,7 +323,7 @@ function ScheduleContent() {
               <ViewHeadlineIcon sx={{ fontSize: 18 }} /> Timeline
             </button>
             <button 
-              onClick={() => setViewMode('calendar')}
+              onClick={() => setViewMode('month')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -302,21 +331,37 @@ function ScheduleContent() {
                 padding: '6px 16px',
                 borderRadius: '8px',
                 border: 'none',
-                background: viewMode === 'calendar' ? 'hsla(var(--primary)/0.15)' : 'transparent',
-                color: viewMode === 'calendar' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                background: viewMode === 'month' ? 'hsla(var(--primary)/0.15)' : 'transparent',
+                color: viewMode === 'month' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
             >
-              <CalendarMonthIcon sx={{ fontSize: 18 }} /> Calendar
+              <CalendarMonthIcon sx={{ fontSize: 18 }} /> Month
+            </button>
+            <button 
+              onClick={() => setViewMode('week')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: viewMode === 'week' ? 'hsla(var(--primary)/0.15)' : 'transparent',
+                color: viewMode === 'week' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <CalendarMonthIcon sx={{ fontSize: 18 }} /> Week
             </button>
           </div>
         </div>
-        <p className={styles.subtitle}>
-          Manage your upcoming content distribution
-        </p>
       </div>
 
       {posts.length === 0 ? (
@@ -331,12 +376,11 @@ function ScheduleContent() {
             </p>
           </div>
         </GlassCard>
-      ) : viewMode === 'calendar' ? (
+      ) : (viewMode === 'month' || viewMode === 'week') ? (
         <CalendarView 
           posts={posts} 
           currentDate={currentDate}
-          viewType={calendarViewType}
-          onViewTypeChange={setCalendarViewType}
+          viewType={viewMode}
           onEditPost={(post) => setEditingPost(post)} 
         />
       ) : (

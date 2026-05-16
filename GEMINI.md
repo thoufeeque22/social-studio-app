@@ -19,7 +19,7 @@
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
 - **Handoff & Commit Rule:** Every agent MUST commit their changes using Conventional Commits before updating `.gemini_agent_context.json` and assigning the task to the next agent.
 - **Predictive Validation:** Before handoff, the current agent MUST define an `expected_output` block in their namespaced context. This MUST include specific verification commands (e.g., `npm run build`, `npx tsc`) and the expected success indicators. Handoff is FORBIDDEN until the agent can prove these outputs were achieved.
-- **Context Structure:****
+- **Context Structure:**
   - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
   - **Namespaced Keys:** Every agent MUST store their findings, verdicts, and actions under a key named after themselves (e.g., `"dev-agent": { ... }`, `"discovery-agent": { ... }`).
 - **Standard Pipeline Flow:**
@@ -32,6 +32,8 @@
 - **Orchestration Rules:**
   - **Worker Agents:** MUST NOT invoke other agents. They MUST update `.gemini_agent_context.json` via tools and return their status.
   - **Main Agent (Gemini CLI):** Responsible for analyzing the context and routing the task to the next specialized agent.
+  - **Discovery Gate:** For any task involving New Features or Roadmap items, the Main Agent is FORBIDDEN from invoking `dev-agent` until `discovery-agent` has provided a verified `TECHNICAL SPECS` block. Bypassing Discovery is a CRITICAL pipeline failure.
+  - **Visual Integrity Mandate:** All UI changes MUST be verified not just for functional logic, but for visual accessibility (contrast, visibility, spacing). QA-agent MUST include specific Playwright tests that check for the visibility of critical controls (e.g., navigation arrows, labels).
   - **Inception Rule:** When a new ticket ID (URL) is provided, the Main Agent MUST immediately switch to the `main` branch and pull the latest changes before invoking any specialized agent (including `discovery-agent`).
 - **Model Selection:** 
   - Use **Gemini 1.5 Pro** for complex reasoning (Discovery, Dev, Review, QA).
@@ -122,6 +124,10 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
 - **Role:** Automation Writer & Execution Engineer. Design scenarios, write Playwright tests, and execute them.
 - **Standards:**
   - **Mandatory Automation:** For every feature or bug fix, the QA agent MUST write a new Playwright test or update existing ones. Manual verification is insufficient.
+  - **Visual Audit Protocol:** 
+    - For any task modifying UI components, styling (contrast, layout, colors), or adding new views, the `qa-agent` MUST generate a Playwright script dedicated to taking full-page screenshots of the affected UI states.
+    - Screenshots MUST be output to a `verification/` folder at the root directory (e.g., `verification/feature-name-state.png`).
+    - Automated tests alone cannot verify aesthetic/contrast legibility; the generation of these visual artifacts is mandatory for the Main Agent's final review.
   - **Exhaustive Scenarios:** QA MUST identify and implement tests for every possible user scenario, including happy paths, deep edge cases (e.g., slow networks, large payloads), and exhaustive negative testing (e.g., unauthorized access, invalid inputs, 500 errors).
   - **Mock Data Management:** QA MUST create and manage all necessary mock data or seeding scripts required for E2E tests. Data MUST be clean, isolated, and representative of production (PLN, Metric, English).
   - **E2E Focus:** Focus exclusively on E2E/Playwright tests. Unit and integration tests are handled by the `dev-agent`.
@@ -130,7 +136,7 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
   - **Playwright:** Use `data-testid` or accessible roles. Ensure robust `await expect()`.
 - **Execution Standards:**
   - **Frameworks Only:** Execute validation strictly using `playwright`.
-  - **Playwright:** Use `npx playwright test --reporter=list`. Non-blocking.
+  - `playwright`: Use `npx playwright test --reporter=list`. Non-blocking.
   - **Observation:** Any `4xx/5xx` in Network Tab or Hydration errors in Console = `[FAIL]`.
   - **Console Monitoring:** You MUST monitor the browser console for `error` or `warning` (especially deprecations) and mark as `[FAIL]` if any are detected.
   - **Verification:** UI must use **PLN** currency, **Metric** units, and **English** language.
@@ -152,7 +158,7 @@ You MUST commit all test changes before assigning to the next agent. If tests fa
   - Visuals: Use Mermaid.js for complex flows/OAuth.
   - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
 - **Constraints:** Documentation MUST match code reality. Never modify source code.
-- **Handoff:** Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. You MUST include an `expected_output` block confirming:
+- `handoff`: Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. You MUST include an `expected_output` block confirming:
   1. Documentation/Diagrams accurately reflect implementation.
   2. Manual test cases verified for clarity.
   3. Pull Request created and linked to issue.
@@ -190,10 +196,3 @@ You MUST commit all documentation and manual test changes before assigning to `p
 - **review-agent:** READ ONLY. No write access.
 
 **Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
-
-ntegration/`.
-
-/integration/`.
-
-ntegration/`.
-

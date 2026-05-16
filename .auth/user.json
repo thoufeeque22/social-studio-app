@@ -1,33 +1,33 @@
 {
   "cookies": [
     {
-      "name": "__Host-authjs.csrf-token",
-      "value": "47759d88903f0e2e3f7a5e679409076a8cb4310bad4255874f92a90c7cf82d87%7C99a094b483e0139e84b55b91a1e446b7c73eac0996a75f6c47a44e43ea0604ce",
+      "name": "authjs.csrf-token",
+      "value": "8f9ec6d4d8440f6c2ad2ff9109c32bfe462275164e8de84c4aa5f29cc5f4ad54%7C36307b30598bca2b4a3dfab405665eb57667011e7bca695dbdad9b76ddedcca3",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": true,
+      "secure": false,
       "sameSite": "Lax"
     },
     {
-      "name": "__Secure-authjs.callback-url",
-      "value": "https%3A%2F%2Froohis-mac.tail8a2e7d.ts.net",
+      "name": "authjs.callback-url",
+      "value": "http%3A%2F%2Flocalhost%3A3000%2Flogin",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": true,
+      "secure": false,
       "sameSite": "Lax"
     },
     {
-      "name": "__Secure-authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiV1JvTE9pVjlvNVVsNzJKMC10cnZEdmdjRjhqbzBKdXhpUWpqdjZYbG5jMEZucVZhMm5hZ0tRUTBzTlFJZmQxdDYwWExKRU0ta1IyRmNROVpzSERxRHcifQ..OueK-3pJLKYh90ZqLP0IWw.3Owyfc3PYbTUTYD3qQpweThqTq9NEiYNshX6uy9Bdi5d8L-mmPT_VeDav_ggB4d7kvd-ZF-rDxJXO4GzcWplSo8_P6yBCF_ZwaI_2-Wuf75VPvGw-c-Vw__gjrSr9HeO52HP_-sTz6rIWssaytbGljhx9a7nc-JUXNJpTLuV11dRXqBj5wu42HDAxsLhDXnk6u1k-Zs-zE2qvoSjAzBu90bi76XjJF1oLoboEyoHOK4QljaR92y94AH6ggGoHgWz_28cYvGIyWREi2Fh387Heg.iqkiDpvQ9iiv_EIxAZtxYqjgKwgN8IxZZ6dMq9ZrVpc",
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoicm9WX3hDaFUyS3ZSSFdCN2ZJa1k1eUpGWTlKWHdCSE1VZTBvbU1MdWk1X0F5TVdXOTJveUtDLWFzdml4cTRHWndjOGlHdmtUaGdoQ2lJN3d6X1hvdWcifQ..hTNJlnnpA4-9IVrp1ThwfA.l71IjQ9f5vX-sAtlXEozX45NBHDWEKrbm6PwSw5SsAtkglvUVB8TUghHr_RH8pEWu4NYHTNqB3dHrYcXo1LaBUINNLqimpLe6ZZYD1np21Kq4zZz7PzLvyRpHKTTe2PdOflEDCwh7M2akO9f8ADg4W_ZRKLGoaoRSYjZWyo9LUwIHai_pcR0JM0tXst-WDm4PdbxIOgOQ_7sxAENs7ABH-Am61HusCUprwRMzS4S53M6XXelGdh170EL6ofXV8ytrbKktEhgVoH16-cpPD0G7w.EmF54r4xqqDw1mc29bsnncnQrjhVnt_tPH231anmPxs",
       "domain": "localhost",
       "path": "/",
-      "expires": 1781514130.37001,
+      "expires": 1781517857.7406,
       "httpOnly": true,
-      "secure": true,
+      "secure": false,
       "sameSite": "Lax"
     }
   ],
