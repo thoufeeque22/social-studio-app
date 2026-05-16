@@ -114,8 +114,8 @@ export default function AnalyticsPage() {
       <Grid container spacing={3}>
         {/* Feature Adoption Chart */}
         <Grid sx={{ width: { xs: '100%', md: '66.66%' } }}>
-          <GlassCard data-testid="feature-adoption-chart">
-            <Box sx={{ p: 3 }}>
+          <GlassCard>
+            <Box sx={{ p: 3 }} data-testid="feature-adoption-chart">
               <Typography variant="h6" gutterBottom sx={{ color: "primary.main", fontWeight: "bold" }}>
                 Feature Adoption Trends
               </Typography>
