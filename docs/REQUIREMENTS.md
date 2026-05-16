@@ -81,4 +81,8 @@ Social Studio is a professional-grade multi-platform video distribution platform
 ## 5. System Constraints & Future Scope
 - **Storage**: Temporary staging in `src/tmp` with automated hourly purge.
 - **Mobile Native**: Already integrated via Capacitor; future work involves deeper native plugin usage.
-- **Advanced Analytics**: Deeper integration for post-publish metrics across all platforms.
+- **Advanced Analytics (Phase 2)**: 
+    - Visual dashboards featuring cross-platform follower growth, view trends, and engagement metrics.
+    - Automated daily data aggregation from YouTube, TikTok, and Instagram APIs.
+    - Historical trends visualization using Recharts or similar.
+
