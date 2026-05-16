@@ -1,9 +1,40 @@
 {
-  "last_agent": "main",
+  "last_agent": "discovery-agent",
   "branch_name": "feature/391-ai-feature-highlighting",
   "ticket_goal": "Implement subtle UI nudges to suggest AI features throughout the application",
   "ticket_id": "391",
-  "discovery-agent": {},
+  "discovery-agent": {
+    "TECHNICAL_SPECS": {
+      "Advocate_Perspective": "Users need to know AI features exist. Nudges like an 'AutoAwesome' icon or 'Try AI Polish' badge near text inputs can drive engagement. We need a reusable component that adds a gentle visual cue without being intrusive. Tooltips should explain the benefit.",
+      "Skeptic_Perspective": "Risk of the 'Clippy' effect if overused. Must allow users to dismiss or disable nudges. If the AI service is down or the user is out of quota, nudges should be hidden. Avoid layout shifts when nudges load.",
+      "Synthesis": "Create a reusable `<AINudge />` component using MUI `AutoAwesome` icon. It should support a `featureKey` to track dismissal state (initially via localStorage or user DB preferences). Integrate primarily in the Post Composer and Media Caption inputs.",
+      "Production_Readiness": {
+        "Logging": "Log clicks on the AI nudge to track engagement. Track dismissals.",
+        "Caching": "Cache the 'dismissed' state locally to prevent UI flickering on load.",
+        "Rate_Limiting": "Ensure the nudge action gracefully handles 429 Too Many Requests if the user has exhausted their AI quota, ideally hiding the nudge if quota is known to be zero."
+      },
+      "Dependency_Impact_Radius": "Low. Introduces a new UI component and modifies existing text inputs. Uses existing MUI icons and Next.js features.",
+      "expected_output": {
+        "conditions": [
+          "Synthesis of Advocate/Skeptic perspectives completed.",
+          "Production Readiness assessment (Logging/Caching/Rate-limiting) provided.",
+          "Dependency impact radius verification included.",
+          "dev-agent expected output defined."
+        ]
+      }
+    },
+    "dev_agent_expected_output": {
+      "conditions": [
+        "src/components/ui/AINudge.tsx component created with Material UI icons.",
+        "Nudge integrated into Post Composer or relevant text inputs.",
+        "Dismissal logic (localStorage or DB) implemented.",
+        "npx tsc --noEmit success.",
+        "npm run build success.",
+        "All unit/integration tests passed.",
+        "Linter clean of errors."
+      ]
+    }
+  },
   "dev-agent": {},
   "review-agent": {},
   "qa-agent": {},
