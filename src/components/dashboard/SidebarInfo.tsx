@@ -1,4 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -6,13 +11,9 @@ import { Heading } from '@/components/ui/Heading';
 import { getUpcomingPosts } from '@/app/actions/history';
 import { usePolling } from '@/hooks/usePolling';
 import type { PostHistory } from '@prisma/client';
-import type { Account } from '@/lib/core/types';
+import styles from './SidebarInfo.module.css';
 
-interface SidebarInfoProps {
-  accounts: Account[];
-}
-
-export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
+export const SidebarInfo: React.FC = () => {
   const [upcoming, setUpcoming] = useState<PostHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,9 +57,22 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
       <GlassCard style={{ padding: '2rem', flex: 1 }}>
-        <Heading level={2}>Upcoming Posts</Heading>
+        <div className={styles.header}>
+          <Heading level={2} style={{ margin: 0 }}>Upcoming Posts</Heading>
+          <Tooltip title="View full schedule">
+            <IconButton 
+              component={Link}
+              href="/schedule"
+              size="small" 
+              aria-label="view full schedule"
+              data-testid="sidebar-view-all-schedule"
+            >
+              <CalendarMonthIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {isLoading ? (
             [1, 2].map(i => (
@@ -72,13 +86,14 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
             ))
           ) : upcoming.length > 0 ? (
             upcoming.map((post) => (
-              <div key={post.id} style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ 
-                  width: '2px', 
-                  background: 'hsl(var(--primary))', 
-                  borderRadius: '2px',
-                }} />
-                <div>
+              <Link 
+                key={post.id} 
+                href={`/schedule?id=${post.id}`}
+                className={styles.postLink}
+                data-testid={`sidebar-post-${post.id}`}
+              >
+                <div className={styles.indicator} />
+                <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '0.85rem', fontWeight: 500 }}>{post.title}</p>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <p style={{ fontSize: '0.75rem', color: 'hsl(var(--muted-foreground))' }}>
@@ -94,7 +109,8 @@ export const SidebarInfo: React.FC<SidebarInfoProps> = ({ accounts }) => {
                     )}
                   </div>
                 </div>
-              </div>
+                <OpenInNewIcon className={styles.externalIcon} sx={{ fontSize: '1rem' }} />
+              </Link>
             ))
           ) : (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--muted-foreground))', fontSize: '0.85rem' }}>

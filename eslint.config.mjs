@@ -15,6 +15,13 @@ const eslintConfig = defineConfig([
   ]),
   {
     rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          "selector": "JSXAttribute[name.name='legacyBehavior']",
+          "message": "legacyBehavior is deprecated in Next.js 15+ and will be removed. Use the modern Link pattern instead."
+        }
+      ],
       "no-restricted-imports": ["error", {
         "patterns": [{
           "group": ["**/lib/platforms/*", "**/lib/worker/*"],

@@ -22,4 +22,5 @@ Welcome to the Social Studio project documentation. This folder contains archite
 - [UAT: Metadata Templates](manual_tests/verify-metadata-templates.md) - Core snippet workflow.
 - [UAT: Global Search](manual_tests/verify-global-search.md) - Unified search field verification.
 - [UAT: Snippets UX Improvements](manual_tests/verify-snippets-ux-improvements.md) - UX closing logic.
+- [UAT: Upcoming Posts Navigation](manual_tests/verify-upcoming-posts-navigation.md) - Dashboard-to-Schedule deep linking.
 - [UAT: Video Lifecycle](manual_tests/verify-video-lifecycle.md) - End-to-end publishing flow.
