@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import MovieIcon from '@mui/icons-material/Movie';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { AINudge } from '@/components/ui/AINudge';
 import { AIStyleSelector } from './AIStyleSelector';
 import { PlatformSelection } from './PlatformSelection';
 import { AITierSelector } from './AITierSelector';
@@ -260,6 +261,14 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   <label htmlFor="video-title" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
                     {aiTier === 'Generate' ? 'Video Prompt' : 'Video Title'}
                   </label>
+                  {aiTier === 'Manual' && (
+                    <AINudge 
+                      featureKey="title_generator"
+                      message="Try AI Title"
+                      tooltipText="Switch to Generate tier to let AI write an engaging title"
+                      onClick={() => onTierChange('Generate')}
+                    />
+                  )}
                   {aiTier === 'Generate' && !isUploading && (
                     <button
                       type="button"
@@ -302,10 +311,18 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             {/* Description Input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <label htmlFor="video-description" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
                     {aiTier === 'Generate' ? 'Context' : 'Description'}
                   </label>
+                  {aiTier === 'Manual' && (
+                    <AINudge 
+                      featureKey="desc_generator"
+                      message="Try AI Polish"
+                      tooltipText="Switch to Enrich tier to automatically format and polish your description"
+                      onClick={() => onTierChange('Enrich')}
+                    />
+                  )}
                   {!isUploading && (
                     <MetadataTemplates 
                       onSelect={(val) => appendDescription(val)} 
