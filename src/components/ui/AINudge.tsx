@@ -23,12 +23,16 @@ export const AINudge: React.FC<AINudgeProps> = ({
     try {
       const isDismissed = localStorage.getItem(storageKey);
       if (!isDismissed) {
-        setIsVisible(true);
+        // Defer state update to avoid synchronous setState lint warning
+        Promise.resolve().then(() => {
+          setIsVisible(true);
+        });
       }
     } catch (e) {
-      // In case localStorage is blocked or not available
       console.warn('Failed to access localStorage for AINudge', e);
-      setIsVisible(true); 
+      Promise.resolve().then(() => {
+        setIsVisible(true);
+      });
     }
   }, [storageKey]);
 

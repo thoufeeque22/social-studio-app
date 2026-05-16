@@ -75,15 +75,11 @@ test.describe('AI Nudge E2E Tests', () => {
 
   test('Visual Audit: Capture screenshots of AINudge', async ({ page }) => {
     const titleNudge = page.getByText('Try AI Title');
+    // Ensure it's visible
     await expect(titleNudge).toBeVisible();
-
-    // The Box container has the background and padding. 
-    // It's the ancestor div that has "Try AI Title" text but is not just a Typography
-    const nudgeContainer = page.locator('div').filter({ hasText: /^Try AI Title$/ }).first();
 
     // Take screenshots
     await titleNudge.screenshot({ path: 'verification/ai-nudge-active.png' });
-
     // Hover state
     await titleNudge.hover();
     await page.waitForTimeout(500);

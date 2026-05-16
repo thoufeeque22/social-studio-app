@@ -60,6 +60,6 @@ describe('UploadForm Props Forwarding', () => {
 
   it('renders without crashing with minimal props', () => {
     render(<UploadForm {...mockProps} />);
-    expect(screen.getByText(/Title/i)).toBeDefined();
+    expect(screen.getByText('Video Title')).toBeDefined();
   });
 });

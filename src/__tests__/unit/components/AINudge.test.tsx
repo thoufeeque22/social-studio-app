@@ -33,9 +33,9 @@ describe('AINudge', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders correctly when not dismissed', () => {
+  it('renders correctly when not dismissed', async () => {
     render(<AINudge featureKey="test_feature" message="Try this" />);
-    expect(screen.getByText('Try this')).toBeInTheDocument();
+    expect(await screen.findByText('Try this')).toBeInTheDocument();
   });
 
   it('does not render if previously dismissed', () => {
@@ -44,9 +44,9 @@ describe('AINudge', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('dismisses when close button is clicked and saves to localStorage', () => {
+  it('dismisses when close button is clicked and saves to localStorage', async () => {
     render(<AINudge featureKey="test_feature" message="Try this" />);
-    const closeButton = screen.getByLabelText('Dismiss suggestion');
+    const closeButton = await screen.findByLabelText('Dismiss suggestion');
     
     fireEvent.click(closeButton);
     
@@ -54,11 +54,12 @@ describe('AINudge', () => {
     expect(screen.queryByText('Try this')).not.toBeInTheDocument();
   });
 
-  it('calls onClick when the component body is clicked', () => {
+  it('calls onClick when the component body is clicked', async () => {
     const handleClick = vi.fn();
     render(<AINudge featureKey="test_feature" message="Try this" onClick={handleClick} />);
     
-    const body = screen.getByText('Try this').parentElement!;
+    const textElement = await screen.findByText('Try this');
+    const body = textElement.parentElement!;
     fireEvent.click(body);
     
     expect(handleClick).toHaveBeenCalledTimes(1);
