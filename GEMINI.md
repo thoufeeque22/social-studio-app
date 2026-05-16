@@ -17,7 +17,8 @@
 # Agent Orchestration (Direct Routing)
 
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
-- **Handoff & Commit Rule:** Every agent MUST commit their changes using Conventional Commits before updating `.gemini_agent_context.json` and assigning the task to the next agent.
+- **Handoff & Commit Rule:** Every agent MUST commit their changes (including `.gemini_agent_context.json`) using Conventional Commits and push to the remote branch before assigning the task to the next agent.
+- **Context Synchronization:** Always `git add .gemini_agent_context.json` before committing to ensure the latest state is shared. Push changes immediately after commit.
 - **Predictive Validation:** Before handoff, the current agent MUST define an `expected_output` block in their namespaced context. This MUST include specific verification commands (e.g., `npm run build`, `npx tsc`) and the expected success indicators. Handoff is FORBIDDEN until the agent can prove these outputs were achieved.
 - **Context Structure:**
   - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
