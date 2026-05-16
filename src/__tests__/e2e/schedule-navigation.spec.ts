@@ -2,6 +2,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Schedule Navigation', () => {
   test.beforeEach(async ({ page }) => {
+    // Fail test on console errors or warnings (like deprecations)
+    page.on('console', msg => {
+      const text = msg.text();
+      // Ignore transient Auth.js fetch errors in E2E environment
+      if (text.includes('Failed to fetch') && text.includes('authjs.dev')) return;
+      
+      if (msg.type() === 'error' || (msg.type() === 'warning' && text.includes('deprecated'))) {
+        throw new Error(`Console ${msg.type()} detected: ${text}`);
+      }
+    });
+
     // Navigate to dashboard
     await page.goto('/');
     // Ensure dashboard is loaded

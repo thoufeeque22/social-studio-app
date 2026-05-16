@@ -78,6 +78,7 @@ If the task is feasible and required, assign to `dev-agent`.
   - **UX Specialist (Paths: `src/components/`, `src/app/**/*.tsx`):**
     - Prioritize A11y (ARIA, labels), React 19 Form Actions, and interactive feedback.
     - Focus on loading states, hydration safety, and responsive layout polish.
+    - **Next.js 15+ Compatibility:** NEVER use `legacyBehavior` on `Link` components. For MUI components, use the `component={Link}` pattern.
 - **Git Flow:** 
   - New Features: Checkout `main`, pull, then `gh issue develop <id> --checkout`.
   - Bug Fixes: Stay on the current feature branch.
@@ -130,6 +131,7 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
   - **Frameworks Only:** Execute validation strictly using `playwright`.
   - **Playwright:** Use `npx playwright test --reporter=list`. Non-blocking.
   - **Observation:** Any `4xx/5xx` in Network Tab or Hydration errors in Console = `[FAIL]`.
+  - **Console Monitoring:** You MUST monitor the browser console for `error` or `warning` (especially deprecations) and mark as `[FAIL]` if any are detected.
   - **Verification:** UI must use **PLN** currency, **Metric** units, and **English** language.
 - **Fail Criteria:** If UI lacks `data-testid`, mark `[FAIL]` and instruct Dev to add them.
 - **Handoff:** Update `.gemini_agent_context.json` with `last_agent: "qa-agent"` and verdict details. You MUST include an `expected_output` block confirming:

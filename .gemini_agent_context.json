@@ -1,30 +1,77 @@
 {
-  "last_agent": "scrum-master",
-  "branch_name": "main",
-  "ticket_goal": "Strengthen Orchestration & Fix Build Errors",
-  "ticket_id": "ORCH-001",
+  "last_agent": "doc-agent",
+  "branch_name": "381-upcoming-posts-navigation",
+  "ticket_goal": "Add navigational links from Upcoming Posts sidebar items to Schedule view",
+  "ticket_id": "381",
+  "discovery-agent": {
+    "verdict": "NECESSARY",
+    "impact_radius": [
+      "src/components/dashboard/SidebarInfo.tsx",
+      "src/app/schedule/page.tsx",
+      "src/app/schedule/schedule.module.css"
+    ],
+    "technical_specs": [
+      "Wrap Sidebar upcoming post items in Next.js Link pointing to /schedule?id=[id].",
+      "Add hover effects (bg change, cursor: pointer) to sidebar items.",
+      "Add a 'View All' link in SidebarInfo header using MUI CalendarMonthIcon.",
+      "In SchedulePage, use useSearchParams to detect the post ID.",
+      "Update SchedulePage fetch logic: If ID param exists, increase API limit or handle missing post gracefully.",
+      "Wait for isLoading === false before attempting scrollIntoView.",
+      "Add a pulse highlight animation to the targeted post card in the schedule view.",
+      "If ID is provided but post is not found in the list, show a non-intrusive notification.",
+      "Use MUI Icons (OpenInNew, ArrowForward) for navigation cues."
+    ]
+  },
   "dev-agent": {
     "modified_files": [
-      "scripts/seed-search-data.ts",
-      "src/app/history/page.tsx",
-      ".gemini/hooks/post-task.sh",
-      "GEMINI.md"
+      "src/components/dashboard/SidebarInfo.tsx",
+      "src/components/dashboard/SidebarInfo.module.css",
+      "src/app/schedule/page.tsx",
+      "src/app/schedule/schedule.module.css",
+      "src/components/dashboard/DashboardClient.tsx"
     ],
     "fixes_applied": [
-      "Fixed BigInt literal ES2017 compatibility in seeding script",
-      "Wrapped /history page in Suspense boundary for useSearchParams() compatibility",
-      "Added tsc --noEmit and npm run build to post-task hook",
-      "Mandated Predictive Validation in GEMINI.md"
+      "Wrapped sidebar items in Link with target /schedule?id=ID",
+      "Added hover effects and indicator scaling in SidebarInfo",
+      "Implemented View All button in sidebar header",
+      "Updated SchedulePage to use useSearchParams and Suspense",
+      "Implemented auto-scroll to targeted post with 300ms delay for stability",
+      "Added pulseHighlight animation (3 cycles) and persistent border for targeted posts",
+      "Fixed unused accounts prop in SidebarInfo and updated DashboardClient",
+      "Verified build, types, and existing tests pass"
+    ]
+  },
+  "review-agent": {
+    "review_verdict": "PASS",
+    "failure_details": "None",
+    "audit_findings": [
+      "Adheres to MUI Icon standards (CalendarMonth, OpenInNew).",
+      "Correct Next.js 15 Suspense pattern for searchParams.",
+      "Implemented required data-testid attributes for E2E testing.",
+      "CSS Module used for SidebarInfo styling as per best practices.",
+      "Build, Lint, and Type-check passed (pre-existing lint warnings ignored)."
+    ]
+  },
+  "qa-agent": {
+    "verdict": "PASS",
+    "tests_written": [
+      "src/__tests__/e2e/schedule-navigation.spec.ts",
+      "scripts/seed-e2e-schedule.ts"
     ],
-    "expected_output": {
-      "verification_commands": [
-        "./.gemini/hooks/post-task.sh"
-      ],
-      "success_indicators": [
-        "tsc --noEmit passes",
-        "npm run build passes with all routes optimized",
-        "vitest tests pass"
-      ]
-    }
+    "failures": "None",
+    "scenarios": [
+      "Sidebar View All -> Schedule View",
+      "Sidebar Item -> Schedule View with ID -> Auto-scroll & Highlight",
+      "Invalid ID -> Graceful failure",
+      "Mobile View Navigation"
+    ]
+  },
+  "doc-agent": {
+    "docs_updated": [
+      "docs/README.md",
+      "docs/manual_tests/verify-upcoming-posts-navigation.md"
+    ],
+    "pr_created": "https://github.com/thoufeeque22/social-studio-app/pull/526",
+    "issue_closed": true
   }
 }

@@ -61,15 +61,15 @@ export const SidebarInfo: React.FC = () => {
         <div className={styles.header}>
           <Heading level={2} style={{ margin: 0 }}>Upcoming Posts</Heading>
           <Tooltip title="View full schedule">
-            <Link href="/schedule" passHref legacyBehavior>
-              <IconButton 
-                size="small" 
-                aria-label="view full schedule"
-                data-testid="sidebar-view-all-schedule"
-              >
-                <CalendarMonthIcon fontSize="small" />
-              </IconButton>
-            </Link>
+            <IconButton 
+              component={Link}
+              href="/schedule"
+              size="small" 
+              aria-label="view full schedule"
+              data-testid="sidebar-view-all-schedule"
+            >
+              <CalendarMonthIcon fontSize="small" />
+            </IconButton>
           </Tooltip>
         </div>
 
