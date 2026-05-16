@@ -42,7 +42,7 @@
   1. Activate the `triage-lint` skill.
   2. Batch fixes (max 5-10 errors per turn).
   3. Prioritize by severity and file.
-- **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. If it fails, fix the errors and re-run until it passes.
+- **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. This hook now includes `tsc --noEmit`. If it fails, fix the errors and re-run until it passes. All code changes MUST pass a full type check.
 
 # Agent Specific Workflows
 
@@ -79,7 +79,7 @@
 - **Standards:**
   - Modularize if file > 50 lines.
   - UI: Add `data-testid` for QA.
-  - **Testing:** You MUST write and pass unit/integration tests before handoff. Run tests and fix code if quality or tests are not good.
+  - **Testing & Type Safety:** You MUST write and pass unit/integration tests before handoff. You MUST run `npx tsc --noEmit` locally to ensure no regressions in the entire project. Run tests and fix code if quality or tests are not good.
   - **Formatting:** Run linter after every edit.
   - **Commit:** Use Conventional Commits.
   - **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "dev-agent"` and store all updates inside a `"dev-agent"` key. Append to `modified_files` (unique list) and `fixes_applied` (running history) inside this key. Clear the `"review-agent"` and `"qa-agent"` keys to reset the review cycle. Assign to `review-agent` once all unit/integration tests pass.
