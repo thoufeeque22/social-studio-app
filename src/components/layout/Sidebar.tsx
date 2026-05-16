@@ -14,6 +14,7 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
+import InsightsIcon from '@mui/icons-material/Insights';
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const { data: session } = useSession();
@@ -25,6 +26,9 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
     ...(process.env.NODE_ENV !== 'production' ? [
       { name: 'Roadmap', icon: <MapIcon sx={{ fontSize: 20 }} />, path: '/roadmap' },
       { name: 'Launch', icon: <RocketLaunchIcon sx={{ fontSize: 20 }} />, path: '/launch' },
+    ] : []),
+    ...(session?.user?.role === 'ADMIN' ? [
+      { name: 'Analytics', icon: <InsightsIcon sx={{ fontSize: 20 }} />, path: '/admin/analytics' },
     ] : []),
     { name: 'Settings', icon: <SettingsIcon sx={{ fontSize: 20 }} />, path: '/settings' },
   ];
