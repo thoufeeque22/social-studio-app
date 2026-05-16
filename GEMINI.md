@@ -32,6 +32,7 @@
 - **Orchestration Rules:**
   - **Worker Agents:** MUST NOT invoke other agents. They MUST update `.gemini_agent_context.json` via tools and return their status.
   - **Main Agent (Gemini CLI):** Responsible for analyzing the context and routing the task to the next specialized agent.
+  - **Inception Rule:** When a new ticket ID (URL) is provided, the Main Agent MUST immediately switch to the `main` branch and pull the latest changes before invoking any specialized agent (including `discovery-agent`).
 - **Model Selection:** 
   - Use **Gemini 1.5 Pro** for complex reasoning (Discovery, Dev, Review, QA).
   - Use **Gemini 1.5 Flash** (or **Gemini 3 Flash Preview**) for execution, documentation, and simple triage.
@@ -80,7 +81,7 @@ If the task is feasible and required, assign to `dev-agent`.
     - Focus on loading states, hydration safety, and responsive layout polish.
     - **Next.js 15+ Compatibility:** NEVER use `legacyBehavior` on `Link` components. For MUI components, use the `component={Link}` pattern.
 - **Git Flow:** 
-  - New Features: Checkout `main`, pull, then `gh issue develop <id> --checkout`.
+  - New Features: Run `gh issue develop <ticket_id> --checkout`.
   - Bug Fixes: Stay on the current feature branch.
 - **Standards:**
   - Modularize if file > 50 lines.
