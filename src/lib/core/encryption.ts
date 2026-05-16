@@ -2,8 +2,7 @@
  * ENCRYPTION UTILITY
  */
 
-// Use dynamic require to avoid Edge Runtime error when this file is imported
-const crypto = typeof window === 'undefined' ? require('crypto') : null;
+import crypto from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -17,7 +16,7 @@ function getEncryptionKey() {
  * Synchronous encryption/decryption (Node.js only, used by Prisma)
  */
 export function encrypt(text: string): string {
-  if (!text || !crypto) return text;
+  if (!text) return text;
   const iv = crypto.randomBytes(IV_LENGTH);
   const key = getEncryptionKey();
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -28,7 +27,7 @@ export function encrypt(text: string): string {
 }
 
 export function decrypt(encryptedText: string): string {
-  if (!encryptedText || !encryptedText.includes(':') || !crypto) return encryptedText;
+  if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
   try {
     const [ivHex, tagHex, dataHex] = encryptedText.split(':');
     const iv = Buffer.from(ivHex, 'hex');
