@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic';
 
 const querySchema = z.object({
   cursor: z.string().optional(),
-  limit: z.coerce.number().min(1).max(50).default(20),
-  published: z.preprocess((val) => val === 'true', z.boolean()).default(true),
+  limit: z.coerce.number().min(1).max(200).default(20),
+  published: z.string().optional(), // 'true', 'false', or 'all'
   search: z.string().optional(),
 });
 
@@ -30,10 +30,12 @@ export async function GET(req: NextRequest) {
 
     const { cursor, limit, published, search } = result.data;
 
+    const isPublished = published === 'all' ? undefined : published === 'true' || published === undefined;
+
     const posts = await prisma.postHistory.findMany({
       where: { 
         userId: session.user.id,
-        isPublished: published,
+        ...(published !== 'all' ? { isPublished } : {}),
         ...(search ? {
           OR: [
             { title: { contains: search, mode: 'insensitive' } },
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
         } : {}),
       },
       include: { platforms: true },
-      orderBy: published ? { createdAt: 'desc' } : { scheduledAt: 'asc' },
+      orderBy: published === 'false' ? { scheduledAt: 'asc' } : { createdAt: 'desc' },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });

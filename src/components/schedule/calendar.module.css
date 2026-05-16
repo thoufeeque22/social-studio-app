@@ -1,0 +1,276 @@
+.calendarContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: hsla(var(--background) / 0.4);
+  backdrop-filter: blur(12px);
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid hsla(var(--border) / 0.4);
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.currentPeriod {
+  font-size: 1.25rem;
+  font-weight: 700;
+  min-width: 180px;
+  text-align: center;
+  color: hsl(var(--foreground));
+}
+
+.viewControls {
+  display: flex;
+  background: hsla(var(--muted) / 0.1);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsla(var(--border) / 0.4);
+}
+
+.viewButton {
+  padding: 0.4rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+
+.activeView {
+  background: hsla(var(--primary) / 0.15);
+  color: hsl(var(--primary));
+  box-shadow: 0 2px 8px hsla(0, 0%, 0%, 0.1);
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: hsla(var(--border) / 0.4);
+  border: 1px solid hsla(var(--border) / 0.4);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 30px hsla(0, 0%, 0%, 0.1);
+}
+
+.weekdayHeader {
+  background: hsla(var(--muted) / 0.05);
+  padding: 1rem 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dayCell {
+  min-height: 140px;
+  background: hsla(var(--background) / 0.6);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.dayCell:hover {
+  background: hsla(var(--background) / 0.8);
+}
+
+.notCurrentMonth {
+  background: hsla(var(--muted) / 0.03);
+  color: hsl(var(--muted-foreground) / 0.4);
+}
+
+.today {
+  background: hsla(var(--primary) / 0.03);
+}
+
+.today .dayNumber {
+  background: hsl(var(--primary));
+  color: white;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.dayNumber {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: hsl(var(--foreground));
+}
+
+.postsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  max-height: 100px;
+}
+
+.calendarPost {
+  font-size: 0.72rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  background: hsla(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border: 1px solid hsla(var(--primary) / 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.calendarPost:hover {
+  background: hsla(var(--primary) / 0.2);
+  transform: translateY(-1px);
+}
+
+.calendarPostShort {
+  border-left: 3px solid hsl(280, 80%, 60%);
+}
+
+.calendarPostLong {
+  border-left: 3px solid hsl(200, 80%, 60%);
+}
+
+.publishedPost {
+  background: hsla(150, 80%, 60%, 0.1);
+  color: hsl(150, 80%, 60%);
+  border-color: hsla(150, 80%, 60%, 0.2);
+}
+
+.publishedPost:hover {
+  background: hsla(150, 80%, 60%, 0.2);
+}
+
+/* Weekly View */
+.weeklyGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.weeklyDayRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 1rem;
+  background: hsla(var(--background) / 0.4);
+  border: 1px solid hsla(var(--border) / 0.4);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.weeklyDayInfo {
+  padding: 1.5rem;
+  background: hsla(var(--muted) / 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid hsla(var(--border) / 0.4);
+}
+
+.weeklyDayName {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+}
+
+.weeklyDayNumber {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: hsl(var(--foreground));
+}
+
+.weeklyPosts {
+  padding: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.weeklyPostCard {
+  width: calc(50% - 0.5rem);
+  min-width: 250px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1024px) {
+  .dayCell {
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendarHeader {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .weekdayHeader {
+    font-size: 0.7rem;
+    padding: 0.5rem 0.2rem;
+  }
+  
+  .dayCell {
+    min-height: 80px;
+    padding: 0.4rem;
+  }
+  
+  .dayNumber {
+    font-size: 0.8rem;
+  }
+  
+  .calendarPost {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+  }
+  
+  .weeklyDayRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .weeklyDayInfo {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 1rem;
+    border-right: none;
+    border-bottom: 1px solid hsla(var(--border) / 0.4);
+  }
+  
+  .weeklyPosts {
+    padding: 1rem;
+  }
+  
+  .weeklyPostCard {
+    width: 100%;
+  }
+}

@@ -22,6 +22,9 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import InfoIcon from '@mui/icons-material/Info';
+import ViewHeadlineIcon from '@mui/icons-material/ViewHeadline';
+
+import { CalendarView } from '@/components/schedule/CalendarView';
 
 interface PlatformResult {
   id: string;
@@ -35,6 +38,8 @@ interface PostHistoryEntry {
   description: string | null;
   videoFormat: string;
   scheduledAt: string;
+  createdAt: string;
+  isPublished: boolean;
   stagedFileId: string | null;
   platforms: PlatformResult[];
 }
@@ -57,6 +62,7 @@ function ScheduleContent() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [aiPreviews, setAiPreviews] = useState<Record<string, AIWriteResult>>({});
   const [isAILoading, setIsAILoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
 
   // Helper to format date for datetime-local input in LOCAL time
   const formatToLocalDatetime = (dateStr: string) => {
@@ -69,13 +75,13 @@ function ScheduleContent() {
   const fetchSchedule = useCallback(async () => {
     try {
       const params = new URLSearchParams({
-        published: 'false',
+        published: viewMode === 'calendar' ? 'all' : 'false',
         _t: Date.now().toString()
       });
       
-      // If we have a target ID, increase limit to ensure it's found
-      if (targetId) {
-        params.set('limit', '50');
+      // If we have a target ID or in calendar mode, increase limit
+      if (targetId || viewMode === 'calendar') {
+        params.set('limit', '100');
       }
 
       const res = await fetch(`/api/history?${params.toString()}`);
@@ -86,7 +92,7 @@ function ScheduleContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [targetId]);
+  }, [targetId, viewMode]);
 
   // Determine if we need high-frequency polling
   const hasActivePosts = posts.some(p => {
@@ -245,6 +251,46 @@ function ScheduleContent() {
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>Scheduled Posts</h1>
+          <div style={{ display: 'flex', background: 'hsla(var(--muted)/0.1)', padding: '4px', borderRadius: '10px', border: '1px solid hsla(var(--border)/0.4)' }}>
+            <button 
+              onClick={() => setViewMode('timeline')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: viewMode === 'timeline' ? 'hsla(var(--primary)/0.15)' : 'transparent',
+                color: viewMode === 'timeline' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <ViewHeadlineIcon sx={{ fontSize: 18 }} /> Timeline
+            </button>
+            <button 
+              onClick={() => setViewMode('calendar')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: viewMode === 'calendar' ? 'hsla(var(--primary)/0.15)' : 'transparent',
+                color: viewMode === 'calendar' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <CalendarMonthIcon sx={{ fontSize: 18 }} /> Calendar
+            </button>
+          </div>
         </div>
         <p className={styles.subtitle}>
           Manage your upcoming content distribution
@@ -263,6 +309,11 @@ function ScheduleContent() {
             </p>
           </div>
         </GlassCard>
+      ) : viewMode === 'calendar' ? (
+        <CalendarView 
+          posts={posts} 
+          onEditPost={(post) => setEditingPost(post)} 
+        />
       ) : (
         <div className={styles.timeline}>
           {posts.map((post) => (
