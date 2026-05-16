@@ -97,6 +97,7 @@ const createExtendedClient = (base: PrismaClient) => base.$extends({
           return account.id_token ? decrypt(account.id_token) : null;
         }
       }
+
     }
   }
 });

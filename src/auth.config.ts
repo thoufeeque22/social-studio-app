@@ -2,12 +2,10 @@ import type { NextAuthConfig } from "next-auth";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import TikTok from "next-auth/providers/tiktok";
-import Credentials from "next-auth/providers/credentials";
 
 export default {
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
       allowDangerousEmailAccountLinking: true,
       authorization: {
@@ -55,39 +53,6 @@ export default {
         allowDangerousEmailAccountLinking: true,
       })
     ] : []),
-    ...(process.env.NEXT_PUBLIC_E2E === 'true' && process.env.NODE_ENV === 'development' ? [
-      Credentials({
-        name: "E2E Credentials",
-        credentials: {
-          email: { label: "Email", type: "email" },
-          password: { label: "Password", type: "password" }
-        },
-        async authorize(credentials) {
-          const expectedPassword = process.env.E2E_TEST_PASSWORD || 'social-studio-e2e-secret';
-          
-          if (
-            credentials?.email === "tester@socialstudio.ai" && 
-            credentials?.password === expectedPassword
-          ) {
-            // Dynamic import to avoid edge runtime issues in middleware
-            const { prisma } = await import("@/lib/core/prisma");
-            const user = await prisma.user.findFirst({
-              where: { email: "tester@socialstudio.ai" }
-            });
-
-            if (user) {
-              return {
-                id: user.id,
-                name: user.name || "E2E Tester",
-                email: user.email,
-                role: user.role
-              };
-            }
-          }
-          return null;
-        }
-      })
-    ] : []),
   ],
   trustHost: true,
   secret: process.env.AUTH_SECRET,
@@ -96,12 +61,13 @@ export default {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        console.log('JWT callback - new user sign-in, token.role set to:', token.role);
+      } else {
+        console.log('JWT callback - existing user, current token.role:', token.role);
       }
       return token;
     },
     authorized({ auth, request: { nextUrl } }) {
-      console.log('Authorized callback - auth object:', auth);
-      console.log('Authorized callback - isLoggedIn:', !!auth?.user);
       const isLoggedIn = !!auth?.user;
       const isOnLogin = nextUrl.pathname === "/login";
 
@@ -109,24 +75,23 @@ export default {
         if (isLoggedIn) {
           return Response.redirect(new URL("/", nextUrl));
         }
-        return true; // Allow login page if not logged in
+        return true;
       }
 
-      const isOnDashboard = nextUrl.pathname === "/";
-      const isOnSettings = nextUrl.pathname.startsWith("/settings");
       const isOnAdmin = nextUrl.pathname.startsWith("/admin");
 
-      // For admin routes, check if user is logged in and is an ADMIN
       if (isOnAdmin) {
         if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl));
-        // Note: role is expected to be present in auth.user if correctly passed from JWT
-        if (auth?.user?.role !== "ADMIN") {
+        const role = auth?.user?.role;
+        if (role !== "ADMIN") {
           return Response.redirect(new URL("/", nextUrl));
         }
         return true;
       }
 
-      // For dashboard and settings, allow access if logged in, otherwise redirect to login
+      const isOnDashboard = nextUrl.pathname === "/";
+      const isOnSettings = nextUrl.pathname.startsWith("/settings");
+
       if (isOnDashboard || isOnSettings) {
         return isLoggedIn ? true : Response.redirect(new URL("/login", nextUrl));
       }
