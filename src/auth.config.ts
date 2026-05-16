@@ -95,7 +95,7 @@ export default {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
+        token.role = user.role;
       }
       return token;
     },
@@ -120,7 +120,7 @@ export default {
       if (isOnAdmin) {
         if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl));
         // Note: role is expected to be present in auth.user if correctly passed from JWT
-        if ((auth?.user as any)?.role !== "ADMIN") {
+        if (auth?.user?.role !== "ADMIN") {
           return Response.redirect(new URL("/", nextUrl));
         }
         return true;
