@@ -1,35 +1,16 @@
 {
-  "last_agent": "doc-agent",
-  "branch_name": "392-developer-analytics",
-  "ticket_goal": "Implement platform usage statistics for the admin/developer dashboard to monitor feature usage, success rates, and API consumption.",
-  "ticket_id": "392",
-  "doc-agent": {
-    "docs_updated": true,
-    "pr_created": "https://github.com/thoufeeque22/social-studio-app/pull/528",
+  "last_agent": "discovery-agent",
+  "branch_name": "fix/425-upload-visibility",
+  "ticket_goal": "Improve visibility of upload progress.",
+  "ticket_id": "425",
+  "discovery-agent": {
+    "TECHNICAL SPECS": "Refer to docs/features/UPLOAD_HUD.md",
     "expected_output": {
-      "status": "PASS",
       "conditions": [
-        "Documentation and diagrams updated.",
-        "Manual test cases added.",
-        "Pull Request created and linked to issue 392."
+        "Synthesis of Advocate/Skeptic perspectives included.",
+        "Production Readiness assessment completed.",
+        "Dependency impact radius verified."
       ]
     }
-  },
-  "qa-agent": {
-    "qa_verdict": "PASS"
-  },
-  "review-agent": {
-    "review_verdict": "PASS"
-  },
-  "dev-agent": {
-    "fixes_applied": [
-      "Added Role enum and SystemMetric model to Prisma schema.",
-      "Implemented RBAC in middleware.",
-      "Created async telemetry utility.",
-      "Implemented analytics dashboard UI."
-    ]
-  },
-  "discovery-agent": {
-    "VERDICT": "NECESSARY"
   }
 }
