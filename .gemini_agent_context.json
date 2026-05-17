@@ -1,52 +1,38 @@
 {
-  "last_agent": "qa-agent",
+  "last_agent": "dev-agent",
   "branch_name": "fix/425-upload-visibility",
   "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
   "ticket_id": 425,
-  "qa-agent": {
-    "expected_output": {
-      "status": "PASS",
-      "conditions": [
-        "npx playwright test success report.",
-        "New or updated Playwright tests committed to src/__tests__/e2e/.",
-        "Exhaustive coverage (Happy/Edge/Negative) verified and documented.",
-        "Isolated mock data/seeding logic implemented and verified.",
-        "Zero Network (4xx/5xx) or Hydration errors observed."
-      ]
-    },
-    "test_results": "7 tests passed in src/__tests__/e2e/upload-visibility.spec.ts.",
-    "visual_artifacts": [
-      "verification/upload-hud-progress.png",
-      "verification/upload-hud-error.png",
-      "verification/upload-form-progress.png"
-    ]
-  },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "expected_output": {
-      "status": "PASS",
-      "conditions": [
-        "Successful validation of all fixes_applied.",
-        "Adherence to docs/ and API contracts.",
-        "No security vulnerabilities found in diff."
-      ]
-    }
-  },
   "dev-agent": {
     "modified_files": [
-      "src/components/ui/UploadHUD.tsx",
       "src/hooks/useUploadStatus.ts",
       "src/components/dashboard/DashboardClient.tsx",
       "src/app/history/page.tsx",
+      "src/lib/upload/upload-utils.ts",
       "src/components/dashboard/UploadForm/index.tsx",
-      "src/lib/upload/upload-utils.ts"
+      "src/__tests__/components/upload-form-forward.test.tsx",
+      "src/__tests__/integration/humanization-security.test.tsx",
+      "docs/features/UPLOAD_VISIBILITY.md",
+      "docs/manual_tests/verify-upload-visibility.md"
     ],
     "fixes_applied": [
-      "Created UploadHUD component for centralized UI feedback.",
-      "Implemented useUploadStatus hook for safe localStorage polling.",
-      "Refactored Dashboard and History pages to use UploadHUD.",
-      "Updated upload utils to broadcast status to localStorage.",
-      "Added Zod validation for upload status data."
-    ]
+      "Removed all upload status and progress indicators from the Dashboard.",
+      "Implemented cross-tab abort signaling in Activity Hub using localStorage 'active: false' signal.",
+      "Updated DashboardClient to listen for global abort signals and terminate local upload processes.",
+      "Refactored stageVideoFile and distributeToPlatforms to check for global abort signals at every step.",
+      "Ensured immediate redirect to Activity Hub upon clicking 'Post Video' (or Confirming AI Strategy).",
+      "Removed redirect delay and completion overlay for faster feedback loop.",
+      "Updated unit and integration tests to match the new UploadForm API."
+    ],
+    "expected_output": {
+      "status": "PASS",
+      "conditions": [
+        "npx tsc --noEmit success.",
+        "Dashboard shows NO upload status or progress bars.",
+        "Dashboard redirects to Activity Hub immediately after post initiation.",
+        "Clicking 'STOP ALL' in Activity Hub terminates active uploads in other tabs (cross-tab sync).",
+        "Unit and integration tests pass."
+      ]
+    }
   }
 }

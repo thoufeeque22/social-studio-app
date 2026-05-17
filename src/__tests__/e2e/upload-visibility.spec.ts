@@ -1,110 +1,82 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Enhanced Upload Visibility HUD', () => {
+test.describe('Activity Hub: Upload Preparation Bar', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to history page where HUD is implemented
+    // Mock the API response to include an active post
+    await page.route('**/api/history*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [{
+            id: 'post-123',
+            title: 'My Awesome Video',
+            videoFormat: 'short',
+            createdAt: new Date().toISOString(),
+            platforms: [{ id: 'p-1', platform: 'youtube', status: 'processing', progress: 0 }]
+          }]
+        })
+      });
+    });
+  });
+
+  test('Preparation Bar: Visible inside matching card', async ({ page }) => {
     await page.goto('/history');
-  });
-
-  test('Happy Path: HUD appears when upload is active in localStorage', async ({ page }) => {
+    
+    // Inject local state
     await page.evaluate(() => {
       localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: 'Uploading video...',
-        timestamp: Date.now(),
-        active: true
-      }));
-    });
-    
-    await page.reload();
-
-    const hudStatusLabel = page.locator('text=Current Progress');
-    await expect(hudStatusLabel).toBeVisible();
-    await expect(page.locator('text=Uploading video...')).toBeVisible();
-    
-    // Visual audit
-    await page.screenshot({ path: 'verification/upload-hud-progress.png', fullPage: true });
-  });
-
-  test('Error Path: HUD displays error status correctly', async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: 'Connection failed',
-        active: true
-      }));
-    });
-    
-    await page.reload();
-    await expect(page.locator('text=Connection failed')).toBeVisible();
-    await page.screenshot({ path: 'verification/upload-hud-error.png', fullPage: true });
-  });
-
-  test('Edge Case: HUD handles indeterminate progress (empty text)', async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: '',
-        timestamp: Date.now(),
-        active: true
-      }));
-    });
-    
-    await page.reload();
-    
-    const hud = page.locator('text=Current Progress');
-    await expect(hud).toBeVisible();
-  });
-
-  test('Interaction: STOP ALL clears the status and hides HUD', async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: 'Uploading...',
-        timestamp: Date.now(),
-        active: true
-      }));
-    });
-    
-    await page.reload();
-
-    const stopButton = page.getByRole('button', { name: /stop all/i });
-    await expect(stopButton).toBeVisible();
-    
-    await stopButton.click();
-    
-    // Verify HUD is removed
-    await expect(page.locator('text=Current Progress')).not.toBeVisible();
-  });
-
-  test('Persistence: HUD persists when navigating', async ({ page }) => {
-    await page.evaluate(() => {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: 'Uploading...',
-        timestamp: Date.now(),
-        active: true
-      }));
-    });
-    
-    await page.goto('/history');
-    await expect(page.locator('text=Current Progress')).toBeVisible();
-    
-    await page.goto('/');
-    await expect(page.locator('text=Current Progress')).toBeVisible();
-  });
-
-  test('UploadForm: Progress bar appears during upload', async ({ page }) => {
-    await page.goto('/');
-    
-    await page.evaluate(() => {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: 'Staging file...',
+        historyId: 'post-123',
+        status: 'Staging video...',
         percent: 45,
         active: true
       }));
     });
     
+    // No reload needed if we wait for polling or just trigger a manual check
+    // But reload is safer to ensure hook picks it up from start
     await page.reload();
+
+    const postCard = page.getByTestId('history-post-post-123');
+    const prepBar = postCard.getByTestId('preparation-bar');
     
-    await expect(page.locator('text=Current Progress')).toBeVisible();
-    await expect(page.locator('text=45%').first()).toBeVisible();
+    await expect(prepBar).toBeVisible();
+    await expect(prepBar).toContainText('Staging video...');
     
-    await page.screenshot({ path: 'verification/upload-form-progress.png', fullPage: true });
+    const progressBar = postCard.getByTestId('preparation-progress');
+    await expect(progressBar).toBeVisible();
+    
+    await page.screenshot({ path: 'verification/activity-card-final.png', fullPage: true });
+  });
+
+  test('Interaction: STOP ALL broadcasts abort', async ({ page }) => {
+    await page.goto('/history');
+    
+    await page.evaluate(() => {
+      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
+        historyId: 'post-123',
+        status: 'Uploading...',
+        active: true
+      }));
+    });
+    
+    await page.reload();
+
+    const postCard = page.getByTestId('history-post-post-123');
+    const stopButton = postCard.getByRole('button', { name: /STOP ALL/i });
+    
+    await expect(stopButton).toBeVisible();
+    
+    await stopButton.click();
+    
+    // Wait for the localStorage signal to be set to active: false
+    await expect.poll(async () => {
+      const raw = await page.evaluate(() => localStorage.getItem('SS_STAGING_STATUS'));
+      if (!raw) return true; // Could have been cleared already
+      return JSON.parse(raw).active;
+    }).toBe(false);
+
+    // Now the UI should reflect this (bar gone)
+    await expect(postCard.getByTestId('preparation-bar')).not.toBeVisible();
   });
 });

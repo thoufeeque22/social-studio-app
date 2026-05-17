@@ -18,7 +18,7 @@ import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils
 import { getDraftFile } from '@/lib/upload/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
 import { usePolling } from '@/hooks/usePolling';
-import { UploadHUD } from '@/components/ui/UploadHUD';
+import { useUploadStatus } from '@/hooks/useUploadStatus';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { AITier, StyleMode } from '@/lib/core/constants';
 import styles from './history.module.css';
@@ -117,6 +117,7 @@ function HistoryContent() {
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
   const searchParams = useSearchParams();
+  const stagingStatus = useUploadStatus();
   
   useEffect(() => {
     const urlSearch = searchParams.get('search');
@@ -327,33 +328,6 @@ function HistoryContent() {
     isActive: posts.length > 0
   });
 
-  // High-speed cross-tab sync for HUD
-  useEffect(() => {
-    const sync = () => {
-      if (globalThis.localStorage) {
-        const staging = localStorage.getItem('SS_STAGING_STATUS');
-        if (staging) {
-          const { status, timestamp, active } = JSON.parse(staging);
-          if (active && Date.now() - timestamp < 30000) {
-            if (!activeResumingId) setActiveResumingId('cross-tab-sync');
-            setInPlaceStatus(status);
-          } else if (activeResumingId === 'cross-tab-sync') {
-            setActiveResumingId(null);
-            setInPlaceStatus(null);
-          }
-        } else if (activeResumingId === 'cross-tab-sync') {
-          setActiveResumingId(null);
-          setInPlaceStatus(null);
-        }
-      } else if (activeResumingId === 'cross-tab-sync') {
-        setActiveResumingId(null);
-        setInPlaceStatus(null);
-      }
-    };
-    const itv = setInterval(sync, 500);
-    return () => clearInterval(itv);
-  }, [activeResumingId]);
-
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
@@ -412,6 +386,37 @@ function HistoryContent() {
     try {
       const { cancelAllUploadsAction } = await import('@/app/actions/history');
       await cancelAllUploadsAction(historyId);
+      
+      // Clear local storage if it's the active staging post
+      if (globalThis.localStorage) {
+        const staging = localStorage.getItem('SS_STAGING_STATUS');
+        if (staging) {
+          const { historyId: stagedId } = JSON.parse(staging);
+          if (stagedId === historyId) {
+            // Signal ABORT to other tabs
+            localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
+              historyId,
+              active: false,
+              status: 'Stopped by user',
+              timestamp: Date.now()
+            }));
+            
+            setActiveResumingId(null);
+            setInPlaceStatus(null);
+            
+            // Actually remove after a short delay to let other tabs see it
+            setTimeout(() => {
+              if (localStorage.getItem('SS_STAGING_STATUS')) {
+                const current = JSON.parse(localStorage.getItem('SS_STAGING_STATUS')!);
+                if (current.historyId === historyId && current.active === false) {
+                  localStorage.removeItem('SS_STAGING_STATUS');
+                }
+              }
+            }, 1000);
+          }
+        }
+      }
+
       const data = await fetchHistory();
       setPosts(data.data || []);
     } catch (err: unknown) {
@@ -637,11 +642,6 @@ function HistoryContent() {
 
   return (
     <div className={styles.historyPage}>
-      <UploadHUD onStop={() => {
-        setActiveResumingId(null);
-        setInPlaceStatus(null);
-        localStorage.removeItem('SS_STAGING_STATUS');
-      }} />
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>Activity Hub</h1>
@@ -675,13 +675,28 @@ function HistoryContent() {
           {posts.map((post) => {
             const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
             const allPending = post.platforms.every(p => p.status === 'pending');
+            const isActiveStaging = stagingStatus.active && stagingStatus.historyId === post.id;
 
             return (
-              <div key={post.id} className={`${styles.postCard} ${isActive ? styles.activePost : ''}`}>
+              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isActive || isActiveStaging ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
                 <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden' }}>
-                  {/* GLOBAL PREPARATION BAR */}
-                  {allPending && isActive && (
+                  {/* LIVE STAGING PROGRESS */}
+                  {isActiveStaging && (
+                    <div className={styles.globalPrepBar} data-testid="preparation-bar">
+                      <div 
+                        className={styles.globalPrepProgress} 
+                        data-testid="preparation-progress"
+                        style={{ width: `${stagingStatus.percent || 0}%`, transition: 'width 0.3s ease' }} 
+                      />
+                      <span className={styles.globalPrepText} data-testid="preparation-status">
+                        <RocketLaunchIcon className="animate-pulse" sx={{ fontSize: 16 }} /> {stagingStatus.status}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* GLOBAL PREPARATION BAR (Fallback) */}
+                  {!isActiveStaging && allPending && isActive && (
                     <div className={styles.globalPrepBar}>
                       <div className={styles.globalPrepProgress} />
                       <span className={styles.globalPrepText}>
@@ -690,10 +705,10 @@ function HistoryContent() {
                     </div>
                   )}
 
-                  <div className={styles.cardHeader} style={allPending && isActive ? { paddingTop: '1.75rem' } : {}}>
+                  <div className={styles.cardHeader} style={(allPending && isActive) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {isActive && <span className={styles.processingDot} />}
+                        {(isActive || isActiveStaging) && <span className={styles.processingDot} />}
                         {post.title}
                       </h3>
                       {post.description && (
@@ -708,7 +723,7 @@ function HistoryContent() {
                         {formatRelativeDate(post.createdAt)}
                       </span>
                       
-                      {isActive && (
+                      {(isActive || isActiveStaging) && (
                         <button 
                           className={styles.stopAllButton}
                           onClick={(e) => handleCancelAll(e, post.id)}
@@ -721,7 +736,7 @@ function HistoryContent() {
                       {(() => {
                         const postCreatedAt = new Date(post.createdAt).getTime();
                         const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
-                        if (isPostStale) {
+                        if (isPostStale && !isActiveStaging) {
                           return (
                             <button 
                               className={styles.resumeButton}

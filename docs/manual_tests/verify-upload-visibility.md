@@ -1,7 +1,7 @@
-# UAT: Upload Visibility & HUD Feedback
+# UAT: Activity Hub Upload Visibility
 
 ## Purpose
-Verify that the user receives continuous, clear, and accurate feedback during the video upload (staging) and multi-platform distribution process.
+Verify that the user receives real-time, context-specific feedback within the Activity Hub cards during the video upload (staging) and multi-platform distribution process.
 
 ## Prerequisites
 - A test user account.
@@ -10,72 +10,75 @@ Verify that the user receives continuous, clear, and accurate feedback during th
 
 ---
 
-## Test Case 1: Staging Progress Visibility
+## Test Case 1: Staging Progress in Activity Hub Card
 
 ### Steps
 1. Navigate to the **Dashboard** (Upload page).
 2. Select a medium-sized video file (> 50MB).
 3. Select at least one platform.
 4. Click **Launch**.
-5. **Observe:** The `UploadHUD` should appear at the bottom of the screen.
+5. **Observe:** The browser should redirect to the **Activity Hub** (/history).
 
 ### Expected Results
-- The HUD displays "Streaming to Cloud: X%".
-- The progress bar (MUI LinearProgress) fills smoothly according to the percentage.
-- A pulse animation is visible next to the "Current Progress" label.
-- The percentage increments as chunks are successfully uploaded.
+- A new card for the post appears at the top of the timeline.
+- A "Preparation Bar" is visible at the top of this card.
+- The bar displays "Streaming to Cloud: X%" or "Initializing...".
+- The progress bar fills smoothly according to the percentage.
+- A pulse animation is visible next to the status text.
 
 ---
 
 ## Test Case 2: Distribution Phase Transitions
 
 ### Steps
-1. Wait for the Staging phase from Test Case 1 to reach 99%.
-2. **Observe:** The status text in the HUD should change.
+1. Wait for the Staging phase from Test Case 1 to complete (bar disappears or reaches 100%).
+2. **Observe:** The platform pills within the card should update.
 
 ### Expected Results
-- Status should change to "Finalizing for launch..." briefly.
-- Then, it should change to "Uploading to [Platform Name]..." (e.g., "Uploading to youtube...").
-- The progress bar may become indeterminate if percentage data is not available for distribution, or stay at 99%/100% depending on implementation.
+- The "Preparation Bar" disappears once staging is complete.
+- The relevant platform pill (e.g., YouTube) changes its icon to a spinning/pulsing indicator.
+- The pill label might change to "Distributing" or "Uploading...".
+- The pill progress bar (inside the pill) fills as the distribution proceeds.
 
 ---
 
-## Test Case 3: Global Persistence
+## Test Case 3: Navigation Persistence
 
 ### Steps
-1. Start an upload on the **Dashboard**.
-2. While the upload is at ~50%, navigate to the **History** page or **Settings** page using the sidebar.
+1. Start an upload on the **Dashboard** and wait for the redirect to **Activity Hub**.
+2. While the card shows active progress (~50% staging), navigate to the **Settings** page or **Gallery** using the sidebar.
+3. Immediately navigate back to the **Activity Hub**.
 
 ### Expected Results
-- The `UploadHUD` remains visible at the bottom of the screen across different routes.
-- The progress continues to update accurately.
+- The specific card still shows the accurate, updated progress.
+- No global floating HUD is visible (per design choice).
 
 ---
 
 ## Test Case 4: Manual Stop / Cancellation
 
 ### Steps
-1. Start an upload.
-2. While the HUD is active, click the red **STOP ALL** button in the HUD.
+1. Start an upload and navigate to the **Activity Hub**.
+2. While the card is in the "Staging" phase (Preparation Bar visible), click the red **STOP ALL** button on that specific card.
 3. Verify the state in `localStorage` via the Browser DevTools (Application Tab).
 
 ### Expected Results
-- The `UploadHUD` disappears immediately with a slide-down animation.
+- The "Preparation Bar" disappears immediately.
+- The card's status updates to "Stopped" or "Cancelled".
 - `localStorage.getItem('SS_STAGING_STATUS')` should be null.
-- (Optional) Check network tab: active chunk requests should be cancelled (if AbortController is integrated).
 
 ---
 
 ## Test Case 5: Cross-Tab Synchronization
 
 ### Steps
-1. Open the application in **Tab A** and **Tab B**.
-2. Start an upload in **Tab A**.
-3. Switch to **Tab B**.
+1. Open the application in **Tab A** and **Tab B** on the **Activity Hub** page.
+2. In **Tab A**, navigate to Dashboard and start an upload.
+3. Switch back to **Tab B** (Activity Hub).
 
 ### Expected Results
-- **Tab B** should also show the `UploadHUD` with identical progress and status as **Tab A**.
-- Navigating between pages in **Tab B** should not interrupt the HUD visibility.
+- **Tab B** should automatically show the new card and its live progress (Preparation Bar) synchronized with **Tab A**.
+- Navigating between pages in **Tab B** should not interrupt the visibility of progress when returning to the Activity Hub.
 
 ---
 
@@ -83,15 +86,16 @@ Verify that the user receives continuous, clear, and accurate feedback during th
 
 ### Steps
 1. Allow an upload to finish completely (all distribution phases succeed).
-2. **Observe** the HUD.
+2. **Observe** the card.
 
 ### Expected Results
-- Once the distribution is finished and the user is redirected or the success state is reached, the HUD should automatically disappear.
-- Navigating to other pages should confirm the HUD is no longer present.
+- Once the distribution is finished, the platform pills show "Success" (green) with links.
+- The "Processing Dot" in the card header disappears.
+- `localStorage` is cleared automatically.
 
 ---
 
 ## Edge Cases to Watch For
-- **Network Interruption**: Disconnect Wi-Fi during upload. The HUD should reflect the failure (if the utility broadcasts the error) or eventually time out.
-- **Malformed State**: Manually set `SS_STAGING_STATUS` in the console to `{ "active": true, "status": "corrupt" }` (missing percent). The HUD should render gracefully with an indeterminate progress bar or just the status text.
-- **Multiple Tabs**: Open the app in two tabs. Start an upload in Tab A. Tab B should also show the `UploadHUD` with the same progress (Global State sync).
+- **Network Interruption**: Disconnect Wi-Fi during staging. The Preparation Bar should reflect the failure or eventually time out.
+- **Malformed State**: Manually set `SS_STAGING_STATUS` in the console with a random `historyId`. The Activity Hub should ignore it (no Preparation Bar should appear on unrelated cards).
+- **Multiple Tabs**: Open the app in two tabs. Start an upload in Tab A. Tab B should show the progress only on the matching card in the Activity Hub.

@@ -71,7 +71,6 @@ describe('Project Management & UI Humanization', () => {
   describe('UploadForm UI (Dynamic Metadata)', () => {
     const mockProps: UploadFormProps = {
       isUploading: false,
-      uploadStatus: null,
       accounts: [],
       preferences: [],
       selectedAccountIds: [],
@@ -90,7 +89,6 @@ describe('Project Management & UI Humanization', () => {
       isScheduled: false,
       scheduledAt: '',
       onSchedulingChange: vi.fn(),
-      isComplete: false,
       customStyleText: '',
       onCustomStyleChange: vi.fn()
     };

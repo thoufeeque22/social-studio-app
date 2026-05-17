@@ -5,6 +5,18 @@ import { Account } from '@/lib/core/types';
 describe('Parallel Distribution Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock localStorage
+    const storage: Record<string, string> = {};
+    global.localStorage = {
+      getItem: vi.fn((key: string) => storage[key] || null),
+      setItem: vi.fn((key: string, value: string) => { storage[key] = value; }),
+      removeItem: vi.fn((key: string) => { delete storage[key]; }),
+      clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
+      length: 0,
+      key: vi.fn((index: number) => Object.keys(storage)[index] || null),
+    } as any;
+
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,

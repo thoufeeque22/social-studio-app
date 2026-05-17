@@ -15,7 +15,7 @@ import { Account, PlatformPreference } from '@/lib/core/types';
 import { useDraftFile } from '@/hooks/dashboard/useDraftFile';
 import { usePlatformSelection } from '@/hooks/dashboard/usePlatformSelection';
 import { useDistributionEngine } from '@/hooks/dashboard/useDistributionEngine';
-import { UploadHUD } from '@/components/ui/UploadHUD';
+import { useUploadStatus } from '@/hooks/useUploadStatus';
 import StopIcon from '@mui/icons-material/Stop';
 
 interface ReviewContext {
@@ -137,6 +137,17 @@ export default function DashboardClient({
     handleAbortAll
   } = useDistributionEngine(devAccounts);
 
+  // Sync with global upload status for cross-tab aborts
+  const { historyId: activeGlobalId, active: isGlobalActive } = useUploadStatus();
+  
+  useEffect(() => {
+    // If the global status says inactive but we think we're uploading, 
+    // and it's not just the initial null state, abort locally.
+    if (isUploading && isGlobalActive === false && activeGlobalId) {
+       handleAbortAll();
+    }
+  }, [isUploading, isGlobalActive, activeGlobalId, handleAbortAll]);
+
   // 2. LOCAL STATE: Only for UI-specific flows (Review, AI Tiers)
   const [aiTier, setAiTierInternal] = useState<AITier>(() => {
     // Priority: localStorage (fastest/most recent) > initialAITier (server-side) > Manual (fallback)
@@ -172,7 +183,6 @@ export default function DashboardClient({
   const [reviewContext, setReviewContext] = useState<ReviewContext | null>(null);
   const [galleryFileId, setGalleryFileId] = useState<string | null>(null);
   const [galleryFileName, setGalleryFileName] = useState<string | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
   const [customStyleText, setCustomStyleText] = useState('');
 
   // 3. EFFECT: Resumption Logic
@@ -345,9 +355,6 @@ export default function DashboardClient({
       const { updatePlatformResultsAction } = await import('@/app/actions/history');
       await updatePlatformResultsAction(reviewContext.historyId, updatedPreviews);
 
-      setUploadStatus(" AI Content saved! Finalizing in Activity Hub...");
-      setIsComplete(true);
-
       // Reconstruct the pending post for the Cockpit UI
       const targetPlatforms = selectedAccountIds.map(id => {
         const isSplit = id.includes(':');
@@ -378,9 +385,7 @@ export default function DashboardClient({
       localStorage.removeItem('SS_DRAFT_TITLE');
       localStorage.removeItem('SS_DRAFT_DESC');
 
-      setTimeout(() => {
-        window.location.href = '/history?action=distribute';
-      }, 1500);
+      window.location.href = '/history?action=distribute';
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unknown error occurred";
       setUploadStatus(` Error saving AI content: ${message}`);
@@ -408,62 +413,55 @@ export default function DashboardClient({
   };
 
   return (
-    <>
-      <UploadHUD onStop={handleAbortAll} />
-      <div className="fade-in">
-        <DashboardHeader session={session} />
-        <div className="responsive-grid">
-          {isReviewing ? (
-            <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-              <AIContentReview 
-                previews={aiPreviews}
-                onBack={() => { setIsReviewing(false); setUploadStatus(null); }}
-                onConfirm={handleConfirmReview}
-                isProcessing={isUploading}
-              />
-            </div>
-          ) : (
-              <UploadForm 
-                isUploading={isUploading}
-                uploadStatus={uploadStatus}
-                accounts={devAccounts}
-                preferences={preferences}
-                selectedAccountIds={selectedAccountIds}
-                contentMode={contentMode}
-                aiTier={aiTier}
-                videoFormat={videoFormat}
-                videoDuration={videoDuration}
-                draftFileName={galleryFileName || draftFileName}
-                onVisualScan={handleVisualScan}
-                onTierChange={setAiTier}
-                onModeChange={setContentMode}
-                onToggleAccount={handleToggleAccount}
-                onFileChange={(file) => {
-                  setGalleryFileId(null);
-                  setGalleryFileName(null);
-                  handleFileChange(file);
-                  setIsComplete(false);
-                  setAiPreviews({});
-                }}
-                onGallerySelect={(fileId, fileName) => {
-                  handleGallerySelect(fileId, fileName);
-                  setIsComplete(false);
-                  setAiPreviews({});
-                }}
-                onSubmit={handleMainAction}
-                isScheduled={isScheduled}
-                scheduledAt={scheduledAt}
-                onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
-                isComplete={isComplete}
-                customStyleText={customStyleText}
-                onCustomStyleChange={setCustomStyleText}
-                hasCachedPreviews={Object.keys(aiPreviews).length > 0}
-                onResumeReview={() => setIsReviewing(true)}
-              />
-          )}
-          <SidebarInfo />
-        </div>
+    <div className="fade-in">
+      <DashboardHeader session={session} />
+      <div className="responsive-grid">
+        {isReviewing ? (
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+            <AIContentReview 
+              previews={aiPreviews}
+              onBack={() => { setIsReviewing(false); setUploadStatus(null); }}
+              onConfirm={handleConfirmReview}
+              isProcessing={isUploading}
+            />
+          </div>
+        ) : (
+            <UploadForm 
+              isUploading={isUploading}
+              accounts={devAccounts}
+              preferences={preferences}
+              selectedAccountIds={selectedAccountIds}
+              contentMode={contentMode}
+              aiTier={aiTier}
+              videoFormat={videoFormat}
+              videoDuration={videoDuration}
+              draftFileName={galleryFileName || draftFileName}
+              onVisualScan={handleVisualScan}
+              onTierChange={setAiTier}
+              onModeChange={setContentMode}
+              onToggleAccount={handleToggleAccount}
+              onFileChange={(file) => {
+                setGalleryFileId(null);
+                setGalleryFileName(null);
+                handleFileChange(file);
+                setAiPreviews({});
+              }}
+              onGallerySelect={(fileId, fileName) => {
+                handleGallerySelect(fileId, fileName);
+                setAiPreviews({});
+              }}
+              onSubmit={handleMainAction}
+              isScheduled={isScheduled}
+              scheduledAt={scheduledAt}
+              onSchedulingChange={(s, d) => { setIsScheduled(s); setScheduledAt(d); }}
+              customStyleText={customStyleText}
+              onCustomStyleChange={setCustomStyleText}
+              hasCachedPreviews={Object.keys(aiPreviews).length > 0}
+              onResumeReview={() => setIsReviewing(true)}
+            />
+        )}
+        <SidebarInfo />
       </div>
-    </>
+    </div>
   );
 }

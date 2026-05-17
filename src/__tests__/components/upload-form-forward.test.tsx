@@ -34,7 +34,6 @@ describe('UploadForm Props Forwarding', () => {
 
   const mockProps: UploadFormProps = {
     isUploading: false,
-    uploadStatus: null,
     accounts: [],
     preferences: [],
     selectedAccountIds: [],
@@ -53,7 +52,6 @@ describe('UploadForm Props Forwarding', () => {
     isScheduled: false,
     scheduledAt: '',
     onSchedulingChange: vi.fn(),
-    isComplete: false,
     customStyleText: '',
     onCustomStyleChange: vi.fn()
   };
