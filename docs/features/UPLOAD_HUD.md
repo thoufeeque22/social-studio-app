@@ -1,52 +1,58 @@
-# TECHNICAL SPECS: Issue #425 - Enhanced Upload Visibility
+# Enhanced Upload Visibility (Upload HUD)
 
 ## Overview
-The goal is to provide clear, granular feedback during the video upload process (staging and distribution). The current implementation relies on `localStorage` to broadcast progress, which is underutilized in the UI.
+The Upload HUD (Heads-Up Display) provides real-time, persistent feedback during the video upload and distribution process. It ensures users are informed of the progress of their content as it moves from their local machine to the server (Staging) and then to various social media platforms (Distribution).
 
-## Synthesis
-### Advocate Perspective (User Experience)
-- Users need immediate assurance that an upload has started.
-- A "stuck" feeling is minimized by showing actual progress percentages.
-- Centralizing the UI logic ensures consistency across the application.
-- UI elements (HUD/Progress Bar) must be non-intrusive but noticeable.
+## Architecture
 
-### Skeptic Perspective (Technical/Risk)
-- Frequent `localStorage` reads/writes can lead to race conditions if not managed correctly.
-- Component re-renders should be limited to prevent performance degradation on slower clients.
-- The `UploadHUD` must handle the "missing percentage" state gracefully to prevent UI flickering or `NaN` errors.
-- Aborted uploads must clear the `localStorage` state correctly to ensure subsequent uploads start from scratch.
+The system uses a decentralized observation pattern where the upload utilities broadcast progress to `localStorage`, and a specialized React hook allows UI components to react to these updates without direct prop drilling or complex state management.
 
-## Proposed Implementation Plan
+```mermaid
+sequenceDiagram
+    participant U as Upload Utils (Lib)
+    participant LS as localStorage (SS_STAGING_STATUS)
+    participant H as useUploadStatus (Hook)
+    participant C as UploadHUD (Component)
 
-### 1. New Component: `UploadHUD` (`src/components/ui/UploadHUD.tsx`)
-- **Responsibility**: Observes `SS_STAGING_STATUS` and renders progress.
-- **Props**: None (reads globally from `localStorage` / custom event hook).
-- **Features**:
-  - `LinearProgress` (MUI) component for visual feedback.
-  - Text label for the status string.
-  - Graceful fallback: If `percent` is undefined, use an indeterminate progress bar.
+    U->>LS: Write progress (percent, status, active, timestamp)
+    loop Every 500ms
+        H->>LS: Read state
+        H->>C: Update status/percent
+    end
+    C->>C: Render Progress Bar & Status Text
+    U->>LS: Finalize/Error (active: false or remove)
+    H->>C: Hide HUD
+```
 
-### 2. Synchronization Hook: `useUploadStatus`
-- Create `src/hooks/useUploadStatus.ts` to encapsulate `localStorage` polling.
-- Use `useEffect` to listen for storage events or use a polling interval (e.g., 500ms) to sync the state.
-- **Race Condition Prevention**: Ensure that only the active upload process can write to the `SS_STAGING_STATUS` key.
+## Key Components
 
-### 3. Integration
-- **DashboardClient.tsx** and **src/app/history/page.tsx**: Replace duplicated HUD logic with `<UploadHUD />`.
-- **UploadForm**: Integrate the same `useUploadStatus` hook. Disable the submit button while `uploading` is active, and show the progress bar directly below the button.
+### 1. `src/lib/upload/upload-utils.ts` (Broadcast Source)
+- **Staging Phase**: Uses `stageVideoFile` to upload chunks. Broadcasts percentage-based progress.
+- **Distribution Phase**: Uses `distributeToPlatforms` to send the staged file to APIs (YouTube, TikTok, etc.). Supports concurrent uploads (concurrency adjusted based on file size). Broadcasts status-based progress (e.g., "Uploading to youtube...").
+- **State Schema**: Broadcasts a JSON object containing `status`, `percent`, `active`, and `timestamp`.
+- **Cleanup**: Removes the `SS_STAGING_STATUS` key from `localStorage` upon successful completion or fatal error.
 
-## Production Readiness
-- **Accessibility**: Use `aria-valuenow`, `aria-valuemin`, `aria-valuemax` on the `LinearProgress` container.
-- **Performance**: Polling interval set to 500ms is sufficient for visual feedback without thrashing the CPU.
-- **Safety**: Input validation using Zod for the staging status JSON.
+### 2. `src/hooks/useUploadStatus.ts` (State Synchronizer)
+- Polls `localStorage` every 500ms.
+- Validates data using **Zod** to ensure type safety and prevent UI crashes from malformed data.
+- Returns `{ status, percent, active }`.
 
-## Dependency Impact Radius
-- `src/lib/upload/upload-utils.ts`: Remains the source of truth for the `SS_STAGING_STATUS` format.
-- `src/components/ui/`: New component will be shared across `app/` routes.
-- No changes required to backend API routes (`/api/upload/...`).
+### 3. `src/components/ui/UploadHUD.tsx` (Visual Feedback)
+- A "floating" UI element fixed at the bottom of the viewport.
+- **Animations**: Uses `slideUpHUD` animation for a smooth entrance.
+- **Controls**: Includes a "STOP ALL" button that allows users to manually clear the upload state (effectively "cancelling" the visual tracking).
+- **Aesthetic**: Material UI inspired with backdrop blur, primary color accents, and a pulse indicator.
 
-## Decision
-Implementing this **now** is critical. Upload visibility is a core reliability requirement. A platform where users are unsure if their content is uploading or failing is not "production ready."
+## UI Standards
+- **Currency**: All costs associated (if any) are in **PLN**.
+- **Units**: File sizes and progress are in **Metric** (MB).
+- **Language**: **English** only.
+- **Icons**: Exclusively uses **Material UI Icons** (e.g., `StopIcon`).
 
----
-*Status: Discovery Complete. Ready for Dev implementation.*
+## Performance Considerations
+- **Polling vs Events**: Polling `localStorage` at 500ms is used for broad compatibility across tabs and to simplify the implementation. The performance impact is negligible.
+- **Zod Validation**: Ensures that even if external scripts modify `localStorage`, the application remains stable.
+
+## Error Handling
+- If an upload fails, the status message updates to reflect the error before the HUD is eventually cleared or manually dismissed.
+- Sentry logs are triggered in the `upload-utils` layer for any network failures.
