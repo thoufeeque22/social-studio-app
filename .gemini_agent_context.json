@@ -1,43 +1,27 @@
-# Technical Blueprint: Activity Hub Optimistic UI
-
-## 1. Problem Identification
-The 10-second delay is caused by the sequential execution of:
-1. `distributeToPlatforms` (Background worker/API process).
-2. `fetchHistory()` (Network round-trip to database to refresh the UI).
-The user is redirected immediately, but the UI component only updates once the DB reflects the new record, leading to perceived latency.
-
-## 2. Proposed Solution: Optimistic UI ("Ghost Card")
-We will implement an Optimistic UI strategy where the `history/page.tsx` reads `SS_PENDING_POST` immediately on mount and renders a temporary "ghost" card while waiting for the background processes to complete and the official list to refresh.
-
-### Technical Implementation Steps
-1.  **State Management:**
-    *   Introduce `pendingPost` state initialized from `localStorage`.
-    *   If `pendingPost` exists, add a `pending` visual state indicator (e.g., loading spinner on card) to the list.
-2.  **Immediate UI Rendering:**
-    *   Modify `history/page.tsx` to include `pendingPost` data in the `posts` array immediately, marked with a custom flag `isOptimistic: true`.
-3.  **Synchronization:**
-    *   Keep the existing `fetchHistory()` logic.
-    *   Once `fetchHistory()` completes, merge results and remove the `isOptimistic` entry if it matches the newly fetched post.
-4.  **Error Handling (Sentry):**
-    *   If `distributeToPlatforms` fails, catch the error, update the UI to show a "Retry" or "Failed" state for the specific post, and clear/retain `SS_PENDING_POST` based on recovery policy.
-
-## 3. Production Readiness
-*   **Logging:** Add Sentry breadcrumbs around `localStorage` retrieval and optimistic render state.
-*   **Performance:** No overhead; using existing `localStorage` data.
-*   **Security:** Validate JSON payload from `localStorage` using Zod.
-
-## 4. Expected Output for Dev Agent
-1.  `npx tsc --noEmit` success.
-2.  `npm run build` success.
-3.  Playwright test verifying "Ghost Card" visibility in the history list within 500ms of navigation.
-4.  No console errors or hydration mismatches.
-
----
-`last_agent`: "discovery-agent"
-`ticket_goal`: "Implement Optimistic UI in Activity Hub"
-`ticket_id`: "N/A (Performance Improvement)"
-
-`discovery-agent`: {
-    "verdict": "FEASIBLE",
-    "notes": "Optimistic UI is the standard pattern here. Relying on localStorage as a temporary cache ensures immediate feedback."
+{
+  "last_agent": "review-agent",
+  "branch_name": "fix/425-upload-visibility",
+  "ticket_goal": "Implement Optimistic UI (Ghost Card) in Activity Hub",
+  "ticket_id": "425",
+  "dev-agent": {
+    "modified_files": [
+      "src/app/history/page.tsx",
+      "src/__tests__/e2e/upload-visibility.spec.ts",
+      "verification/optimistic-ghost-card.png"
+    ],
+    "fixes_applied": [
+      "Implemented optimistic rendering of pending posts from localStorage (SS_PENDING_POST) in Activity Hub.",
+      "Added Zod validation for pending post data.",
+      "Updated Playwright tests to verify optimistic card appearance.",
+      "Ensured hydration safety and verified with build."
+    ],
+    "expected_output": {
+      "tsc_success": true,
+      "build_success": true,
+      "tests_passed": true,
+      "linter_clean": true
+    }
+  },
+  "review-agent": {},
+  "qa-agent": {}
 }
