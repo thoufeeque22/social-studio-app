@@ -67,6 +67,7 @@ interface PostHistoryEntry {
   createdAt: string;
   stagedFileId: string | null;
   platforms: PlatformResult[];
+  isOptimistic?: boolean;
 }
 
 const PLATFORM_META: Record<string, { icon: React.ReactNode; label: string; className: string }> = {
@@ -123,7 +124,6 @@ function HistoryContent() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
-  const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -185,7 +185,7 @@ function HistoryContent() {
   }, []);
 
   const executeCockpitDistribution = useCallback(async (stagedFileId: string, fileName: string, historyId: string, post: CockpitPost, reviewedContent?: Record<string, AIWriteResult>) => {
-    setInPlaceStatus("Launching Mission...");
+    
     
     try {
       if (reviewedContent) {
@@ -209,7 +209,7 @@ function HistoryContent() {
       fd.append('title', post.title || '');
       fd.append('description', post.description || '');
 
-      setInPlaceStatus("Distributing to Platforms...");
+      
       await distributeToPlatforms({
         stagedFileId,
         fileName,
@@ -218,7 +218,7 @@ function HistoryContent() {
         selectedAccountIds,
         contentMode: post.contentMode || 'Smart',
         videoFormat: post.videoFormat as "short" | "long",
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         historyId,
         reviewedContent,
         onAccountSuccess: async () => {
@@ -227,7 +227,7 @@ function HistoryContent() {
         }
       });
 
-      setInPlaceStatus("Mission Accomplished!");
+      
       // We no longer clear pendingPost or storage here; let the reconciliation effect handle it
       const data = await fetchHistory();
       setPosts(data.data || []);
@@ -237,20 +237,20 @@ function HistoryContent() {
         window.history.replaceState({}, '', '/history');
       }, 2000);
 
-    } catch (err: unknown) {
-      setInPlaceStatus(` Distribution Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
     }
   }, [accounts, fetchHistory]);
 
   const handleCockpitStart = useCallback(async () => {
     if (accounts.length === 0) {
-      setInPlaceStatus("Waiting for platform accounts...");
+      
       return;
     }
     
     const pending = localStorage.getItem('SS_PENDING_POST');
     if (!pending) {
-      setInPlaceStatus("No pending post found in storage.");
+      
       return;
     }
     
@@ -263,7 +263,7 @@ function HistoryContent() {
       setActiveResumingId('cockpit-active');
     }
 
-    setInPlaceStatus("Synchronizing Activity Hub...");
+    
     
     // START LIST REFRESH in background, don't wait for it to start staging
     fetchHistory().then(freshData => {
@@ -271,21 +271,21 @@ function HistoryContent() {
     }).catch(e => console.error("Initial list refresh failed", e));
     
     try {
-      setInPlaceStatus("Accessing local video storage...");
+      
       let stagedFileId = post.galleryFileId;
       let fileName = post.galleryFileName || '';
       let historyId = post.resumeHistoryId || '';
 
       // 1. Stage Physical File if needed
       if (!stagedFileId) {
-        setInPlaceStatus("Searching for draft file...");
+        
         const file = await getDraftFile();
         if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
         
-        setInPlaceStatus(`Initializing upload for ${file.name}...`);
+        
         const stageResult = await stageVideoFile({
           file,
-          onStatusUpdate: setInPlaceStatus,
+          onStatusUpdate: () => {},
           metadata: {
             title: post.title,
             description: post.description,
@@ -307,7 +307,7 @@ function HistoryContent() {
       // 2. AI Generation if needed (Auto-Pilot)
       let reviewedContentToPass: Record<string, AIWriteResult> | undefined = undefined;
       if (post.aiTier !== 'Manual' && post.skipReview) {
-        setInPlaceStatus("Generating AI Strategy...");
+        
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         const targetPlatformNames = post.platforms.map((p: PlatformResult) => p.platform);
         
@@ -329,8 +329,8 @@ function HistoryContent() {
       // 3. Final Distribution
       await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
 
-    } catch (err: unknown) {
-      setInPlaceStatus(` Cockpit Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => {
         setActiveResumingId(null);
       }, 5000);
@@ -474,7 +474,7 @@ function HistoryContent() {
     }
 
     setActiveResumingId(null);
-    setInPlaceStatus(null);
+    
     
     if (historyId === 'optimistic-pending') {
       setPendingPost(null);
@@ -510,13 +510,13 @@ function HistoryContent() {
 
   const handleInPlaceResume = async (post: PostHistoryEntry) => {
     setActiveResumingId(post.id);
-    setInPlaceStatus("Checking browser storage...");
+    
     
     try {
       const file = await getDraftFile();
       
       if (!file) {
-        setInPlaceStatus("Please select the video file to resume...");
+        
         if (fileInputRef.current) {
           fileInputRef.current.onchange = (e: Event) => {
              const target = e.target as HTMLInputElement;
@@ -529,18 +529,18 @@ function HistoryContent() {
       }
       
       await executePipeline(post, file);
-    } catch (err: unknown) {
-      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => setActiveResumingId(null), 3000);
     }
   };
 
   const executePipeline = async (post: PostHistoryEntry, file: File) => {
-    setInPlaceStatus("Starting resumption...");
+    
     try {
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
         platforms: post.platforms.map(p => ({ 
           platform: p.platform, 
@@ -563,7 +563,7 @@ function HistoryContent() {
         selectedAccountIds,
         contentMode: 'Smart',
         videoFormat: post.videoFormat as "short" | "long",
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         historyId,
         onAccountSuccess: async () => {
            const updated = await fetchHistory();
@@ -571,12 +571,12 @@ function HistoryContent() {
         }
       });
       
-      setInPlaceStatus(" All done!");
+      
       const data = await fetchHistory();
       setPosts(data.data || []);
       setTimeout(() => setActiveResumingId(null), 2000);
-    } catch (err: unknown) {
-      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => setActiveResumingId(null), 5000);
     }
   };
@@ -584,7 +584,7 @@ function HistoryContent() {
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
     const resolvedPlatform = p.platform.toLowerCase();
-    const isOptimistic = (post as any).isOptimistic;
+    const isOptimistic = post.isOptimistic;
     
     // Support multi-local platforms (local1, local2, etc)
     const basePlatform = resolvedPlatform.startsWith('local') ? 'local' : 
@@ -751,7 +751,7 @@ function HistoryContent() {
         accountId: p.accountId
       })),
       isOptimistic: true
-    } as any);
+    });
   }
 
   return (
@@ -787,7 +787,7 @@ function HistoryContent() {
       ) : (
         <div className={styles.timeline}>
           {reconciledPosts.map((post) => {
-            const isOptimistic = (post as any).isOptimistic;
+            const isOptimistic = post.isOptimistic;
             
             // Derive active status by excluding already cancelled platforms
             const activePlatforms = post.platforms.filter(p => 
@@ -837,7 +837,7 @@ function HistoryContent() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
                         {isCardActive && <span className={styles.processingDot} />}
-                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}></span>}
+                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
                       </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
