@@ -1,5 +1,5 @@
 {
-  "last_agent": "dev-agent",
+  "last_agent": "qa-agent",
   "branch_name": "fix/425-upload-visibility",
   "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
   "ticket_id": 425,
@@ -38,6 +38,6 @@
   },
   "qa-agent": {
     "verdict": "PASS",
-    "details": "Verified Ghost Card persistence and reconciliation. All 5 tests in upload-visibility.spec.ts passed."
+    "details": "Verified Ghost Card persistence and reconciliation. All 5 tests in upload-visibility.spec.ts passed, including visual verification and STOP ALL functionality."
   }
 }
