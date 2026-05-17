@@ -22,6 +22,14 @@
       "linter_clean": true
     }
   },
-  "review-agent": {},
+  "review-agent": {
+    "review_verdict": "PASS",
+    "failure_details": null,
+    "expected_output": {
+      "validation_of_fixes": "Verified optimistic UI implementation and Zod validation",
+      "adherence_to_docs": true,
+      "no_security_vulnerabilities": true
+    }
+  },
   "qa-agent": {}
 }
