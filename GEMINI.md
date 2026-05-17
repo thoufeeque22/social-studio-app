@@ -14,6 +14,16 @@
   - **Scalability:** Design for high throughput (queues for long-running tasks, efficient sharding/partitioning for large datasets).
   - **Observability:** Log critical business events and system health metrics.
 
+# Infrastructure & Database Maintenance
+
+- **Neon Branch Management:** The Neon Vercel integration creates a new database branch for every preview deployment. On the Free Tier (limit 10), this can block deployments.
+- **Cleanup Automation:** Use the provided script to purge old branches while keeping `main` and the most recent preview branch:
+    ```bash
+    npm run cleanup:neon        # Dry Run
+    npm run cleanup:neon:force  # Actual Deletion
+    ```
+- **Project ID:** The script defaults to `falling-feather-78236210`. To override, use `--project-id <id>`.
+
 # Agent Orchestration (Direct Routing)
 
 - **Context First:** Always check `.gemini_agent_context.json` for current state before acting.
@@ -21,15 +31,16 @@
 - **Context Synchronization:** Always `git add .gemini_agent_context.json` before committing to ensure the latest state is shared. Push changes immediately after commit.
 - **Predictive Validation:** Before handoff, the current agent MUST define an `expected_output` block in their namespaced context. This MUST include specific verification commands (e.g., `npm run build`, `npx tsc`) and the expected success indicators. Handoff is FORBIDDEN until the agent can prove these outputs were achieved.
 - **Context Structure:**
-  - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id` must remain at the root.
-  - **Namespaced Keys:** Every agent MUST store their findings, verdicts, and actions under a key named after themselves (e.g., `"dev-agent": { ... }`, `"discovery-agent": { ... }`).
+  - **Root Keys:** `last_agent`, `branch_name`, `ticket_goal`, `ticket_id`, and `last_updated_at` (ISO 8601 timestamp) must remain at the root.
+  - **Round-Based Namespacing:** Every agent activity MUST be encapsulated within a `round-N` key (e.g., `"round-1"`). Inside each round, agents MUST store their findings and actions under their specific agent key (e.g., `"round-1": { "dev-agent": { ... } }`).
+  - **History:** If a pipeline fails and cycles back, a new round (e.g., `"round-2"`) MUST be created, containing the new agent activities. This preserves the complete historical record of previous rounds. Each agent entry MUST include a `"timestamp"` (ISO 8601).
 - **Standard Pipeline Flow:**
-  - `discovery-agent` (Planning/Architecture)
-  - `dev-agent` (Implementation & Unit/Integration Tests)
-  - `review-agent` (Audit & Verification)
-  - `qa-agent` (E2E/Playwright Tests)
-  - `doc-agent` (Documentation & Manual Tests)
-  - `doc-agent` → `project-agent` (Incidental Issues & Project Board)
+  - `discovery-agent` → `dev-agent`
+  - `dev-agent` → `review-agent`
+  - `review-agent` → `qa-agent` (on PASS) or `dev-agent` (on FAIL)
+  - `qa-agent` → `doc-agent` (on PASS) or `dev-agent` (on FAIL)
+  - `doc-agent` → `project-agent` (on PASS) or `dev-agent` (on FAIL)
+  - `project-agent` → End of Task/Main Agent
 - **Orchestration Rules:**
   - **Worker Agents:** MUST NOT invoke other agents. They MUST update `.gemini_agent_context.json` via tools and return their status.
   - **Main Agent (Gemini CLI):** Responsible for analyzing the context and routing the task to the next specialized agent.
@@ -187,6 +198,23 @@ You MUST commit all documentation and manual test changes before assigning to `p
   - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`).
   - **Cleanup:** Clear all processed entries from `.gemini_incidental_observations.json` after logging.
 - **Constraints:** Technical, structured, and emoji-free documentation.
+
+
+# Technical & TSX Standards
+
+- **Component Composition:** Prefer composition over deep prop-drilling. Use React Context or state management (Zustand) when sharing data across non-adjacent components.
+- **Immutability:** Treat all state and props as immutable. Use functional updates (`setState(prev => ...)`) and array methods like `map`, `filter`, and `reduce` instead of mutations (`push`, `splice`).
+- **Type Safety:** 
+  - **No `any`:** Strict enforcement. Use `unknown` or defined interfaces/types if the type is truly dynamic.
+  - **Strict Null Checks:** Handle `null`/`undefined` explicitly using optional chaining (`?.`) or type guards.
+- **Functional Purity:** Keep components "pure". Extract business logic into custom hooks (`src/hooks/`) to separate side effects from rendering.
+- **Naming Conventions:**
+  - **Components:** PascalCase (e.g., `UploadHud.tsx`).
+  - **Hooks:** camelCase starting with `use` (e.g., `useUploadStatus.ts`).
+  - **Utilities:** camelCase (e.g., `formatCurrency.ts`).
+- **Accessibility (A11y):** All interactive elements must have appropriate ARIA labels and roles. Ensure keyboard navigability.
+- **Resource Management:** Always clean up side effects (event listeners, timers, subscriptions) in `useEffect` return functions.
+- **API/Action Safety:** Validate incoming data with Zod schemas. Use `try-catch` for all async operations; log via Sentry; handle gracefully in UI.
 
 ## Global Architectural Standards
 - **Modularity Enforcement (The 50-Line Rule):**

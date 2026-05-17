@@ -1,8 +1,1 @@
-[
-  {
-    "category": "meta",
-    "severity": "HIGH",
-    "description": "Systemic failure to enforce 50-line modularity rule. Most files (e.g., src/app/history/page.tsx, src/app/schedule/page.tsx) significantly exceed the limit.",
-    "suggestion": "Introduce 'Legacy Debt' exemption policy in GEMINI.md, requiring new work in existing files to be modularized into sub-components, and create a roadmap for refactoring existing files."
-  }
-]
+[]
