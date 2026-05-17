@@ -15,11 +15,11 @@
     "fixes_applied": [
       "Implemented Optimistic UI (Ghost Card) in Activity Hub for instant feedback.",
       "Fixed reconciliation logic to ensure Ghost Card persists until DB record is confirmed in the list.",
-      "Enabled STOP ALL button on the optimistic Ghost Card.",
+      "Enabled STOP ALL and individual platform cancellation on the optimistic Ghost Card.",
       "Fixed 'Upload result not found' error by implementing cancelPlatformByPostAction for optimistic platform cancellation.",
       "Merged Ghost Card into the main timeline for seamless visual transition.",
       "Added fuzzy matching (title + timestamp) for reconciliation as a fallback.",
-      "Updated E2E tests to verify Ghost Card persistence and individual platform cancellation.",
+      "Updated E2E tests to verify Ghost Card persistence and individual platform cancellation (7 tests passing).",
       "Ensured immediate redirect from Dashboard to Activity Hub.",
       "Generalized status messages to handle multi-platform distribution.",
       "Removed all chat emojis from user-facing status strings to comply with project mandates."
@@ -31,7 +31,7 @@
         "Ghost Card appears instantly in Activity Hub after redirection.",
         "STOP ALL button is visible and functional on the Ghost Card.",
         "Individual platform stop on Ghost Card works without server errors.",
-        "All Playwright tests (6/6) passed.",
+        "All Playwright tests (7/7) passed including optimistic cancellation cases.",
         "Zero chat emojis in user-facing status messages."
       ]
     }
@@ -41,6 +41,6 @@
   },
   "qa-agent": {
     "verdict": "PASS",
-    "details": "Verified Ghost Card persistence, STOP ALL functionality, and individual platform cancellation. All 6 tests in upload-visibility.spec.ts passed."
+    "details": "Verified Ghost Card persistence, STOP ALL functionality, and individual platform cancellation. All 7 tests in upload-visibility.spec.ts passed with isolated mocks."
   }
 }

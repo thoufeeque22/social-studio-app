@@ -441,9 +441,11 @@ function HistoryContent() {
       if (staging) {
         try {
           const { historyId: stagedId } = JSON.parse(staging);
-          if (stagedId === historyId || historyId === 'optimistic-pending') {
+          const isOptimisticPending = historyId === 'optimistic-pending';
+          
+          if (stagedId === historyId || isOptimisticPending) {
             localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-              historyId: stagedId, // Preserve the real ID if we have it
+              historyId: stagedId, 
               active: false,
               status: 'Stopped by user',
               timestamp: Date.now()
@@ -459,8 +461,8 @@ function HistoryContent() {
     setInPlaceStatus(null);
     
     if (historyId === 'optimistic-pending') {
-      // Just clear local state, no server record yet
-      setPosts(prev => prev.filter(p => (p as any).id !== 'optimistic-pending'));
+      setPendingPost(null);
+      localStorage.removeItem('SS_PENDING_POST');
       return;
     }
 
