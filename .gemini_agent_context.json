@@ -1,63 +1,43 @@
-{
-  "last_agent": "dev-agent",
-  "branch_name": "fix/425-upload-visibility",
-  "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
-  "ticket_id": 425,
-  "dev-agent": {
-    "modified_files": [
-      "src/hooks/useUploadStatus.ts",
-      "src/components/dashboard/DashboardClient.tsx",
-      "src/app/history/page.tsx",
-      "src/lib/upload/upload-utils.ts",
-      "src/components/dashboard/UploadForm/index.tsx",
-      "src/__tests__/components/upload-form-forward.test.tsx",
-      "src/__tests__/integration/humanization-security.test.tsx",
-      "src/__tests__/e2e/upload-visibility.spec.ts",
-      "docs/features/UPLOAD_VISIBILITY.md",
-      "docs/manual_tests/verify-upload-visibility.md"
-    ],
-    "fixes_applied": [
-      "Removed all upload status and progress indicators from the Dashboard.",
-      "Implemented cross-tab abort signaling in Activity Hub using localStorage 'active: false' signal.",
-      "Updated DashboardClient to listen for global abort signals and terminate local upload processes.",
-      "Refactored stageVideoFile and distributeToPlatforms to check for global abort signals at every step.",
-      "Ensured immediate redirect to Activity Hub upon clicking 'Post Video' (or Confirming AI Strategy).",
-      "Removed redirect delay and completion overlay for faster feedback loop.",
-      "Updated unit and integration tests to match the new UploadForm API.",
-      "Fixed E2E timeout by moving localStorage abort signal to the START of handleCancelAll.",
-      "Enhanced E2E test robustness with increased poll timeouts."
-    ],
-    "expected_output": {
-      "status": "PASS",
-      "conditions": [
-        "npx tsc --noEmit success.",
-        "npm run build success.",
-        "All unit and integration tests pass.",
-        "All E2E tests (including STOP ALL) pass.",
-        "Dashboard redirects immediately and shows no status bars."
-      ]
-    }
-  },
-  "review-agent": {
-    "review_verdict": "PASS",
-    "expected_output": {
-      "conditions": [
-        "Successful validation of all fixes_applied.",
-        "Adherence to docs/ and API contracts.",
-        "No security vulnerabilities found in diff."
-      ]
-    }
-  },
-  "qa-agent": {
-    "verdict": "PASS",
-    "details": "All E2E tests passed, including the STOP ALL broadcast signal verification.",
-    "expected_output": {
-      "conditions": [
-        "npx playwright test success.",
-        "Full E2E test coverage including STOP ALL functionality.",
-        "Visual artifacts generated in verification/ folder.",
-        "Zero Network/Hydration errors observed."
-      ]
-    }
-  }
+# Technical Blueprint: Activity Hub Optimistic UI
+
+## 1. Problem Identification
+The 10-second delay is caused by the sequential execution of:
+1. `distributeToPlatforms` (Background worker/API process).
+2. `fetchHistory()` (Network round-trip to database to refresh the UI).
+The user is redirected immediately, but the UI component only updates once the DB reflects the new record, leading to perceived latency.
+
+## 2. Proposed Solution: Optimistic UI ("Ghost Card")
+We will implement an Optimistic UI strategy where the `history/page.tsx` reads `SS_PENDING_POST` immediately on mount and renders a temporary "ghost" card while waiting for the background processes to complete and the official list to refresh.
+
+### Technical Implementation Steps
+1.  **State Management:**
+    *   Introduce `pendingPost` state initialized from `localStorage`.
+    *   If `pendingPost` exists, add a `pending` visual state indicator (e.g., loading spinner on card) to the list.
+2.  **Immediate UI Rendering:**
+    *   Modify `history/page.tsx` to include `pendingPost` data in the `posts` array immediately, marked with a custom flag `isOptimistic: true`.
+3.  **Synchronization:**
+    *   Keep the existing `fetchHistory()` logic.
+    *   Once `fetchHistory()` completes, merge results and remove the `isOptimistic` entry if it matches the newly fetched post.
+4.  **Error Handling (Sentry):**
+    *   If `distributeToPlatforms` fails, catch the error, update the UI to show a "Retry" or "Failed" state for the specific post, and clear/retain `SS_PENDING_POST` based on recovery policy.
+
+## 3. Production Readiness
+*   **Logging:** Add Sentry breadcrumbs around `localStorage` retrieval and optimistic render state.
+*   **Performance:** No overhead; using existing `localStorage` data.
+*   **Security:** Validate JSON payload from `localStorage` using Zod.
+
+## 4. Expected Output for Dev Agent
+1.  `npx tsc --noEmit` success.
+2.  `npm run build` success.
+3.  Playwright test verifying "Ghost Card" visibility in the history list within 500ms of navigation.
+4.  No console errors or hydration mismatches.
+
+---
+`last_agent`: "discovery-agent"
+`ticket_goal`: "Implement Optimistic UI in Activity Hub"
+`ticket_id`: "N/A (Performance Improvement)"
+
+`discovery-agent`: {
+    "verdict": "FEASIBLE",
+    "notes": "Optimistic UI is the standard pattern here. Relying on localStorage as a temporary cache ensures immediate feedback."
 }

@@ -22,6 +22,7 @@ import { useUploadStatus } from '@/hooks/useUploadStatus';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { AITier, StyleMode } from '@/lib/core/constants';
 import styles from './history.module.css';
+import { z } from 'zod';
 
 import HistoryIcon from '@mui/icons-material/History';
 import YouTubeIcon from '@mui/icons-material/YouTube';
@@ -35,6 +36,16 @@ import StopIcon from '@mui/icons-material/Stop';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+
+const PendingPostSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  videoFormat: z.string(),
+  platforms: z.array(z.object({
+    platform: z.string(),
+    accountId: z.string().nullable(),
+  })),
+});
 
 interface PlatformResult {
   id: string;
@@ -107,6 +118,7 @@ interface CockpitPost {
 
 function HistoryContent() {
   const [posts, setPosts] = useState<PostHistoryEntry[]>([]);
+  const [pendingPost, setPendingPost] = useState<CockpitPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -119,6 +131,25 @@ function HistoryContent() {
   const searchParams = useSearchParams();
   const stagingStatus = useUploadStatus();
   
+  useEffect(() => {
+    const raw = localStorage.getItem('SS_PENDING_POST');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const result = PendingPostSchema.safeParse(parsed);
+        if (result.success) {
+          setPendingPost(parsed as CockpitPost);
+        } else {
+          console.error("Invalid pending post format", result.error);
+          localStorage.removeItem('SS_PENDING_POST');
+        }
+      } catch (e) {
+        console.error("Failed to parse pending post", e);
+        localStorage.removeItem('SS_PENDING_POST');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const urlSearch = searchParams.get('search');
     if (urlSearch) {
@@ -184,6 +215,7 @@ function HistoryContent() {
       localStorage.removeItem('SS_PENDING_POST');
       const data = await fetchHistory();
       setPosts(data.data || []);
+      setPendingPost(null);
       setTimeout(() => {
         setActiveResumingId(null);
         // Clear URL param
@@ -665,6 +697,25 @@ function HistoryContent() {
         onChange={setSearchQuery}
         placeholder="Search history by title or description..."
       />
+
+      {/* OPTIMISTIC POST */}
+      {pendingPost && (
+        <div className={styles.timeline}>
+          <div className={styles.postCard}>
+            <div className={styles.timelineDot} />
+            <GlassCard className={`${styles.cardInner} ${styles.activePost}`} style={{ opacity: 0.8 }}>
+              <div className={styles.cardHeader} style={{ paddingTop: '1.75rem' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className={styles.postTitle}>
+                    <span className={`${styles.processingDot} animate-pulse`} />
+                    {pendingPost.title} (Initializing...)
+                  </h3>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <GlassCard>

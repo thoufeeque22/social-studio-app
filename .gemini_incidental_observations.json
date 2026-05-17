@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "category": "meta",
+    "severity": "LOW",
+    "description": "Activity Hub UI latency due to sequential DB fetch after post.",
+    "suggestion": "Implement Optimistic UI using local storage state as a ghost card."
+  }
+]

@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Activity Hub: Upload Preparation Bar', () => {
+  // Use existing auth state for all tests
+  test.use({ storageState: '.auth/user.json' });
+
   test.beforeEach(async ({ page }) => {
     // Mock the API response to include an active post
     await page.route('**/api/history*', async (route) => {
@@ -87,5 +90,35 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
 
     // Now the UI should reflect this (bar gone)
     await expect(postCard.getByTestId('preparation-bar')).not.toBeVisible();
+  });
+
+  test('Optimistic UI: Shows ghost card immediately', async ({ page }) => {
+    // 1. Mock empty history to ensure only optimistic shows
+    await page.route('**/api/history*', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ data: [] })
+        });
+      });
+
+    // 2. Navigate first to ensure origin is set, then inject
+    await page.goto('/history');
+
+    // 3. Inject pending post
+    await page.evaluate(() => {
+      localStorage.setItem('SS_PENDING_POST', JSON.stringify({
+        title: 'Optimistic Video',
+        videoFormat: 'short',
+        platforms: [{ platform: 'youtube', accountId: '1' }]
+      }));
+    });
+
+    await page.reload();
+
+    // 4. Verify optimistic card
+    const ghostCard = page.getByText('Optimistic Video (Initializing...)');
+    await expect(ghostCard).toBeVisible();
+    await page.screenshot({ path: 'verification/optimistic-ghost-card.png', fullPage: true });
   });
 });
