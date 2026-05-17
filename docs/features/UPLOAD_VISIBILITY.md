@@ -34,7 +34,10 @@ sequenceDiagram
 ### 1. Immediate Dashboard Redirect & Optimistic Ghost Card
 To optimize "human-centric" design, the Dashboard no longer holds the user hostage during the staging phase. 
 - **Redirect**: Once "Post Video" or "Confirm AI Strategy" is clicked, the user is immediately redirected to the Activity Hub.
-- **Ghost Card**: Since the database record might take a few hundred milliseconds to propagate, an **Optimistic Ghost Card** is injected into the Activity Hub's local state. This ensures the user sees their post *instantly* upon redirection, avoiding a "Missing Data" or empty state. The Ghost Card transitions into a standard history card once the real data arrives.
+- **Ghost Card**: Since the database record might take a few hundred milliseconds to propagate, an **Optimistic Ghost Card** is injected into the Activity Hub's local state. 
+- **Persistence & Reconciliation**: The Ghost Card is designed to persist even across multiple polling cycles. It only disappears once a real database record with a matching `historyId` is confirmed in the fetched list.
+- **Fuzzy Matching Fallback**: In cases where IDs might temporarily mismatch due to synchronization delays, the system uses "Fuzzy Matching" (comparing title and creation timestamp) to reconcile the Ghost Card with the incoming database record, ensuring a seamless visual transition.
+- **Visual Continuity**: This ensures the user sees their post *instantly* upon redirection, avoiding a "Missing Data" or empty state. The Ghost Card transitions into a standard history card once the real data arrives.
 
 ### 2. Cross-Tab Abort Signaling
 If a user has multiple tabs open:

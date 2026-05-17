@@ -18,13 +18,15 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 3. Select at least one platform.
 4. Click **Launch** or **Post Video**.
 5. **Observe:** The browser should redirect to the **Activity Hub** (/history) *immediately*.
+6. **Simulate Delay:** In the Network tab of DevTools, set "Throttling" to "Slow 3G" right after the redirect to simulate a slow database fetch for the history list.
 
 ### Expected Results
 - Immediate redirect to `/history`.
 - **Optimistic UI:** A "Ghost Card" (skeleton/placeholder) appears at the top of the timeline *before* the real history record is fetched.
+- **Persistence:** Even if the history list fetch takes several seconds (due to throttling), the Ghost Card MUST persist and continue showing real-time progress from `localStorage`. It should not flicker or disappear between polling cycles.
 - A "Processing Dot" (pulsing blue/primary) is visible on this Ghost Card.
 - The card displays "Synchronizing cockpit state..." or "🚀 Resuming stream: X%".
-- After 1-2 seconds, the Ghost Card should seamlessly transition into the real History Card (no jump or flicker).
+- Once the history fetch completes, the Ghost Card should seamlessly transition into the real History Card (reconciled by ID or fuzzy matching).
 - No floating HUD is visible on the Dashboard or Activity Hub.
 
 ---
