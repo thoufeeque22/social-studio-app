@@ -48,7 +48,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 8: Individual Platform Progress Bars
+## Test Case 3: Individual Platform Progress Bars
 
 ### Steps
 1. Navigate to the **Dashboard** and select multiple platforms (e.g., YouTube and Local Dev).
@@ -64,7 +64,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 3: Distribution Phase Transitions & Granular Control
+## Test Case 4: Distribution Phase Transitions & Granular Control
 
 ### Steps
 1. Wait for the Staging phase to complete.
@@ -79,7 +79,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 4: Global Abort (Cross-Tab)
+## Test Case 5: Global Abort (Cross-Tab)
 
 ### Steps
 1. Open **Tab A** on the Dashboard and start a medium upload.
@@ -95,7 +95,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 5: Navigation Persistence
+## Test Case 6: Navigation Persistence
 
 ### Steps
 1. Start an upload on the **Dashboard** and wait for the redirect to **Activity Hub**.
@@ -108,7 +108,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 6: Post-Upload Cleanup
+## Test Case 7: Post-Upload Cleanup
 
 ### Steps
 1. Allow an upload to finish completely (all distribution phases succeed).
