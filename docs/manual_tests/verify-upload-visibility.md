@@ -32,19 +32,33 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 2: Optimistic Individual Platform Cancellation
+## Test Case 2: Optimistic Individual Platform Cancellation (Instant Feedback)
 
 ### Steps
 1. Follow Steps 1-4 from Test Case 1.
-2. While the **Ghost Card** is visible (and before the real record arrives), identify the platform pills.
+2. While the **Ghost Card** is visible (and before the real record arrives), identify the platform pills showing "In Queue".
 3. Click the "X" or cancellation icon on one of the platform pills (e.g., YouTube).
-4. **Observe:** The pill should immediately update to a "Cancelled" state or disappear (depending on UI config), and the status should remain "Active" for other platforms.
+4. **Observe:** The pill should update to a "Stopped" state *immediately* (within < 100ms).
 5. Wait for the real record to arrive (remove throttling if necessary).
 
 ### Expected Results
-- The individual platform cancellation should be reflected immediately on the Ghost Card.
-- Once the real record arrives, it MUST respect the cancellation (the platform should show as "Cancelled" or be absent from the active list).
-- This verifies that `cancelPlatformByPostAction` correctly handled the pre-emptive cancellation.
+- The individual platform cancellation MUST be reflected **instantly** on the Ghost Card without waiting for a database poll.
+- Once the real record arrives, it MUST respect the cancellation (the platform should show as "Stopped").
+- This verifies that `cancelledIds` state and `cancelPlatformByPostAction` are working in tandem.
+
+---
+
+## Test Case 7: UI Layering & Click Response
+
+### Steps
+1. Start an upload and wait for the "Initializing..." progress bar to appear on the card.
+2. While the progress bar is active and animated, attempt to click the **STOP ALL** button.
+3. Hover over the platform pills and the button.
+
+### Expected Results
+- Hover effects (opacity/color change) MUST work correctly, indicating the elements are on top of the progress bar.
+- Clicking the button MUST trigger the cancellation flow immediately.
+- The progress bar should not "swallow" or block the click event.
 
 ---
 

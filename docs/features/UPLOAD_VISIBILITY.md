@@ -50,10 +50,16 @@ To optimize "human-centric" design, the Dashboard no longer holds the user hosta
 ### 2. Multi-Level Cancellation (Global & Granular)
 The system provides total control over the upload process even after redirection.
 - **STOP ALL Button**: Appears on the Ghost Card and the active History Card. Clicking this sends a global abort signal via `localStorage` (SS_STAGING_STATUS), terminating all local staging and all scheduled platform distributions for that specific post. It also invokes `cancelAllUploadsAction` on the server.
+- **Optimistic State Management**: To ensure maximum responsiveness, the UI uses a local `cancelledIds` state. Clicking "Stop" or "Stop All" immediately marks the platforms as **"Stopped"** in the UI, providing instant visual feedback while the background server action and abort signal processing complete.
 - **Individual Platform Cancellation**: Each platform pill in an active card has a stop icon. 
 - **Optimistic Individual Cancellation**: If a user cancels a platform on a Ghost Card, the system uses `cancelPlatformByPostAction`. This identifies the platform by name and history ID, ensuring the cancellation is recorded even if the client hasn't received the full record ID yet.
 
-### 3. Cross-Tab Abort Signaling
+### 3. UI Layering & Responsiveness
+A critical fix was implemented to ensure the "Initializing" progress bar does not block user interactions.
+- **Z-Index Management**: The `globalPrepBar` and `globalPrepText` are assigned a strictly controlled `z-index` to ensure that the header buttons (STOP ALL, Manual Resume) and platform pills remain on the top-most layer and are always clickable, even while animations are active.
+- **Immediate Haptic Feedback**: All buttons use the `cancelledIds` state to provide "light speed" feedback, making the application feel alive and responsive.
+...
+### 4. Cross-Tab Abort Signaling
 If a user has multiple tabs open:
 - Clicking **STOP ALL** in the Activity Hub tab writes an `active: false` signal to `localStorage` for that specific `historyId`.
 - The background upload process (which might be running in the original Dashboard tab or a worker) polls this signal and terminates immediately.

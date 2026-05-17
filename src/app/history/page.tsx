@@ -443,9 +443,11 @@ function HistoryContent() {
 
     // Optimistically mark all platforms for this post as cancelled
     const targetPost = posts.find(p => p.id === historyId);
+    const isGhostMatch = pendingPost && (pendingPost.resumeHistoryId === historyId || pendingPost.historyId === historyId || historyId === 'optimistic-pending');
+
     if (targetPost) {
         setCancelledIds(prev => [...prev, ...targetPost.platforms.map(p => p.id)]);
-    } else if (historyId === 'optimistic-pending' && pendingPost) {
+    } else if (isGhostMatch && pendingPost) {
         setCancelledIds(prev => [...prev, ...pendingPost.platforms.map((_, i) => `optimistic-p-${i}`)]);
     }
     
