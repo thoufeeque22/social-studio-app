@@ -1,16 +1,10 @@
 {
-  "last_agent": "discovery-agent",
+  "last_agent": "dev-agent",
   "branch_name": "fix/425-upload-visibility",
-  "ticket_goal": "Improve visibility of upload progress.",
-  "ticket_id": "425",
-  "discovery-agent": {
-    "TECHNICAL SPECS": "Refer to docs/features/UPLOAD_HUD.md",
-    "expected_output": {
-      "conditions": [
-        "Synthesis of Advocate/Skeptic perspectives included.",
-        "Production Readiness assessment completed.",
-        "Dependency impact radius verified."
-      ]
-    }
+  "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
+  "ticket_id": 425,
+  "dev-agent": {
+    "modified_files": [],
+    "fixes_applied": []
   }
 }

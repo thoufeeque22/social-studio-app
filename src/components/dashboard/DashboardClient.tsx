@@ -15,6 +15,7 @@ import { Account, PlatformPreference } from '@/lib/core/types';
 import { useDraftFile } from '@/hooks/dashboard/useDraftFile';
 import { usePlatformSelection } from '@/hooks/dashboard/usePlatformSelection';
 import { useDistributionEngine } from '@/hooks/dashboard/useDistributionEngine';
+import { UploadHUD } from '@/components/ui/UploadHUD';
 import StopIcon from '@mui/icons-material/Stop';
 
 interface ReviewContext {
@@ -226,23 +227,6 @@ export default function DashboardClient({
     }
   }, [stagedFileIdParam, setUploadStatus]);
 
-  // Broadcast status for Cross-Tab HUD sync
-  useEffect(() => {
-    if (isUploading && uploadStatus && globalThis.localStorage) {
-      localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-        status: uploadStatus,
-        timestamp: Date.now(),
-        active: true
-      }));
-    } else if (!isUploading && globalThis.localStorage) {
-       // Only remove if it was us who put it there
-       const staging = localStorage.getItem('SS_STAGING_STATUS');
-       if (staging && !JSON.parse(staging).status.includes('Chunk')) {
-         localStorage.removeItem('SS_STAGING_STATUS');
-       }
-    }
-  }, [isUploading, uploadStatus]);
-
   // 4. HANDLERS: Orchestrating the flows
   const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
     try {
@@ -423,10 +407,9 @@ export default function DashboardClient({
     setUploadStatus(` Selected: ${fileName}`);
   };
 
-  const showHUD = isUploading && uploadStatus && (typeof uploadStatus === 'string' ? !uploadStatus.includes('Complete') : true);
-
   return (
     <>
+      <UploadHUD onStop={handleAbortAll} />
       <div className="fade-in">
         <DashboardHeader session={session} />
         <div className="responsive-grid">
@@ -481,54 +464,6 @@ export default function DashboardClient({
           <SidebarInfo />
         </div>
       </div>
-
-      {showHUD && (
-        <div style={{
-          position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-          width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)', border: '1px solid hsla(var(--primary) / 0.5)', 
-          borderRadius: '1.5rem', padding: '1.25rem 1.5rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 20px hsla(var(--primary) / 0.2)', 
-          animation: 'slideUpHUD 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
-            <div className="animate-pulse" style={{ 
-              width: '14px', height: '14px', borderRadius: '50%', 
-              background: 'hsl(var(--primary))', boxShadow: '0 0 12px hsl(var(--primary))' 
-            }} />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>Current Progress</span>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadStatus}</div>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            aria-label="Stop all active uploads"
-            onClick={handleAbortAll} 
-            style={{ 
-              background: '#EF4444', color: 'white', border: 'none', 
-              padding: '0.75rem 1.5rem', borderRadius: '1rem', 
-              fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <StopIcon sx={{ fontSize: 18 }} /> STOP ALL
-          </button>
-        </div>
-      )}
-
-      <style jsx global>{`
-        @keyframes slideUpHUD {
-          from { transform: translate(-50%, 150%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-      `}</style>
     </>
   );
 }

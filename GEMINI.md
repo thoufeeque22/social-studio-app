@@ -48,6 +48,19 @@
   2. Batch fixes (max 5-10 errors per turn).
   3. Prioritize by severity and file.
 - **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. This hook now includes `tsc --noEmit` AND `npm run build`. If it fails, fix the errors and re-run until it passes. All code changes MUST pass a full type check and a production build.
+- **Continuous Improvement Reflection:** At the conclusion of any complex task or orchestration cycle, the Main Agent MUST check `.gemini_incidental_observations.json` for entries with `category: "meta"`. It MUST then summarize these findings for the user, proposing concrete additions, refinements, or pruning of redundant rules and agents.
+
+# Meta-Orchestration & Continuous Improvement
+
+This system is designed to evolve. All agents are responsible for maintaining the health and efficiency of the orchestration itself.
+
+- **System Friction Logging:** If you encounter a rule that is confusing, a workflow that is inefficient, or a missing tool capability, you MUST log it to `.gemini_incidental_observations.json` with `category: "meta"`.
+- **Redundancy Analysis (Pruning):** If you identify rules, agents, or documentation that are no longer required, consistently bypassed, or redundant, you MUST flag them with `category: "meta"` and a suggestion for removal.
+- **Incidental Observation Schema:** All entries in `.gemini_incidental_observations.json` MUST now include:
+  - `category`: "bug", "meta", or "security".
+  - `severity`: "LOW", "MED", "HIGH", or "CRITICAL".
+  - `description`: A clear, concise explanation of the observation.
+  - `suggestion`: (Optional) A proposed fix or optimization.
 
 # Agent Specific Workflows
 
@@ -68,7 +81,7 @@
   3. Dependency impact radius verification.
 If the task is feasible and required, assign to `dev-agent`.
 - **Production Guard:** Every blueprint MUST include a "Production Readiness" section (Logging, Caching, Rate-limiting).
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH/CRITICAL).
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 - **Constraints:** Never modify source code. Stick to blueprints. English only. PLN/ISO units.
 
 ## Development (Implementation)
@@ -120,7 +133,7 @@ Append to `modified_files` (unique list) and `fixes_applied` (running history) i
   2. Adherence to `docs/` and API contracts.
   3. No security vulnerabilities found in diff.
 You MUST commit any review artifacts before assigning. If issues found, assign to `dev-agent`. If PASS, assign to `qa-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## QA (E2E Test Automation)
 - **Role:** Automation Writer & Execution Engineer. Design scenarios, write Playwright tests, and execute them.
@@ -150,7 +163,7 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
   4. Isolated mock data/seeding logic implemented and verified.
   5. Zero Network (4xx/5xx) or Hydration errors observed.
 You MUST commit all test changes before assigning to the next agent. If tests fail, assign to `dev-agent`. If tests pass, assign to `doc-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## Documentation (Living Source of Truth)
 - **Role:** Tech Writer & Architect. Maintain docs and diagrams.
@@ -158,14 +171,15 @@ You MUST commit all test changes before assigning to the next agent. If tests fa
   - Artifacts: Update `docs/` (Architecture, API specs, Features).
   - Manual Tests: Generate Markdown in `docs/manual_tests/` with prerequisites, steps, and expected results for UAT.
   - Visuals: Use Mermaid.js for complex flows/OAuth.
-  - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
-- **Constraints:** Documentation MUST match code reality. Never modify source code.
+  - **PR Management:** Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
+  - **System Optimization:** When processing incidental observations, you MUST specifically analyze entries with `category: "meta"`. You are responsible for synthesizing these into proposed updates for `GEMINI.md` or `AGENTS.md`. Proactively suggest **pruning** redundant rules, merging overlapping agents, or removing obsolete documentation to maintain a lean system.
+  - **Constraints:** Documentation MUST match code reality. Never modify source code.
 - `handoff`: Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. You MUST include an `expected_output` block confirming:
   1. Documentation/Diagrams accurately reflect implementation.
   2. Manual test cases verified for clarity.
   3. Pull Request created and linked to issue.
 You MUST commit all documentation and manual test changes before assigning to `project-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## Project Agent (Management & Tracking)
 - **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.

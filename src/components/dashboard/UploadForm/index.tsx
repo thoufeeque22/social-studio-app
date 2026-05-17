@@ -11,6 +11,8 @@ import { SchedulingSelector } from './SchedulingSelector';
 import { MediaPicker } from './MediaPicker';
 import { MetadataTemplates } from './MetadataTemplates';
 import { useUploadForm } from '@/hooks/dashboard/useUploadForm';
+import { useUploadStatus } from '@/hooks/useUploadStatus';
+import { Box, LinearProgress, Typography } from '@mui/material';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import YouTubeIcon from '@mui/icons-material/YouTube';
@@ -117,6 +119,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     return Array.from(platformsSet);
   }, [selectedAccountIds, accounts]);
 
+  const { status: currentStatus, percent } = useUploadStatus();
+
   const [showGallery, setShowGallery] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -168,6 +172,32 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             </Link>
           </div>
         </div>
+      )}
+
+      {isUploading && (
+        <Box sx={{ mb: 2, p: 2, borderRadius: 2, background: 'hsla(var(--primary) / 0.05)', border: '1px solid hsla(var(--primary) / 0.1)' }}>
+          <Typography variant="caption" sx={{ color: 'hsl(var(--primary))', fontWeight: 700, mb: 1, display: 'block' }}>
+            {currentStatus || 'Processing...'}
+          </Typography>
+          <LinearProgress 
+            variant={percent !== null ? "determinate" : "indeterminate"} 
+            value={percent || 0} 
+            sx={{ 
+              height: 8, 
+              borderRadius: 4,
+              backgroundColor: 'hsla(var(--primary) / 0.1)',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 4,
+                background: 'linear-gradient(90deg, hsl(var(--primary)), #a855f7)',
+              }
+            }}
+          />
+          {percent !== null && (
+            <Typography variant="caption" sx={{ color: 'hsl(var(--muted-foreground))', mt: 0.5, display: 'block', textAlign: 'right' }}>
+              {Math.round(percent)}%
+            </Typography>
+          )}
+        </Box>
       )}
 
       <form 

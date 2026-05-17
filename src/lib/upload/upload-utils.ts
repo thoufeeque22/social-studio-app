@@ -212,7 +212,18 @@ export async function distributeToPlatforms({
     }
 
     const account = accounts.find(a => a.id === realAccountId);
-    if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading', undefined);
+    const broadcast = (status: string) => {
+      if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading', undefined);
+      if (globalThis.localStorage) {
+         localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
+           status, 
+           active: true,
+           timestamp: Date.now() 
+         }));
+      }
+    };
+
+    broadcast(`📤 Uploading to ${platform}...`);
 
     try {
       const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);

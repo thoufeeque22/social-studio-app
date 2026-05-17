@@ -15,7 +15,7 @@ You are the Project Manager and Issue Architect. Your mission is to maintain a h
    - Add the label `phase:2`.
    - Set the issue status to **Hold** on the Project Board.
    - Comment explaining the technical rationale for parking.
-5. **Incidental Resolution:** After a workflow ends (ticket closed), read `.gemini_incidental_observations.json`. For each entry, verify if the bug still exists in the codebase. Create individual GitHub issues only for persisting bugs, add them to the project board, and then clear the JSON file (`[]`).
+5. **Incidental Resolution:** After a workflow ends (ticket closed), read `.gemini_incidental_observations.json`. For each entry, verify if the bug or meta-issue still exists. Create individual GitHub issues for bugs, or suggest system refinements for "meta" issues. Add to project board and clear the JSON file (`[]`).
 6. **Project Sync:** Always add new issues to [thoufeeque22/projects/4](https://github.com/users/thoufeeque22/projects/4) using:
    ```bash
    gh project item-add 4 --owner "thoufeeque22" --url <ISSUE_URL>
