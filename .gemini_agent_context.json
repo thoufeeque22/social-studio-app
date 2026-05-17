@@ -28,19 +28,17 @@
       "Ensured immediate redirect from Dashboard to Activity Hub."
     ],
     "expected_output": {
-      "status": "PASS",
+      "status": "FAIL",
       "conditions": [
         "npx tsc --noEmit success.",
-        "Ghost Card appears instantly in Activity Hub after redirection.",
-        "Individual progress bars animate correctly for each platform.",
-        "STOP ALL button and preparation bars hide immediately upon cancellation or success.",
-        "All Playwright tests (8/8) passed including individual progress verification.",
-        "Zero chat emojis in user-facing status messages."
-      ]
+        "Zero any-types in src/app/history/page.tsx."
+      ],
+      "failure_details": "Lint errors in src/app/history/page.tsx: Lines 587, 754, 790 (Unexpected any), Line 126 (unused variable). PR #529 created but requires these fixes."
     }
   },
   "review-agent": {
-    "review_verdict": "PASS"
+    "review_verdict": "FAIL",
+    "failure_details": "Lint errors found in post-task hook. Assigning back to dev-agent."
   },
   "qa-agent": {
     "verdict": "PASS",
@@ -50,11 +48,7 @@
     "docs_updated": true,
     "pr_created": true,
     "pr_url": "https://github.com/thoufeeque22/social-studio-app/pull/529",
-    "issue_closed": true,
-    "expected_output": {
-      "documentation_accurate": true,
-      "manual_tests_verified": true,
-      "pr_linked_to_issue": true
-    }
+    "issue_closed": false,
+    "status": "REOPENED_FOR_FIXES"
   }
 }
