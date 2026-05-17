@@ -1,5 +1,5 @@
 {
-  "last_agent": "qa-agent",
+  "last_agent": "doc-agent",
   "branch_name": "fix/425-upload-visibility",
   "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
   "ticket_id": 425,
@@ -45,5 +45,16 @@
   "qa-agent": {
     "verdict": "PASS",
     "details": "Verified Ghost Card persistence, individual platform progress bars, STOP ALL functionality, and automatic end-state cleanup. All 8 tests in upload-visibility.spec.ts passed."
+  },
+  "doc-agent": {
+    "docs_updated": true,
+    "pr_created": true,
+    "pr_url": "https://github.com/thoufeeque22/social-studio-app/pull/529",
+    "issue_closed": true,
+    "expected_output": {
+      "documentation_accurate": true,
+      "manual_tests_verified": true,
+      "pr_linked_to_issue": true
+    }
   }
 }
