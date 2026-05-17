@@ -53,6 +53,7 @@
 
 ## Discovery (Architecture & Planning)
 - **Role:** Read-only consultant. Create blueprints and risk assessments.
+- **Self-Critique & Roadmap Alignment:** You MUST act as your own critic. Analyze the `docs/` directory to understand the project's existing architecture and long-term roadmap before deciding if a feature or bug fix should be implemented in the current phase or deferred to a later one.
 - **Discovery Brainstorming (Dual-Agent Protocol):**
   - **Trigger:** For **New Features** or **Core Refactors**, the **Main Agent** MUST invoke two distinct discovery sessions.
   - **Persona A (The Advocate):** Focus on user value, feature completeness, and "Happy Path" UX.
@@ -130,7 +131,7 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
     - Screenshots MUST be output to a `verification/` folder at the root directory (e.g., `verification/feature-name-state.png`).
     - Automated tests alone cannot verify aesthetic/contrast legibility; the generation of these visual artifacts is mandatory for the Main Agent's final review.
   - **Exhaustive Scenarios:** QA MUST identify and implement tests for every possible user scenario, including happy paths, deep edge cases (e.g., slow networks, large payloads), and exhaustive negative testing (e.g., unauthorized access, invalid inputs, 500 errors).
-  - **Mock Data Management:** QA MUST create and manage all necessary mock data or seeding scripts required for E2E tests. Data MUST be clean, isolated, and representative of production (PLN, Metric, English).
+  - **Mock Data Management:** QA MUST create and manage all necessary mock data or seeding scripts required for E2E tests. You MUST ensure comprehensive mock data coverage for every scenario, including happy paths, deep edge cases, and negative testing. Data MUST be clean, isolated, and representative of production (PLN, Metric, English).
   - **E2E Focus:** Focus exclusively on E2E/Playwright tests. Unit and integration tests are handled by the `dev-agent`.
   - **Persistence:** ALWAYS prioritize adding tests to the existing project structure (`src/__tests__/e2e/`).
   - **No Standalone Scripts:** NEVER create standalone verification scripts in `scripts/` or elsewhere. All automated validation MUST live within the established test frameworks (Playwright).
