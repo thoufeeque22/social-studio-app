@@ -50,6 +50,22 @@ function sanitizeMetadata(platform: string, title: string, desc: string) {
 }
 
 /**
+ * HELPER: Check if a global abort has been requested via localStorage
+ */
+function checkGlobalAbort(historyId?: string): boolean {
+  if (typeof window === 'undefined' || !window.localStorage || !historyId) return false;
+  const raw = localStorage.getItem('SS_STAGING_STATUS');
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    // If the record exists for this ID but is marked inactive, it's an abort signal
+    return parsed.historyId === historyId && parsed.active === false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * PHASE ONE: Staging via Chunking (Zero-Memory Crash)
  */
 export async function stageVideoFile({
@@ -72,17 +88,20 @@ export async function stageVideoFile({
   
   const broadcast = (status: string, percent?: number) => {
     onStatusUpdate(status);
-    if (globalThis.localStorage) {
-       localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
+    if (typeof window !== 'undefined' && window.localStorage) {
+       window.localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
          status, 
          percent, 
          active: true,
-         timestamp: Date.now() 
+         timestamp: Date.now(),
+         historyId: uploadId
        }));
     }
   };
 
-  broadcast(" Synchronizing cockpit state...");
+  if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
+
+  broadcast("Synchronizing cockpit state...");
   let existingChunks: number[] = [];
   try {
     const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });
@@ -96,9 +115,11 @@ export async function stageVideoFile({
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   
   for (let i = 0; i < totalChunks; i++) {
+    if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
+
     if (existingChunks.includes(i)) {
       const progress = Math.round(((i + 1) / totalChunks) * 100);
-      broadcast(`🚀 Resuming stream: ${progress}%`, progress);
+      broadcast(`Resuming stream: ${progress}%`, progress);
       continue;
     }
     
@@ -107,10 +128,12 @@ export async function stageVideoFile({
     const chunk = file.slice(start, end);
 
     const progress = Math.round((i / totalChunks) * 100);
-    broadcast(`📤 Streaming to Cloud: ${progress}%`, progress);
+    broadcast(`Streaming to Cloud: ${progress}%`, progress);
 
     let success = false;
     for (let retry = 0; retry < 3; retry++) {
+      if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
+
       try {
         const chunkResponse = await fetch(`/api/upload/chunk`, {
           method: 'POST',
@@ -132,7 +155,9 @@ export async function stageVideoFile({
     if (!success) throw new Error(`Stream interrupted at ${progress}%. Please check your connection.`);
   }
 
-  broadcast("🔗 Finalizing for launch...", 99);
+  if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
+
+  broadcast("Finalizing for launch...", 99);
   const assembleResponse = await fetch(`/api/upload/assemble`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -152,8 +177,8 @@ export async function stageVideoFile({
   if (!assembleResponse.ok) throw new Error(stageResult.error || "Assembly failed");
 
   // Cleanup broadcast on success
-  if (globalThis.localStorage) {
-    localStorage.removeItem('SS_STAGING_STATUS');
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.removeItem('SS_STAGING_STATUS');
   }
 
   return { 
@@ -197,6 +222,8 @@ export async function distributeToPlatforms({
     let platform: string;
     let realAccountId: string;
 
+    if (checkGlobalAbort(historyId)) return;
+
     if (selectionId.includes(':')) {
       [platform, realAccountId] = selectionId.split(':');
     } else if (selectionId.startsWith('local-dev-')) {
@@ -212,7 +239,21 @@ export async function distributeToPlatforms({
     }
 
     const account = accounts.find(a => a.id === realAccountId);
-    if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading', undefined);
+    const broadcast = (status: string) => {
+      if (onPlatformStatus) onPlatformStatus(selectionId, 'uploading', undefined);
+      if (typeof window !== 'undefined' && window.localStorage) {
+         window.localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({ 
+           status, 
+           active: true,
+           timestamp: Date.now(),
+           historyId: historyId
+         }));
+      }
+    };
+
+    if (checkGlobalAbort(historyId)) return;
+
+    broadcast(`Uploading to Platforms...`);
 
     try {
       const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);
@@ -294,7 +335,7 @@ export async function distributeToPlatforms({
         videoId?: string; 
         creationId?: string 
       };
-      const isAborted = error.name === 'AbortError' || error.message === 'The user aborted a request.';
+      const isAborted = error.name === 'AbortError' || error.message === 'The user aborted a request.' || checkGlobalAbort(historyId);
       const platformResult: PlatformUploadResult = {
         accountId: selectionId,
         platform,
@@ -318,6 +359,7 @@ export async function distributeToPlatforms({
   for (let i = 0; i < activeConcurrency; i++) {
     workers.push((async () => {
       while (true) {
+        if (checkGlobalAbort(historyId)) break;
         const id = queue.shift();
         if (!id) break;
         await processOne(id);
@@ -326,6 +368,23 @@ export async function distributeToPlatforms({
   }
 
   await Promise.all(workers);
+
+  // Clear the staging status signal so the UI knows we're done with preparation/distribution
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const current = localStorage.getItem('SS_STAGING_STATUS');
+    if (current) {
+      try {
+        const parsed = JSON.parse(current);
+        // Only clear if it's the same historyId to avoid clearing a newly started upload
+        if (parsed.historyId === historyId) {
+          localStorage.removeItem('SS_STAGING_STATUS');
+        }
+      } catch {
+        localStorage.removeItem('SS_STAGING_STATUS');
+      }
+    }
+  }
+
   return { platformResults };
 }
 

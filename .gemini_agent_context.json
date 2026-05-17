@@ -1,35 +1,53 @@
 {
-  "last_agent": "doc-agent",
-  "branch_name": "392-developer-analytics",
-  "ticket_goal": "Implement platform usage statistics for the admin/developer dashboard to monitor feature usage, success rates, and API consumption.",
-  "ticket_id": "392",
-  "doc-agent": {
-    "docs_updated": true,
-    "pr_created": "https://github.com/thoufeeque22/social-studio-app/pull/528",
+  "last_agent": "dev-agent",
+  "branch_name": "fix/425-upload-visibility",
+  "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
+  "ticket_id": 425,
+  "dev-agent": {
+    "modified_files": [
+      "src/app/history/page.tsx",
+      "src/__tests__/e2e/upload-visibility.spec.ts",
+      "src/app/actions/history.ts",
+      "src/hooks/useUploadStatus.ts",
+      "src/components/dashboard/DashboardClient.tsx",
+      "src/lib/upload/upload-utils.ts",
+      "src/app/history/history.module.css",
+      "docs/features/UPLOAD_VISIBILITY.md",
+      "docs/manual_tests/verify-upload-visibility.md"
+    ],
+    "fixes_applied": [
+      "Implemented Optimistic UI (Ghost Card) in Activity Hub for instant feedback.",
+      "Fixed reconciliation logic to ensure Ghost Card persists until DB record is confirmed in the list.",
+      "Enabled STOP ALL and individual platform cancellation on the optimistic Ghost Card.",
+      "Fixed 'Upload result not found' error by implementing cancelPlatformByPostAction for optimistic platform cancellation.",
+      "Implemented individual platform progress bars with animated background fills and percentage indicators.",
+      "Resolved UI unresponsiveness by fixing CSS z-index overlap on progress bars.",
+      "Implemented immediate visual feedback for cancellation using local 'cancelledIds' state.",
+      "Ensured automatic cleanup of active indicators (bars, dots) after successful upload or stop.",
+      "Generalized status messages and removed all chat emojis to comply with project standards.",
+      "Resolved Zero-Any Policy violations and linting errors in src/app/history/page.tsx."
+    ],
     "expected_output": {
       "status": "PASS",
       "conditions": [
-        "Documentation and diagrams updated.",
-        "Manual test cases added.",
-        "Pull Request created and linked to issue 392."
+        "npx tsc --noEmit success.",
+        "npm run build success.",
+        "npm run lint clean (0 errors).",
+        "Ghost Card appears instantly and persists correctly.",
+        "All cancellation flows provide instant feedback and clean up UI indicators.",
+        "All Playwright tests (8/8) pass."
       ]
     }
-  },
-  "qa-agent": {
-    "qa_verdict": "PASS"
   },
   "review-agent": {
     "review_verdict": "PASS"
   },
-  "dev-agent": {
-    "fixes_applied": [
-      "Added Role enum and SystemMetric model to Prisma schema.",
-      "Implemented RBAC in middleware.",
-      "Created async telemetry utility.",
-      "Implemented analytics dashboard UI."
-    ]
+  "qa-agent": {
+    "verdict": "PASS"
   },
-  "discovery-agent": {
-    "VERDICT": "NECESSARY"
+  "doc-agent": {
+    "docs_updated": true,
+    "pr_created": true,
+    "pr_url": "https://github.com/thoufeeque22/social-studio-app/pull/529"
   }
 }

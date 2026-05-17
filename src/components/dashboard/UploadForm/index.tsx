@@ -27,7 +27,6 @@ import { Account, PlatformPreference } from '@/lib/core/types';
 
 export interface UploadFormProps {
   isUploading: boolean;
-  uploadStatus: React.ReactNode;
   accounts: Account[];
   preferences: PlatformPreference[];
   selectedAccountIds: string[];
@@ -46,7 +45,6 @@ export interface UploadFormProps {
   isScheduled: boolean;
   scheduledAt: string;
   onSchedulingChange: (isScheduled: boolean, date: string) => void;
-  isComplete: boolean;
   customStyleText: string;
   onCustomStyleChange: (text: string) => void;
   hasCachedPreviews?: boolean;
@@ -55,7 +53,6 @@ export interface UploadFormProps {
 
 export const UploadForm: React.FC<UploadFormProps> = ({
   isUploading,
-  uploadStatus,
   accounts,
   preferences,
   selectedAccountIds,
@@ -74,7 +71,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   isScheduled,
   scheduledAt,
   onSchedulingChange,
-  isComplete,
   customStyleText,
   onCustomStyleChange,
   hasCachedPreviews,
@@ -129,47 +125,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     <GlassCard id="create-post-section" style={{ padding: '2rem' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload & Automate</h2>
       
-      {uploadStatus && isComplete && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1rem',
-            borderRadius: '0.75rem',
-            background: 'hsla(var(--primary) / 0.1)',
-            border: '1px solid hsla(var(--primary) / 0.3)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--foreground))', margin: 0 }}>
-              <AutoAwesomeIcon sx={{ fontSize: 18, color: 'hsl(var(--primary))' }} />
-              <div style={{ fontWeight: 600 }}>{uploadStatus}</div>
-            </div>
-            <Link 
-              href="/history" 
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ 
-                background: 'hsl(var(--primary))', 
-                color: 'white', 
-                padding: '4px 12px', 
-                borderRadius: '99px', 
-                fontSize: '0.75rem', 
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                textDecoration: 'none',
-                transition: 'transform 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              View History <span>→</span>
-            </Link>
-          </div>
-        </div>
-      )}
-
       <form 
         aria-label="Upload Form"
         onSubmit={handleSubmit} 
@@ -484,7 +439,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
             }}
           >
             {isUploading ? <UploadIcon className="animate-pulse" /> : (aiTier !== 'Manual' ? (hasCachedPreviews ? <RefreshIcon /> : <AutoAwesomeIcon />) : <RocketLaunchIcon />)}
-            {isUploading ? 'Processing...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? 'Regenerate Strategy' : 'Review AI Strategy') : 'Post Video')}
+            {isUploading ? 'Launching...' : (aiTier !== 'Manual' ? (hasCachedPreviews ? 'Regenerate Strategy' : 'Review AI Strategy') : 'Post Video')}
           </button>
         </div>
 

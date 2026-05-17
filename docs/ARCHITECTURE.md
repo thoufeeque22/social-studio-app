@@ -125,22 +125,31 @@ erDiagram
 
 ### 1. Media Upload & Ingestion
 
-Users upload media which is temporarily stored on the server for processing and distribution.
+Users upload media which is temporarily stored on the server for processing and distribution. The system uses a **decentralized observation pattern** where upload utilities broadcast progress to `localStorage`, allowing a persistent `UploadHUD` component to provide real-time feedback across the entire application without complex prop-drilling.
 
 ```mermaid
 sequenceDiagram
     participant U as User (UI)
+    participant HUD as UploadHUD (Component)
+    participant LS as localStorage (SS_STAGING_STATUS)
     participant API as API (/api/upload)
     participant FS as File System (src/tmp)
     participant DB as Database (Prisma)
 
     U->>API: Upload Video Chunk
     API->>FS: Write Chunk
+    API-->>U: Success
+    U->>LS: Broadcast Progress (X%)
+    LS-->>HUD: Sync Progress (500ms poll)
+    HUD->>HUD: Render HUD Visibility
+
     U->>API: Finalize Upload
     API->>FS: Assemble Full File
     API->>DB: Create GalleryAsset Record
     DB-->>API: Asset Saved
     API-->>U: Return stagedFileId
+    U->>LS: Clear Broadcast
+    LS-->>HUD: Hide HUD
 ```
 
 ### 2. Post Distribution (Publishing)

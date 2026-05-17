@@ -83,6 +83,7 @@
   justify-content: center;
   border-bottom: 1px solid hsla(var(--primary) / 0.15);
   overflow: hidden;
+  z-index: 1;
 }
 
 .globalPrepProgress {
@@ -144,6 +145,8 @@
   gap: 0.5rem;
   align-items: center;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .formatBadge {
@@ -598,6 +601,8 @@
   border-radius: 50%;
   margin-right: 12px;
   animation: pulseDot 2s infinite;
+  position: relative;
+  z-index: 10;
 }
 
 .activePost .cardInner {

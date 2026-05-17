@@ -18,9 +18,11 @@ import { stageVideoFile, distributeToPlatforms } from '@/lib/upload/upload-utils
 import { getDraftFile } from '@/lib/upload/file-store';
 import { useAccounts } from '@/hooks/useAccounts';
 import { usePolling } from '@/hooks/usePolling';
+import { useUploadStatus } from '@/hooks/useUploadStatus';
 import { AIWriteResult } from '@/lib/utils/ai-writer';
 import { AITier, StyleMode } from '@/lib/core/constants';
 import styles from './history.module.css';
+import { z } from 'zod';
 
 import HistoryIcon from '@mui/icons-material/History';
 import YouTubeIcon from '@mui/icons-material/YouTube';
@@ -34,6 +36,16 @@ import StopIcon from '@mui/icons-material/Stop';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+
+const PendingPostSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  videoFormat: z.string(),
+  platforms: z.array(z.object({
+    platform: z.string(),
+    accountId: z.string().nullable(),
+  })),
+});
 
 interface PlatformResult {
   id: string;
@@ -55,6 +67,7 @@ interface PostHistoryEntry {
   createdAt: string;
   stagedFileId: string | null;
   platforms: PlatformResult[];
+  isOptimistic?: boolean;
 }
 
 const PLATFORM_META: Record<string, { icon: React.ReactNode; label: string; className: string }> = {
@@ -106,17 +119,53 @@ interface CockpitPost {
 
 function HistoryContent() {
   const [posts, setPosts] = useState<PostHistoryEntry[]>([]);
+  const [pendingPost, setPendingPost] = useState<CockpitPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
-  const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
   const searchParams = useSearchParams();
+  const stagingStatus = useUploadStatus();
   
+  useEffect(() => {
+    const raw = localStorage.getItem('SS_PENDING_POST');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const result = PendingPostSchema.safeParse(parsed);
+        if (result.success) {
+          setPendingPost(parsed as CockpitPost);
+        } else {
+          console.error("Invalid pending post format", result.error);
+          localStorage.removeItem('SS_PENDING_POST');
+        }
+      } catch (e) {
+        console.error("Failed to parse pending post", e);
+        localStorage.removeItem('SS_PENDING_POST');
+      }
+    }
+  }, []);
+
+  // Reconciliation: Clear pendingPost once it appears in the main list
+  useEffect(() => {
+    if (pendingPost && posts.length > 0) {
+      const match = posts.find(p => 
+        p.id === pendingPost.resumeHistoryId || 
+        p.id === pendingPost.historyId ||
+        (p.title === pendingPost.title && Math.abs(new Date(p.createdAt).getTime() - Date.now()) < 60000)
+      );
+      if (match) {
+        setPendingPost(null);
+        localStorage.removeItem('SS_PENDING_POST');
+      }
+    }
+  }, [posts, pendingPost]);
+
   useEffect(() => {
     const urlSearch = searchParams.get('search');
     if (urlSearch) {
@@ -136,7 +185,7 @@ function HistoryContent() {
   }, []);
 
   const executeCockpitDistribution = useCallback(async (stagedFileId: string, fileName: string, historyId: string, post: CockpitPost, reviewedContent?: Record<string, AIWriteResult>) => {
-    setInPlaceStatus(" Launching Mission...");
+    
     
     try {
       if (reviewedContent) {
@@ -160,7 +209,7 @@ function HistoryContent() {
       fd.append('title', post.title || '');
       fd.append('description', post.description || '');
 
-      setInPlaceStatus("️ Distributing to Platforms...");
+      
       await distributeToPlatforms({
         stagedFileId,
         fileName,
@@ -169,7 +218,7 @@ function HistoryContent() {
         selectedAccountIds,
         contentMode: post.contentMode || 'Smart',
         videoFormat: post.videoFormat as "short" | "long",
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         historyId,
         reviewedContent,
         onAccountSuccess: async () => {
@@ -178,8 +227,8 @@ function HistoryContent() {
         }
       });
 
-      setInPlaceStatus(" Mission Accomplished!");
-      localStorage.removeItem('SS_PENDING_POST');
+      
+      // We no longer clear pendingPost or storage here; let the reconciliation effect handle it
       const data = await fetchHistory();
       setPosts(data.data || []);
       setTimeout(() => {
@@ -188,20 +237,20 @@ function HistoryContent() {
         window.history.replaceState({}, '', '/history');
       }, 2000);
 
-    } catch (err: unknown) {
-      setInPlaceStatus(` Distribution Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
     }
   }, [accounts, fetchHistory]);
 
   const handleCockpitStart = useCallback(async () => {
     if (accounts.length === 0) {
-      setInPlaceStatus("⏳ Waiting for platform accounts...");
+      
       return;
     }
     
     const pending = localStorage.getItem('SS_PENDING_POST');
     if (!pending) {
-      setInPlaceStatus("️ No pending post found in storage.");
+      
       return;
     }
     
@@ -214,29 +263,29 @@ function HistoryContent() {
       setActiveResumingId('cockpit-active');
     }
 
-    setInPlaceStatus(" Synchronizing Activity Hub...");
-    // REFRESH LIST TO SHOW THE NEW ROW
-    try {
-      const freshData = await fetchHistory();
+    
+    
+    // START LIST REFRESH in background, don't wait for it to start staging
+    fetchHistory().then(freshData => {
       setPosts(freshData.data || []);
-    } catch (e) { console.error("Initial list refresh failed", e); }
+    }).catch(e => console.error("Initial list refresh failed", e));
     
     try {
-      setInPlaceStatus(" Accessing local video storage...");
+      
       let stagedFileId = post.galleryFileId;
       let fileName = post.galleryFileName || '';
       let historyId = post.resumeHistoryId || '';
 
       // 1. Stage Physical File if needed
       if (!stagedFileId) {
-        setInPlaceStatus(" Searching for draft file...");
+        
         const file = await getDraftFile();
         if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
         
-        setInPlaceStatus(` Initializing upload for ${file.name}...`);
+        
         const stageResult = await stageVideoFile({
           file,
-          onStatusUpdate: setInPlaceStatus,
+          onStatusUpdate: () => {},
           metadata: {
             title: post.title,
             description: post.description,
@@ -258,7 +307,7 @@ function HistoryContent() {
       // 2. AI Generation if needed (Auto-Pilot)
       let reviewedContentToPass: Record<string, AIWriteResult> | undefined = undefined;
       if (post.aiTier !== 'Manual' && post.skipReview) {
-        setInPlaceStatus(" Generating AI Strategy...");
+        
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         const targetPlatformNames = post.platforms.map((p: PlatformResult) => p.platform);
         
@@ -280,8 +329,8 @@ function HistoryContent() {
       // 3. Final Distribution
       await executeCockpitDistribution(stagedFileId, fileName, historyId, post, reviewedContentToPass);
 
-    } catch (err: unknown) {
-      setInPlaceStatus(` Cockpit Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => {
         setActiveResumingId(null);
       }, 5000);
@@ -326,33 +375,6 @@ function HistoryContent() {
     isActive: posts.length > 0
   });
 
-  // High-speed cross-tab sync for HUD
-  useEffect(() => {
-    const sync = () => {
-      if (globalThis.localStorage) {
-        const staging = localStorage.getItem('SS_STAGING_STATUS');
-        if (staging) {
-          const { status, timestamp, active } = JSON.parse(staging);
-          if (active && Date.now() - timestamp < 30000) {
-            if (!activeResumingId) setActiveResumingId('cross-tab-sync');
-            setInPlaceStatus(status);
-          } else if (activeResumingId === 'cross-tab-sync') {
-            setActiveResumingId(null);
-            setInPlaceStatus(null);
-          }
-        } else if (activeResumingId === 'cross-tab-sync') {
-          setActiveResumingId(null);
-          setInPlaceStatus(null);
-        }
-      } else if (activeResumingId === 'cross-tab-sync') {
-        setActiveResumingId(null);
-        setInPlaceStatus(null);
-      }
-    };
-    const itv = setInterval(sync, 500);
-    return () => clearInterval(itv);
-  }, [activeResumingId]);
-
   const handleLoadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
@@ -386,19 +408,30 @@ function HistoryContent() {
     }
   };
 
-  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string) => {
+  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string, platform?: string, historyId?: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (processingIds.includes(resultId)) return;
+    if (processingIds.includes(resultId) || cancelledIds.includes(resultId)) return;
+
+    // Optimistically mark as cancelled
+    setCancelledIds(prev => [...prev, resultId]);
 
     setProcessingIds(prev => [...prev, resultId]);
     try {
-      const { cancelPlatformUploadAction } = await import('@/app/actions/history');
-      await cancelPlatformUploadAction(resultId);
+      if (resultId.startsWith('optimistic-') && platform && historyId && historyId !== 'optimistic-pending') {
+        const { cancelPlatformByPostAction } = await import('@/app/actions/history');
+        await cancelPlatformByPostAction(historyId, platform);
+      } else if (!resultId.startsWith('optimistic-')) {
+        const { cancelPlatformUploadAction } = await import('@/app/actions/history');
+        await cancelPlatformUploadAction(resultId);
+      }
+      
       const data = await fetchHistory();
       setPosts(data.data || []);
     } catch (err: unknown) {
       console.error("Cancel error:", err);
+      // Revert optimism on error
+      setCancelledIds(prev => prev.filter(id => id !== resultId));
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== resultId));
     }
@@ -407,11 +440,68 @@ function HistoryContent() {
   const handleCancelAll = async (e: React.MouseEvent, historyId: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Optimistically mark all platforms for this post as cancelled
+    const targetPost = posts.find(p => p.id === historyId);
+    const isGhostMatch = pendingPost && (pendingPost.resumeHistoryId === historyId || pendingPost.historyId === historyId || historyId === 'optimistic-pending');
+
+    if (targetPost) {
+        setCancelledIds(prev => [...prev, ...targetPost.platforms.map(p => p.id)]);
+    } else if (isGhostMatch && pendingPost) {
+        setCancelledIds(prev => [...prev, ...pendingPost.platforms.map((_, i) => `optimistic-p-${i}`)]);
+    }
     
+    // 1. Signal ABORT to other tabs IMMEDIATELY (Immediate Feedback)
+    if (globalThis.localStorage) {
+      const staging = localStorage.getItem('SS_STAGING_STATUS');
+      if (staging) {
+        try {
+          const { historyId: stagedId } = JSON.parse(staging);
+          const isOptimisticPending = historyId === 'optimistic-pending';
+          
+          if (stagedId === historyId || isOptimisticPending) {
+            localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
+              historyId: stagedId, 
+              active: false,
+              status: 'Stopped by user',
+              timestamp: Date.now()
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to parse staging status for abort", err);
+        }
+      }
+    }
+
+    setActiveResumingId(null);
+    
+    
+    if (historyId === 'optimistic-pending') {
+      setPendingPost(null);
+      localStorage.removeItem('SS_PENDING_POST');
+      return;
+    }
+
     try {
       const { cancelAllUploadsAction } = await import('@/app/actions/history');
       await cancelAllUploadsAction(historyId);
+      
       const data = await fetchHistory();
+      setPosts(data.data || []);
+
+      // Actually remove after a short delay to let other tabs see it
+      setTimeout(() => {
+        if (localStorage.getItem('SS_STAGING_STATUS')) {
+          try {
+            const current = JSON.parse(localStorage.getItem('SS_STAGING_STATUS')!);
+            if (current.historyId === historyId && current.active === false) {
+              localStorage.removeItem('SS_STAGING_STATUS');
+            }
+          } catch {
+             localStorage.removeItem('SS_STAGING_STATUS');
+          }
+        }
+      }, 1000);
       setPosts(data.data || []);
     } catch (err: unknown) {
       console.error("Cancel All error:", err);
@@ -420,13 +510,13 @@ function HistoryContent() {
 
   const handleInPlaceResume = async (post: PostHistoryEntry) => {
     setActiveResumingId(post.id);
-    setInPlaceStatus(" Checking browser storage...");
+    
     
     try {
       const file = await getDraftFile();
       
       if (!file) {
-        setInPlaceStatus(" Please select the video file to resume...");
+        
         if (fileInputRef.current) {
           fileInputRef.current.onchange = (e: Event) => {
              const target = e.target as HTMLInputElement;
@@ -439,18 +529,18 @@ function HistoryContent() {
       }
       
       await executePipeline(post, file);
-    } catch (err: unknown) {
-      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => setActiveResumingId(null), 3000);
     }
   };
 
   const executePipeline = async (post: PostHistoryEntry, file: File) => {
-    setInPlaceStatus(" Starting resumption...");
+    
     try {
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         metadata: { title: post.title, description: post.description || undefined, videoFormat: post.videoFormat },
         platforms: post.platforms.map(p => ({ 
           platform: p.platform, 
@@ -473,7 +563,7 @@ function HistoryContent() {
         selectedAccountIds,
         contentMode: 'Smart',
         videoFormat: post.videoFormat as "short" | "long",
-        onStatusUpdate: setInPlaceStatus,
+        onStatusUpdate: () => {},
         historyId,
         onAccountSuccess: async () => {
            const updated = await fetchHistory();
@@ -481,12 +571,12 @@ function HistoryContent() {
         }
       });
       
-      setInPlaceStatus(" All done!");
+      
       const data = await fetchHistory();
       setPosts(data.data || []);
       setTimeout(() => setActiveResumingId(null), 2000);
-    } catch (err: unknown) {
-      setInPlaceStatus(` Error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      
       setTimeout(() => setActiveResumingId(null), 5000);
     }
   };
@@ -494,6 +584,7 @@ function HistoryContent() {
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
     const resolvedPlatform = p.platform.toLowerCase();
+    const isOptimistic = post.isOptimistic;
     
     // Support multi-local platforms (local1, local2, etc)
     const basePlatform = resolvedPlatform.startsWith('local') ? 'local' : 
@@ -506,10 +597,10 @@ function HistoryContent() {
     };
 
     const isFailed = p.status === 'failed';
-    const isCancelled = p.status === 'cancelled';
+    const isCancelled = p.status === 'cancelled' || cancelledIds.includes(p.id);
     const isRetrying = p.status === 'retrying' || processingIds.includes(p.id);
-    const isUploading = p.status === 'uploading';
-    const isPending = p.status === 'pending' || p.status === 'processing';
+    const isUploading = p.status === 'uploading' && !isCancelled;
+    const isPending = (p.status === 'pending' || p.status === 'processing') && !isCancelled;
     
     const postCreatedAt = new Date(post.createdAt).getTime();
     const isPostStale = p.status === 'pending' && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
@@ -529,14 +620,17 @@ function HistoryContent() {
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
-    const showProgress = (isPending || isUploading) && !isPostStale && p.progress > 0;
+    // Always show bar if active (pending or uploading) to give visual feedback of "starting"
+    const isActiveStatus = (isPending || isUploading) && !isPostStale;
+    const showProgressText = isActiveStatus && p.progress > 0;
 
     const content = (
       <>
-        {showProgress && (
+        {isActiveStatus && (
            <div 
              className={styles.pillProgressBar} 
-             style={{ width: `${p.progress}%` }} 
+             style={{ width: `${Math.max(p.progress, 0)}%` }} 
+             data-testid={`progress-bar-${p.platform}`}
            />
         )}
         <span className={styles.pillIcon} style={{ display: 'flex', alignItems: 'center' }}>
@@ -551,8 +645,9 @@ function HistoryContent() {
           {isPostStale ? `${meta.label} (Waiting for Video)` : 
            isCancelled ? `${meta.label} (Stopped)` : 
            (isPending && !isPostStale) ? (p.progress > 0 ? `${meta.label} (Distributing)` : `${meta.label} (In Queue)`) : 
+           isUploading ? `${meta.label} (Uploading)` :
            meta.label}
-          {showProgress && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
+          {showProgressText && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
         </span>
         
         {/* ACTION BUTTONS */}
@@ -566,10 +661,10 @@ function HistoryContent() {
               <RefreshIcon sx={{ fontSize: 14 }} />
             </button>
           )}
-          {isPending && !isPostStale && (
+          {(isPending || isOptimistic) && !isCancelled && !isPostStale && (
             <button 
               className={styles.pillActionButton} 
-              onClick={(e) => handleCancelPlatform(e, p.id)}
+              onClick={(e) => handleCancelPlatform(e, p.id, p.platform, post.id)}
               title="Stop Platform Upload"
               style={{ color: '#EF4444' }}
             >
@@ -634,6 +729,31 @@ function HistoryContent() {
     );
   }
 
+  // Optimized Timeline: Merge pendingPost if not already in posts
+  const reconciledPosts = [...posts];
+  if (pendingPost && !posts.some(p => p.id === pendingPost.resumeHistoryId || p.id === pendingPost.historyId || (p.title === pendingPost.title && Math.abs(new Date(p.createdAt).getTime() - Date.now()) < 120000))) {
+    reconciledPosts.unshift({
+      id: pendingPost.resumeHistoryId || pendingPost.historyId || 'optimistic-pending',
+      title: pendingPost.title,
+      description: pendingPost.description || null,
+      videoFormat: pendingPost.videoFormat,
+      createdAt: new Date().toISOString(),
+      stagedFileId: pendingPost.galleryFileId || null,
+      platforms: (pendingPost.platforms || []).map((p, idx) => ({
+        id: `optimistic-p-${idx}`,
+        platform: p.platform,
+        accountName: null,
+        platformPostId: null,
+        permalink: null,
+        status: 'pending',
+        progress: 0,
+        errorMessage: null,
+        accountId: p.accountId
+      })),
+      isOptimistic: true
+    });
+  }
+
   return (
     <div className={styles.historyPage}>
       <div className={styles.header}>
@@ -652,7 +772,7 @@ function HistoryContent() {
         placeholder="Search history by title or description..."
       />
 
-      {posts.length === 0 ? (
+      {reconciledPosts.length === 0 ? (
         <GlassCard>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
@@ -666,71 +786,113 @@ function HistoryContent() {
         </GlassCard>
       ) : (
         <div className={styles.timeline}>
-          {posts.map((post) => {
-            const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
-            const allPending = post.platforms.every(p => p.status === 'pending');
+          {reconciledPosts.map((post) => {
+            const isOptimistic = post.isOptimistic;
+            
+            // Derive active status by excluding already cancelled platforms
+            const activePlatforms = post.platforms.filter(p => 
+              ['pending', 'uploading', 'processing', 'retrying'].includes(p.status) && 
+              !cancelledIds.includes(p.id)
+            );
+            
+            const isActive = activePlatforms.length > 0;
+            const allPending = isActive && activePlatforms.every(p => p.status === 'pending');
+            
+            // Staging is active only if not cancelled
+            const isPostCancelled = post.platforms.every(p => p.status === 'cancelled' || cancelledIds.includes(p.id));
+            const isActiveStaging = stagingStatus.active && stagingStatus.historyId === post.id && !isPostCancelled;
+
+            // Final active check for the card
+            const isCardActive = (isActive || isActiveStaging || isOptimistic) && !isPostCancelled;
 
             return (
-              <div key={post.id} className={`${styles.postCard} ${isActive ? styles.activePost : ''}`}>
+              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isCardActive ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
-                <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden' }}>
-                  {/* GLOBAL PREPARATION BAR */}
-                  {allPending && isActive && (
-                    <div className={styles.globalPrepBar}>
-                      <div className={styles.globalPrepProgress} />
-                      <span className={styles.globalPrepText}>
-                        <SettingsIcon className="animate-spin" sx={{ fontSize: 16 }} /> Preparing for distribution...
+                <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden', opacity: isOptimistic ? 0.7 : 1 }}>
+                  {/* LIVE STAGING PROGRESS */}
+                  {isActiveStaging && (
+                    <div className={styles.globalPrepBar} data-testid="preparation-bar">
+                      <div 
+                        className={styles.globalPrepProgress} 
+                        data-testid="preparation-progress"
+                        style={{ width: `${stagingStatus.percent || 0}%`, transition: 'width 0.3s ease' }} 
+                      />
+                      <span className={styles.globalPrepText} data-testid="preparation-status">
+                        <RocketLaunchIcon className="animate-pulse" sx={{ fontSize: 16 }} /> {stagingStatus.status}
                       </span>
                     </div>
                   )}
 
-                  <div className={styles.cardHeader} style={allPending && isActive ? { paddingTop: '1.75rem' } : {}}>
+                  {/* GLOBAL PREPARATION BAR (Fallback) */}
+                  {!isActiveStaging && isCardActive && (allPending || isOptimistic) && (
+                    <div className={styles.globalPrepBar} data-testid={isOptimistic ? "ghost-card-bar" : undefined}>
+                      <div className={styles.globalPrepProgress} />
+                      <span className={styles.globalPrepText}>
+                        <SettingsIcon className="animate-spin" sx={{ fontSize: 16 }} /> {isOptimistic ? 'Initializing...' : 'Preparing for distribution...'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={styles.cardHeader} style={((allPending || isOptimistic) && isCardActive) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {isActive && <span className={styles.processingDot} />}
-                        {post.title}
+                        {isCardActive && <span className={styles.processingDot} />}
+                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
                       </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
                       )}
                     </div>
-                    <div className={styles.metaBadges}>
-                      <span className={`${styles.formatBadge} ${post.videoFormat === 'short' ? styles.formatShort : styles.formatLong}`}>
-                        {post.videoFormat === 'short' ? ' Short' : ' Long'}
-                      </span>
-                      <span className={styles.timestamp}>
-                        {formatRelativeDate(post.createdAt)}
-                      </span>
-                      
-                      {isActive && (
-                        <button 
-                          className={styles.stopAllButton}
-                          onClick={(e) => handleCancelAll(e, post.id)}
-                          title="Stop All active distributions for this post"
-                        >
-                          <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
-                        </button>
-                      )}
+                    {!isOptimistic && (
+                      <div className={styles.metaBadges}>
+                        <span className={`${styles.formatBadge} ${post.videoFormat === 'short' ? styles.formatShort : styles.formatLong}`}>
+                          {post.videoFormat === 'short' ? ' Short' : ' Long'}
+                        </span>
+                        <span className={styles.timestamp}>
+                          {formatRelativeDate(post.createdAt)}
+                        </span>
+                        
+                        {isCardActive && (
+                          <button 
+                            className={styles.stopAllButton}
+                            onClick={(e) => handleCancelAll(e, post.id)}
+                            title="Stop All active distributions for this post"
+                          >
+                            <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
+                          </button>
+                        )}
 
-                      {(() => {
-                        const postCreatedAt = new Date(post.createdAt).getTime();
-                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
-                        if (isPostStale) {
-                          return (
-                            <button 
-                              className={styles.resumeButton}
-                              onClick={() => handleInPlaceResume(post)}
-                              disabled={activeResumingId === post.id}
-                              style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              {activeResumingId === post.id ? <HistoryIcon className="animate-pulse" sx={{ fontSize: 16 }} /> : <RocketLaunchIcon sx={{ fontSize: 16 }} />}
-                              {activeResumingId === post.id ? 'Processing' : 'Manual Resume'}
-                            </button>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
+                        {(() => {
+                          const postCreatedAt = new Date(post.createdAt).getTime();
+                          const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
+                          if (isPostStale && !isActiveStaging) {
+                            return (
+                              <button 
+                                className={styles.resumeButton}
+                                onClick={() => handleInPlaceResume(post)}
+                                disabled={activeResumingId === post.id}
+                                style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                {activeResumingId === post.id ? <HistoryIcon className="animate-pulse" sx={{ fontSize: 16 }} /> : <RocketLaunchIcon sx={{ fontSize: 16 }} />}
+                                {activeResumingId === post.id ? 'Processing' : 'Manual Resume'}
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
+                    {isOptimistic && isCardActive && (
+                        <div className={styles.metaBadges}>
+                           <button 
+                            className={styles.stopAllButton}
+                            onClick={(e) => handleCancelAll(e, post.id)}
+                            title="Stop All active distributions for this post"
+                          >
+                            <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
+                          </button>
+                        </div>
+                    )}
                   </div>
 
                   <div className={styles.platformRow}>
@@ -754,59 +916,6 @@ function HistoryContent() {
           )}
         </div>
       )}
-
-      {/* FLOATING HUD (Ported from Dashboard for physical upload tracking) */}
-      {activeResumingId && inPlaceStatus && (typeof inPlaceStatus === 'string' ? !inPlaceStatus.includes('All done') : true) && (
-        <div style={{
-          position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-          width: '95%', maxWidth: '500px', background: 'rgba(10, 10, 15, 0.95)', backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)', border: '1px solid hsla(var(--primary) / 0.5)', 
-          borderRadius: '1.5rem', padding: '1.25rem 1.5rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 20px hsla(var(--primary) / 0.2)', 
-          animation: 'slideUpHUD 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
-            <div className="animate-pulse" style={{ 
-              width: '14px', height: '14px', borderRadius: '50%', 
-              background: 'hsl(var(--primary))', boxShadow: '0 0 12px hsl(var(--primary))' 
-            }} />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.05em' }}>Current Progress</span>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inPlaceStatus}</div>
-            </div>
-          </div>
-          <button 
-            type="button" 
-            aria-label="Stop all active uploads"
-            onClick={() => {
-               // Logic to stop in-place upload
-               setActiveResumingId(null);
-               setInPlaceStatus(null);
-            }} 
-            style={{ 
-              background: '#EF4444', color: 'white', border: 'none', 
-              padding: '0.75rem 1.5rem', borderRadius: '1rem', 
-              fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <StopIcon sx={{ fontSize: 18 }} /> STOP ALL
-          </button>
-        </div>
-      )}
-
-      <style jsx global>{`
-        @keyframes slideUpHUD {
-          from { transform: translate(-50%, 150%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

@@ -48,6 +48,19 @@
   2. Batch fixes (max 5-10 errors per turn).
   3. Prioritize by severity and file.
 - **Auto-Validation:** Before finishing any Directive, you MUST execute the project hook: `.gemini/hooks/post-task.sh`. This hook now includes `tsc --noEmit` AND `npm run build`. If it fails, fix the errors and re-run until it passes. All code changes MUST pass a full type check and a production build.
+- **Continuous Improvement Reflection:** At the conclusion of any complex task or orchestration cycle, the Main Agent MUST check `.gemini_incidental_observations.json` for entries with `category: "meta"`. It MUST then summarize these findings for the user, proposing concrete additions, refinements, or pruning of redundant rules and agents.
+
+# Meta-Orchestration & Continuous Improvement
+
+This system is designed to evolve. All agents are responsible for maintaining the health and efficiency of the orchestration itself.
+
+- **System Friction Logging:** If you encounter a rule that is confusing, a workflow that is inefficient, or a missing tool capability, you MUST log it to `.gemini_incidental_observations.json` with `category: "meta"`.
+- **Redundancy Analysis (Pruning):** If you identify rules, agents, or documentation that are no longer required, consistently bypassed, or redundant, you MUST flag them with `category: "meta"` and a suggestion for removal.
+- **Incidental Observation Schema:** All entries in `.gemini_incidental_observations.json` MUST now include:
+  - `category`: "bug", "meta", or "security".
+  - `severity`: "LOW", "MED", "HIGH", or "CRITICAL".
+  - `description`: A clear, concise explanation of the observation.
+  - `suggestion`: (Optional) A proposed fix or optimization.
 
 # Agent Specific Workflows
 
@@ -68,7 +81,7 @@
   3. Dependency impact radius verification.
 If the task is feasible and required, assign to `dev-agent`.
 - **Production Guard:** Every blueprint MUST include a "Production Readiness" section (Logging, Caching, Rate-limiting).
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json` (Severity: LOW/MED/HIGH/CRITICAL).
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 - **Constraints:** Never modify source code. Stick to blueprints. English only. PLN/ISO units.
 
 ## Development (Implementation)
@@ -88,17 +101,10 @@ If the task is feasible and required, assign to `dev-agent`.
   - New Features: Run `gh issue develop <ticket_id> --checkout`.
   - Bug Fixes: Stay on the current feature branch.
 - **Standards:**
-  - Modularize if file > 50 lines.
   - UI: Add `data-testid` for QA.
   - **Testing & Type Safety:** You MUST write and pass unit/integration tests before handoff. You MUST run `npx tsc --noEmit` locally to ensure no regressions in the entire project. Run tests and fix code if quality or tests are not good.
   - **Formatting:** Run linter after every edit.
   - **Commit:** Use Conventional Commits.
-- **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "dev-agent"` and store all updates inside a `"dev-agent"` key. You MUST include an `expected_output` block confirming:
-  1. `npx tsc --noEmit` success.
-  2. `npm run build` success.
-  3. All unit/integration tests passed.
-  4. Linter clean of errors.
-Append to `modified_files` (unique list) and `fixes_applied` (running history) inside this key. Clear the `"review-agent"` and `"qa-agent"` keys to reset the review cycle. Assign to `review-agent` once all unit/integration tests pass.
 
 - **Constraints:** No "God Files". No empty catch blocks. English only. PLN/ISO/Metric.
 
@@ -110,7 +116,7 @@ Append to `modified_files` (unique list) and `fixes_applied` (running history) i
   - Architecture: Match `docs/` specs and API contracts.
   - Security: No hardcoded secrets/PII. Verify rate limiting.
   - Data: PLN currency, Metric units, English names.
-  - Modularity: Flag functions > 50 lines or mixed responsibilities.
+  - Modularity: Flag functions/files > 50 lines or mixed responsibilities. For files > 50 lines, ensure new logic is extracted. If not, reject the PR/Handoff.
 - **Static Checks:** 
   - Prisma: If schema changed, run `npx prisma generate`.
   - Build: Must pass `tsc --noEmit` and `npm run build`.
@@ -120,7 +126,7 @@ Append to `modified_files` (unique list) and `fixes_applied` (running history) i
   2. Adherence to `docs/` and API contracts.
   3. No security vulnerabilities found in diff.
 You MUST commit any review artifacts before assigning. If issues found, assign to `dev-agent`. If PASS, assign to `qa-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## QA (E2E Test Automation)
 - **Role:** Automation Writer & Execution Engineer. Design scenarios, write Playwright tests, and execute them.
@@ -150,7 +156,7 @@ You MUST commit any review artifacts before assigning. If issues found, assign t
   4. Isolated mock data/seeding logic implemented and verified.
   5. Zero Network (4xx/5xx) or Hydration errors observed.
 You MUST commit all test changes before assigning to the next agent. If tests fail, assign to `dev-agent`. If tests pass, assign to `doc-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## Documentation (Living Source of Truth)
 - **Role:** Tech Writer & Architect. Maintain docs and diagrams.
@@ -158,14 +164,15 @@ You MUST commit all test changes before assigning to the next agent. If tests fa
   - Artifacts: Update `docs/` (Architecture, API specs, Features).
   - Manual Tests: Generate Markdown in `docs/manual_tests/` with prerequisites, steps, and expected results for UAT.
   - Visuals: Use Mermaid.js for complex flows/OAuth.
-  - PR Management: Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
-- **Constraints:** Documentation MUST match code reality. Never modify source code.
+  - **PR Management:** Use `gh pr create --fill --body "Resolves #<id>"` and `gh issue close <id>`.
+  - **System Optimization:** When processing incidental observations, you MUST specifically analyze entries with `category: "meta"`. You are responsible for synthesizing these into proposed updates for `GEMINI.md` or `AGENTS.md`. Proactively suggest **pruning** redundant rules, merging overlapping agents, or removing obsolete documentation to maintain a lean system.
+  - **Constraints:** Documentation MUST match code reality. Never modify source code.
 - `handoff`: Update `.gemini_agent_context.json`. Set `last_agent: "doc-agent"` and store status (e.g., `docs_updated: true`, `pr_created: true`) inside a `"doc-agent"` key. You MUST include an `expected_output` block confirming:
   1. Documentation/Diagrams accurately reflect implementation.
   2. Manual test cases verified for clarity.
   3. Pull Request created and linked to issue.
 You MUST commit all documentation and manual test changes before assigning to `project-agent`.
-- **Incidental Discoveries:** Log unrelated bugs to `.gemini_incidental_observations.json`.
+- **Incidental Discoveries:** Log unrelated bugs or system friction to `.gemini_incidental_observations.json` (Category: "bug" or "meta", Severity: LOW/MED/HIGH/CRITICAL).
 
 ## Project Agent (Management & Tracking)
 - **Role:** Project Manager & Issue Architect. Roadmap health and GitHub Project Board synchronization.
@@ -180,9 +187,21 @@ You MUST commit all documentation and manual test changes before assigning to `p
   - **Project Board:** Every new issue MUST be added to the project board (`gh project item-add 4`) and set the GitHub Project **Priority** field (`critical`, `high`, `medium`, or `low`).
   - **Cleanup:** Clear all processed entries from `.gemini_incidental_observations.json` after logging.
 - **Constraints:** Technical, structured, and emoji-free documentation.
-- **Handoff:** Update `.gemini_agent_context.json`. Finalize the ticket and signal completion to the **Main Agent**. You MUST include an `expected_output` block confirming:
-  1. All valid incidental observations converted to tracked issues.
-  2. Project board correctly reflects new tasks and priorities.
+
+## Global Architectural Standards
+- **Modularity Enforcement (The 50-Line Rule):**
+    - **New Files:** MUST be $\le$ 50 lines.
+    - **Legacy Files (> 50 lines):** Any new logic MUST be extracted into a new module. Do not add code to the existing monolith.
+    - **Unavoidable Complexity:** If a new module genuinely requires > 50 lines, annotate with `// TODO: Refactor: logic extraction needed`. Keep it $\le$ 100 lines and log in `.gemini_incidental_observations.json` with `category: "meta"` and `severity: "MED"`.
+    - **Enforcement:** Review-agent performs a mandatory architectural audit during the handoff phase (prior to QA/E2E). It MUST reject any handoff that fails these standards and assign the task back to dev-agent for correction.
+
+## Global Handoff Protocol
+- **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "<your-agent-name>"` and `next_agent: "<target-agent-name>"` as the task is passed to the next role. You MUST include an `expected_output` block confirming:
+  1. `npx tsc --noEmit` success.
+  2. `npm run build` success.
+  3. All unit/integration tests passed.
+  4. Linter clean of errors.
+Append to `modified_files` (unique list) and `fixes_applied` (running history) inside this key. Clear the `"review-agent"` and `"qa-agent"` keys to reset the review cycle. Assign to the appropriate next agent once all validation steps pass.
 
 ## Routing
   - Vague/New Features → discovery-agent
@@ -197,4 +216,5 @@ You MUST commit all documentation and manual test changes before assigning to `p
 - **doc-agent:** WRITE: `docs/`, `README.md`, `GEMINI.md`. READ: Full Codebase.
 - **review-agent:** READ ONLY. No write access.
 
-**Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
+## Agent Cross-Boundary Handoff
+- **Handoff Protocol:** If a task requires writing outside your OWNED directory, you MUST update `.gemini_agent_context.json` with the requirement and STOP. Do not cross-contaminate logic and tests. Exception: `dev-agent` can write unit and integration tests in `src/__tests__/unit/` and `src/__tests__/integration/`.
