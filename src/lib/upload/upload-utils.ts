@@ -369,9 +369,20 @@ export async function distributeToPlatforms({
 
   await Promise.all(workers);
 
-  // If we ended because of an abort, ensure we clear the signal so it doesn't linger
-  if (checkGlobalAbort(historyId) && typeof window !== 'undefined' && window.localStorage) {
-    localStorage.removeItem('SS_STAGING_STATUS');
+  // Clear the staging status signal so the UI knows we're done with preparation/distribution
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const current = localStorage.getItem('SS_STAGING_STATUS');
+    if (current) {
+      try {
+        const parsed = JSON.parse(current);
+        // Only clear if it's the same historyId to avoid clearing a newly started upload
+        if (parsed.historyId === historyId) {
+          localStorage.removeItem('SS_STAGING_STATUS');
+        }
+      } catch {
+        localStorage.removeItem('SS_STAGING_STATUS');
+      }
+    }
   }
 
   return { platformResults };

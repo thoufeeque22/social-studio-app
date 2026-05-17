@@ -58,14 +58,20 @@ The system provides total control over the upload process even after redirection
 A critical fix was implemented to ensure the "Initializing" progress bar does not block user interactions.
 - **Z-Index Management**: The `globalPrepBar` and `globalPrepText` are assigned a strictly controlled `z-index` to ensure that the header buttons (STOP ALL, Manual Resume) and platform pills remain on the top-most layer and are always clickable, even while animations are active.
 - **Immediate Haptic Feedback**: All buttons use the `cancelledIds` state to provide "light speed" feedback, making the application feel alive and responsive.
-...
-### 4. Cross-Tab Abort Signaling
+
+### 4. Manual Resume & Button Exclusivity
+The system intelligently toggles between control states based on the post's health.
+- **Exclusivity**: Active uploads (either in staging or distribution) show the **STOP ALL** button. Stale uploads (where platforms are 'pending' but no local activity is detected for > 60 seconds) hide the stop button and instead display the **Manual Resume** button.
+- **In-Place Resume**: Clicking Manual Resume allows the user to re-select the source file and restart the upload process for the remaining pending platforms without creating a duplicate history entry.
+- **Visual Feedback**: During a resume, the button transitions to a "Processing" state with a pulsing icon to indicate the re-initialization is underway.
+
+### 5. Cross-Tab Abort Signaling
 If a user has multiple tabs open:
 - Clicking **STOP ALL** in the Activity Hub tab writes an `active: false` signal to `localStorage` for that specific `historyId`.
 - The background upload process (which might be running in the original Dashboard tab or a worker) polls this signal and terminates immediately.
 - The Dashboard tab observes the global abort and resets its local distribution engine.
 
-### 4. Integrated Activity Hub Indicators
+### 6. Integrated Activity Hub Indicators
 - **Processing Dot**: An animated pulsing dot appears next to the post title in the Activity Hub while any part of the process (staging or distribution) is active.
 - **Universal Status Messages**: Status messages are generalized and technical (e.g., "Initializing distribution", "Preparing assets"). Chat emojis have been removed for a professional aesthetic.
 

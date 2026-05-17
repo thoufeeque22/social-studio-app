@@ -124,3 +124,20 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 - **Network Interruption**: Disconnect Wi-Fi during staging. The card should reflect the failure (red text) and the Processing Dot should stop.
 - **Multiple Concurrent Uploads**: (If supported) Start two uploads. Each card should have its own "STOP ALL" and Processing Dot, controlled independently.
 - **Refresh during Staging**: Refresh the page while "Streaming to Cloud" is at 50%. The Activity Hub should resume showing progress immediately upon load.
+
+---
+
+## Test Case 8: Manual Resume for Stale Uploads
+
+### Steps
+1. Identify or create a history entry where some platforms are stuck in "Pending" and it was created more than 60 seconds ago.
+2. **Observe:** The "STOP ALL" button should be hidden, and the **Manual Resume** button (Rocket icon) should be visible.
+3. Click **Manual Resume**.
+4. Select the original video file when prompted.
+5. **Observe:** The button text changes to "Processing" and a pulsing history icon appears.
+6. The browser should redirect to the Dashboard with the `?resume=[id]` parameter, or handle the resume in-place if implemented (verify current implementation behavior).
+
+### Expected Results
+- Manual Resume button only appears for stale, non-active uploads.
+- The button provides immediate visual feedback upon clicking.
+- The resume flow correctly re-initiates the distribution for pending platforms.
