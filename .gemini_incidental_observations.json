@@ -1,8 +1,8 @@
 [
   {
     "category": "meta",
-    "severity": "LOW",
-    "description": "Activity Hub UI latency due to sequential DB fetch after post.",
-    "suggestion": "Implement Optimistic UI using local storage state as a ghost card."
+    "severity": "HIGH",
+    "description": "Systemic failure to enforce 50-line modularity rule. Most files (e.g., src/app/history/page.tsx, src/app/schedule/page.tsx) significantly exceed the limit.",
+    "suggestion": "Introduce 'Legacy Debt' exemption policy in GEMINI.md, requiring new work in existing files to be modularized into sub-components, and create a roadmap for refactoring existing files."
   }
 ]

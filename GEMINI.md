@@ -101,7 +101,11 @@ If the task is feasible and required, assign to `dev-agent`.
   - New Features: Run `gh issue develop <ticket_id> --checkout`.
   - Bug Fixes: Stay on the current feature branch.
 - **Standards:**
-  - Modularize if file > 50 lines.
+  - **Modularity Enforcement (The 50-Line Rule):**
+    - All new files MUST be <= 50 lines.
+    - If modifying an existing file > 50 lines, you MUST extract any new logic into a new, separate file (e.g., `ComponentName.subcomponent.tsx` or `module-helper.ts`).
+    - Flag existing files > 50 lines as "Legacy Debt" in `.gemini_incidental_observations.json` with `category: "meta"` and `severity: "MED"` until they are refactored.
+    - Review-agent MUST reject any PR that adds logic to an already large file without extracting that logic.
   - UI: Add `data-testid` for QA.
   - **Testing & Type Safety:** You MUST write and pass unit/integration tests before handoff. You MUST run `npx tsc --noEmit` locally to ensure no regressions in the entire project. Run tests and fix code if quality or tests are not good.
   - **Formatting:** Run linter after every edit.
@@ -123,7 +127,7 @@ Append to `modified_files` (unique list) and `fixes_applied` (running history) i
   - Architecture: Match `docs/` specs and API contracts.
   - Security: No hardcoded secrets/PII. Verify rate limiting.
   - Data: PLN currency, Metric units, English names.
-  - Modularity: Flag functions > 50 lines or mixed responsibilities.
+  - Modularity: Flag functions/files > 50 lines or mixed responsibilities. For files > 50 lines, ensure new logic is extracted. If not, reject the PR/Handoff.
 - **Static Checks:** 
   - Prisma: If schema changed, run `npx prisma generate`.
   - Build: Must pass `tsc --noEmit` and `npm run build`.

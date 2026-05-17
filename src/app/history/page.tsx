@@ -784,12 +784,25 @@ function HistoryContent() {
         <div className={styles.timeline}>
           {reconciledPosts.map((post) => {
             const isOptimistic = (post as any).isOptimistic;
-            const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
-            const allPending = post.platforms.every(p => p.status === 'pending');
-            const isActiveStaging = stagingStatus.active && stagingStatus.historyId === post.id;
+            
+            // Derive active status by excluding already cancelled platforms
+            const activePlatforms = post.platforms.filter(p => 
+              ['pending', 'uploading', 'processing', 'retrying'].includes(p.status) && 
+              !cancelledIds.includes(p.id)
+            );
+            
+            const isActive = activePlatforms.length > 0;
+            const allPending = isActive && activePlatforms.every(p => p.status === 'pending');
+            
+            // Staging is active only if not cancelled
+            const isPostCancelled = post.platforms.every(p => p.status === 'cancelled' || cancelledIds.includes(p.id));
+            const isActiveStaging = stagingStatus.active && stagingStatus.historyId === post.id && !isPostCancelled;
+
+            // Final active check for the card
+            const isCardActive = (isActive || isActiveStaging || isOptimistic) && !isPostCancelled;
 
             return (
-              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isActive || isActiveStaging || isOptimistic ? styles.activePost : ''}`}>
+              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isCardActive ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
                 <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden', opacity: isOptimistic ? 0.7 : 1 }}>
                   {/* LIVE STAGING PROGRESS */}
@@ -807,7 +820,7 @@ function HistoryContent() {
                   )}
 
                   {/* GLOBAL PREPARATION BAR (Fallback) */}
-                  {!isActiveStaging && allPending && (isActive || isOptimistic) && (
+                  {!isActiveStaging && isCardActive && (allPending || isOptimistic) && (
                     <div className={styles.globalPrepBar} data-testid={isOptimistic ? "ghost-card-bar" : undefined}>
                       <div className={styles.globalPrepProgress} />
                       <span className={styles.globalPrepText}>
@@ -816,11 +829,11 @@ function HistoryContent() {
                     </div>
                   )}
 
-                  <div className={styles.cardHeader} style={(allPending && (isActive || isOptimistic)) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
+                  <div className={styles.cardHeader} style={((allPending || isOptimistic) && isCardActive) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {(isActive || isActiveStaging || isOptimistic) && <span className={styles.processingDot} />}
-                        {post.title} {isOptimistic && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
+                        {isCardActive && <span className={styles.processingDot} />}
+                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
                       </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
@@ -835,7 +848,7 @@ function HistoryContent() {
                           {formatRelativeDate(post.createdAt)}
                         </span>
                         
-                        {(isActive || isActiveStaging) && (
+                        {isCardActive && (
                           <button 
                             className={styles.stopAllButton}
                             onClick={(e) => handleCancelAll(e, post.id)}
@@ -865,7 +878,7 @@ function HistoryContent() {
                         })()}
                       </div>
                     )}
-                    {isOptimistic && (
+                    {isOptimistic && isCardActive && (
                         <div className={styles.metaBadges}>
                            <button 
                             className={styles.stopAllButton}
