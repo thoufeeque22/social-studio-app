@@ -1,7 +1,7 @@
 # UAT: Activity Hub Upload Visibility & Global Control
 
 ## Purpose
-Verify that the user receives real-time, context-specific feedback within the Activity Hub cards and can globally control (abort) active uploads across multiple tabs.
+Verify that the user receives real-time, context-specific feedback within the Activity Hub cards and can globally or granularly control (abort) active uploads.
 
 ## Prerequisites
 - A test user account.
@@ -31,20 +31,38 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 2: Distribution Phase Transitions
+## Test Case 2: Optimistic Individual Platform Cancellation
 
 ### Steps
-1. Wait for the Staging phase from Test Case 1 to complete.
+1. Follow Steps 1-4 from Test Case 1.
+2. While the **Ghost Card** is visible (and before the real record arrives), identify the platform pills.
+3. Click the "X" or cancellation icon on one of the platform pills (e.g., YouTube).
+4. **Observe:** The pill should immediately update to a "Cancelled" state or disappear (depending on UI config), and the status should remain "Active" for other platforms.
+5. Wait for the real record to arrive (remove throttling if necessary).
+
+### Expected Results
+- The individual platform cancellation should be reflected immediately on the Ghost Card.
+- Once the real record arrives, it MUST respect the cancellation (the platform should show as "Cancelled" or be absent from the active list).
+- This verifies that `cancelPlatformByPostAction` correctly handled the pre-emptive cancellation.
+
+---
+
+## Test Case 3: Distribution Phase Transitions & Granular Control
+
+### Steps
+1. Wait for the Staging phase to complete.
 2. **Observe:** The platform pills within the card should update.
+3. Attempt to cancel a platform during the "Initializing" or "Uploading" stage of distribution.
 
 ### Expected Results
 - The status text updates to "Uploading to [platform]...".
 - The relevant platform pill (e.g., YouTube) changes its icon to a spinning/pulsing indicator.
 - The "Processing Dot" remains active in the card header.
+- Granular cancellation works: cancelling one platform does not stop others or the overall processing dot if other platforms are still active.
 
 ---
 
-## Test Case 3: Global Abort (Cross-Tab)
+## Test Case 4: Global Abort (Cross-Tab)
 
 ### Steps
 1. Open **Tab A** on the Dashboard and start a medium upload.
@@ -60,7 +78,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 4: Navigation Persistence
+## Test Case 5: Navigation Persistence
 
 ### Steps
 1. Start an upload on the **Dashboard** and wait for the redirect to **Activity Hub**.
@@ -73,7 +91,7 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 5: Post-Upload Cleanup
+## Test Case 6: Post-Upload Cleanup
 
 ### Steps
 1. Allow an upload to finish completely (all distribution phases succeed).
