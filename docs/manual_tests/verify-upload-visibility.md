@@ -10,20 +10,21 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 1: Immediate Redirect & Staging Progress
+## Test Case 1: Immediate Redirect & Optimistic Ghost Card
 
 ### Steps
 1. Navigate to the **Dashboard** (Upload page).
 2. Select a medium-sized video file (> 50MB).
 3. Select at least one platform.
 4. Click **Launch** or **Post Video**.
-5. **Observe:** The browser should redirect to the **Activity Hub** (/history) *immediately* (no delay or success overlay).
+5. **Observe:** The browser should redirect to the **Activity Hub** (/history) *immediately*.
 
 ### Expected Results
 - Immediate redirect to `/history`.
-- A new card for the post appears at the top of the timeline.
-- A "Processing Dot" (pulsing blue/primary) is visible next to the post title.
+- **Optimistic UI:** A "Ghost Card" (skeleton/placeholder) appears at the top of the timeline *before* the real history record is fetched.
+- A "Processing Dot" (pulsing blue/primary) is visible on this Ghost Card.
 - The card displays "Synchronizing cockpit state..." or "🚀 Resuming stream: X%".
+- After 1-2 seconds, the Ghost Card should seamlessly transition into the real History Card (no jump or flicker).
 - No floating HUD is visible on the Dashboard or Activity Hub.
 
 ---

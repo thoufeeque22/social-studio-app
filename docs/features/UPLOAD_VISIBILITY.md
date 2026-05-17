@@ -14,10 +14,10 @@ sequenceDiagram
     participant U as Upload Utils (Lib)
     participant LS as localStorage (SS_STAGING_STATUS)
     participant H as useUploadStatus (Hook)
-    participant AC as Activity Hub (Card)
+    participant AC as Activity Hub (Card/Ghost)
 
     D->>U: Start Upload
-    D->>AC: Immediate Redirect
+    D->>AC: Immediate Redirect (Inject Ghost Card)
     U->>LS: Write progress (historyId, percent, status, active: true)
     loop Every 500ms
         H->>LS: Read state
@@ -31,8 +31,10 @@ sequenceDiagram
 
 ## Key Features
 
-### 1. Immediate Dashboard Redirect
-To optimize "human-centric" design, the Dashboard no longer holds the user hostage during the staging phase. Once "Post Video" or "Confirm AI Strategy" is clicked, the user is immediately redirected to the Activity Hub.
+### 1. Immediate Dashboard Redirect & Optimistic Ghost Card
+To optimize "human-centric" design, the Dashboard no longer holds the user hostage during the staging phase. 
+- **Redirect**: Once "Post Video" or "Confirm AI Strategy" is clicked, the user is immediately redirected to the Activity Hub.
+- **Ghost Card**: Since the database record might take a few hundred milliseconds to propagate, an **Optimistic Ghost Card** is injected into the Activity Hub's local state. This ensures the user sees their post *instantly* upon redirection, avoiding a "Missing Data" or empty state. The Ghost Card transitions into a standard history card once the real data arrives.
 
 ### 2. Cross-Tab Abort Signaling
 If a user has multiple tabs open:
@@ -43,6 +45,11 @@ If a user has multiple tabs open:
 ### 3. Integrated Activity Hub Indicators
 - **Processing Dot**: An animated pulsing dot appears next to the post title in the Activity Hub while any part of the process (staging or distribution) is active.
 - **STOP ALL Button**: Appears dynamically on active cards to allow immediate termination of all platform tasks and local staging.
+
+## Reliability & Fixes
+
+### Stale ID Resolution
+A critical bug was fixed where background account mapping (Platform Sync) was using stale or incorrect User IDs during the staging phase. The mapping logic now strictly resolves the current authenticated user context before initiating platform-specific tokens, ensuring 100% reliability for multi-platform distribution.
 
 ## Key Components
 
