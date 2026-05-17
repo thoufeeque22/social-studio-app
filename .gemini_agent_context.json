@@ -1,5 +1,5 @@
 {
-  "last_agent": "dev-agent",
+  "last_agent": "qa-agent",
   "branch_name": "fix/425-upload-visibility",
   "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
   "ticket_id": 425,
@@ -10,28 +10,31 @@
       "src/app/actions/history.ts",
       "src/hooks/useUploadStatus.ts",
       "src/components/dashboard/DashboardClient.tsx",
-      "src/lib/upload/upload-utils.ts"
+      "src/lib/upload/upload-utils.ts",
+      "src/app/history/history.module.css",
+      "docs/features/UPLOAD_VISIBILITY.md",
+      "docs/manual_tests/verify-upload-visibility.md"
     ],
     "fixes_applied": [
       "Implemented Optimistic UI (Ghost Card) in Activity Hub for instant feedback.",
       "Fixed reconciliation logic to ensure Ghost Card persists until DB record is confirmed in the list.",
       "Enabled STOP ALL and individual platform cancellation on the optimistic Ghost Card.",
       "Fixed 'Upload result not found' error by implementing cancelPlatformByPostAction for optimistic platform cancellation.",
-      "Merged Ghost Card into the main timeline for seamless visual transition.",
-      "Added fuzzy matching (title + timestamp) for reconciliation as a fallback.",
-      "Updated E2E tests to verify Ghost Card persistence and individual platform cancellation (7 tests passing).",
-      "Ensured immediate redirect from Dashboard to Activity Hub.",
-      "Generalized status messages to handle multi-platform distribution.",
-      "Removed all chat emojis from user-facing status strings to comply with project mandates."
+      "Implemented individual platform progress bars with animated background fills and percentage indicators.",
+      "Resolved UI unresponsiveness by fixing CSS z-index overlap on progress bars.",
+      "Implemented immediate visual feedback for cancellation using local 'cancelledIds' state.",
+      "Ensured automatic cleanup of active indicators (bars, dots) after successful upload or stop.",
+      "Generalized status messages and removed all chat emojis to comply with project standards.",
+      "Ensured immediate redirect from Dashboard to Activity Hub."
     ],
     "expected_output": {
       "status": "PASS",
       "conditions": [
         "npx tsc --noEmit success.",
         "Ghost Card appears instantly in Activity Hub after redirection.",
-        "STOP ALL button is visible and functional on the Ghost Card.",
-        "Individual platform stop on Ghost Card works without server errors.",
-        "All Playwright tests (7/7) passed including optimistic cancellation cases.",
+        "Individual progress bars animate correctly for each platform.",
+        "STOP ALL button and preparation bars hide immediately upon cancellation or success.",
+        "All Playwright tests (8/8) passed including individual progress verification.",
         "Zero chat emojis in user-facing status messages."
       ]
     }
@@ -41,6 +44,6 @@
   },
   "qa-agent": {
     "verdict": "PASS",
-    "details": "Verified Ghost Card persistence, STOP ALL functionality, and individual platform cancellation. All 7 tests in upload-visibility.spec.ts passed with isolated mocks."
+    "details": "Verified Ghost Card persistence, individual platform progress bars, STOP ALL functionality, and automatic end-state cleanup. All 8 tests in upload-visibility.spec.ts passed."
   }
 }
