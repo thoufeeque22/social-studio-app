@@ -31,7 +31,8 @@
         "Dashboard shows NO upload status or progress bars.",
         "Dashboard redirects to Activity Hub immediately after post initiation.",
         "Clicking 'STOP ALL' in Activity Hub terminates active uploads in other tabs (cross-tab sync).",
-        "Unit and integration tests pass."
+        "Unit and integration tests pass.",
+        "npm run build success."
       ]
     }
   }
