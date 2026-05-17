@@ -15,7 +15,7 @@ describe('Parallel Distribution Logic', () => {
       clear: vi.fn(() => { for (const key in storage) delete storage[key]; }),
       length: 0,
       key: vi.fn((index: number) => Object.keys(storage)[index] || null),
-    } as any;
+    } as unknown as Storage;
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
