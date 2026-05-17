@@ -223,6 +223,12 @@ You MUST commit all documentation and manual test changes before assigning to `p
     - **Unavoidable Complexity:** If a new module genuinely requires > 50 lines, annotate with `// TODO: Refactor: logic extraction needed`. Keep it $\le$ 100 lines and log in `.gemini_incidental_observations.json` with `category: "meta"` and `severity: "MED"`.
     - **Enforcement:** Review-agent performs a mandatory architectural audit during the handoff phase (prior to QA/E2E). It MUST reject any handoff that fails these standards and assign the task back to dev-agent for correction.
 
+- **Legacy Debt Remediation Protocol:**
+    - Files > 50 lines are classified as "Legacy".
+    - All new features/fixes in legacy files MUST extract logic into new modules $\le$ 50 lines.
+    - **Mandatory Debt Reduction:** Every pull request touching a legacy file MUST include at least one extraction/refactor task (e.g., extracting a `use...` hook, utility, or sub-component).
+    - **Debt Tracking:** Large legacy files must be registered in `docs/ARCHITECTURE.md` with an assigned "debt priority" (Critical/High/Medium).
+
 ## Global Handoff Protocol
 - **Handoff:** Update `.gemini_agent_context.json`. You MUST set `last_agent: "<your-agent-name>"` and `next_agent: "<target-agent-name>"` as the task is passed to the next role. You MUST include an `expected_output` block confirming:
   1. `npx tsc --noEmit` success.
