@@ -36,8 +36,6 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
       }));
     });
     
-    // No reload needed if we wait for polling or just trigger a manual check
-    // But reload is safer to ensure hook picks it up from start
     await page.reload();
 
     const postCard = page.getByTestId('history-post-post-123');
@@ -75,11 +73,9 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
     // Click STOP ALL
     await stopButton.click();
     
-    // Wait for the localStorage signal to be set to active: false
-    // useUploadStatus polls every 500ms, so we allow enough time
     await expect.poll(async () => {
       const raw = await page.evaluate(() => localStorage.getItem('SS_STAGING_STATUS'));
-      if (!raw) return true; // Could have been cleared already by the 1s timeout in handleCancelAll
+      if (!raw) return true;
       try {
         const parsed = JSON.parse(raw);
         return parsed.active;
@@ -88,12 +84,10 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
       }
     }, { timeout: 10000 }).toBe(false);
 
-    // Now the UI should reflect this (bar gone)
     await expect(postCard.getByTestId('preparation-bar')).not.toBeVisible();
   });
 
   test('Optimistic UI: Shows ghost card immediately', async ({ page }) => {
-    // 1. Mock empty history to ensure only optimistic shows
     await page.route('**/api/history*', async (route) => {
         await route.fulfill({
           status: 200,
@@ -102,10 +96,8 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
         });
       });
 
-    // 2. Navigate first to ensure origin is set, then inject
     await page.goto('/history');
 
-    // 3. Inject pending post
     await page.evaluate(() => {
       localStorage.setItem('SS_PENDING_POST', JSON.stringify({
         title: 'Optimistic Video',
@@ -116,7 +108,6 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
 
     await page.reload();
 
-    // 4. Verify optimistic card
     const ghostCard = page.getByText(/Optimistic Video/i);
     await expect(ghostCard).toBeVisible();
     await expect(page.getByText(/Initializing/i).first()).toBeVisible();
@@ -125,20 +116,16 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
   });
 
   test('Optimistic UI: Ghost card persists after fetch without record', async ({ page }) => {
-    // 1. Initial empty mock
-    let callCount = 0;
     await page.route('**/api/history*', async (route) => {
-      callCount++;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: [] }) // Still empty
+        body: JSON.stringify({ data: [] })
       });
     });
 
     await page.goto('/history');
 
-    // 2. Inject pending post
     await page.evaluate(() => {
       localStorage.setItem('SS_PENDING_POST', JSON.stringify({
         title: 'Persistent Ghost',
@@ -149,15 +136,49 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
 
     await page.reload();
 
-    // 3. Verify it's there
     await expect(page.getByText('Persistent Ghost')).toBeVisible();
+    await expect(page.getByText('Persistent Ghost')).toBeVisible();
+  });
 
-    // 4. Wait for a poll (should be 15s since no active posts, but we can trigger it or wait)
-    // Actually, we mocked the route to return empty. 
-    // Even if it polls, it should stay visible.
+  test('Optimistic UI: Individual platform stop on ghost card', async ({ page }) => {
+    await page.route('**/api/history*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [{
+            id: 'real-id-456',
+            title: 'Optimistic Video',
+            videoFormat: 'short',
+            createdAt: new Date().toISOString(),
+            platforms: [{ id: 'real-p-1', platform: 'youtube', status: 'pending', progress: 0 }]
+          }]
+        })
+      });
+    });
+
+    await page.route('**/api/history/cancel-platform*', async (route) => {
+      await route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+    });
+
+    await page.goto('/history');
+
+    await page.evaluate(() => {
+      localStorage.setItem('SS_PENDING_POST', JSON.stringify({
+        historyId: 'real-id-456',
+        title: 'Optimistic Video',
+        videoFormat: 'short',
+        platforms: [{ platform: 'youtube', accountId: '1' }]
+      }));
+    });
+
+    await page.reload();
+
+    const postCard = page.getByTestId('history-post-real-id-456');
+    const stopButton = postCard.getByRole('button', { name: /Stop Platform Upload/i });
+    await expect(stopButton).toBeVisible();
     
-    // We can simulate another load or just wait.
-    // The previous bug was that it disappeared after the FIRST fetch.
-    await expect(page.getByText('Persistent Ghost')).toBeVisible();
+    await stopButton.click({ force: true });
+    await expect(postCard).toBeVisible();
   });
 });

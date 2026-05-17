@@ -249,7 +249,7 @@ function HistoryContent() {
     
     const pending = localStorage.getItem('SS_PENDING_POST');
     if (!pending) {
-      setInPlaceStatus("️ No pending post found in storage.");
+      setInPlaceStatus("No pending post found in storage.");
       return;
     }
     
@@ -262,7 +262,7 @@ function HistoryContent() {
       setActiveResumingId('cockpit-active');
     }
 
-    setInPlaceStatus(" Synchronizing Activity Hub...");
+    setInPlaceStatus("Synchronizing Activity Hub...");
     // REFRESH LIST TO SHOW THE NEW ROW
     try {
       const freshData = await fetchHistory();
@@ -270,18 +270,18 @@ function HistoryContent() {
     } catch (e) { console.error("Initial list refresh failed", e); }
     
     try {
-      setInPlaceStatus(" Accessing local video storage...");
+      setInPlaceStatus("Accessing local video storage...");
       let stagedFileId = post.galleryFileId;
       let fileName = post.galleryFileName || '';
       let historyId = post.resumeHistoryId || '';
 
       // 1. Stage Physical File if needed
       if (!stagedFileId) {
-        setInPlaceStatus(" Searching for draft file...");
+        setInPlaceStatus("Searching for draft file...");
         const file = await getDraftFile();
         if (!file) throw new Error("Video file not found in browser. Please re-select it on the dashboard.");
         
-        setInPlaceStatus(` Initializing upload for ${file.name}...`);
+        setInPlaceStatus(`Initializing upload for ${file.name}...`);
         const stageResult = await stageVideoFile({
           file,
           onStatusUpdate: setInPlaceStatus,
@@ -306,7 +306,7 @@ function HistoryContent() {
       // 2. AI Generation if needed (Auto-Pilot)
       let reviewedContentToPass: Record<string, AIWriteResult> | undefined = undefined;
       if (post.aiTier !== 'Manual' && post.skipReview) {
-        setInPlaceStatus(" Generating AI Strategy...");
+        setInPlaceStatus("Generating AI Strategy...");
         const { getMultiPlatformAIPreviews } = await import('@/app/actions/ai');
         const targetPlatformNames = post.platforms.map((p: PlatformResult) => p.platform);
         
@@ -407,15 +407,21 @@ function HistoryContent() {
     }
   };
 
-  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string) => {
+  const handleCancelPlatform = async (e: React.MouseEvent, resultId: string, platform?: string, historyId?: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (processingIds.includes(resultId)) return;
 
     setProcessingIds(prev => [...prev, resultId]);
     try {
-      const { cancelPlatformUploadAction } = await import('@/app/actions/history');
-      await cancelPlatformUploadAction(resultId);
+      if (resultId.startsWith('optimistic-') && platform && historyId && historyId !== 'optimistic-pending') {
+        const { cancelPlatformByPostAction } = await import('@/app/actions/history');
+        await cancelPlatformByPostAction(historyId, platform);
+      } else if (!resultId.startsWith('optimistic-')) {
+        const { cancelPlatformUploadAction } = await import('@/app/actions/history');
+        await cancelPlatformUploadAction(resultId);
+      }
+      
       const data = await fetchHistory();
       setPosts(data.data || []);
     } catch (err: unknown) {
@@ -435,9 +441,9 @@ function HistoryContent() {
       if (staging) {
         try {
           const { historyId: stagedId } = JSON.parse(staging);
-          if (stagedId === historyId) {
+          if (stagedId === historyId || historyId === 'optimistic-pending') {
             localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
-              historyId,
+              historyId: stagedId, // Preserve the real ID if we have it
               active: false,
               status: 'Stopped by user',
               timestamp: Date.now()
@@ -452,6 +458,12 @@ function HistoryContent() {
     setActiveResumingId(null);
     setInPlaceStatus(null);
     
+    if (historyId === 'optimistic-pending') {
+      // Just clear local state, no server record yet
+      setPosts(prev => prev.filter(p => (p as any).id !== 'optimistic-pending'));
+      return;
+    }
+
     try {
       const { cancelAllUploadsAction } = await import('@/app/actions/history');
       await cancelAllUploadsAction(historyId);
@@ -480,13 +492,13 @@ function HistoryContent() {
 
   const handleInPlaceResume = async (post: PostHistoryEntry) => {
     setActiveResumingId(post.id);
-    setInPlaceStatus(" Checking browser storage...");
+    setInPlaceStatus("Checking browser storage...");
     
     try {
       const file = await getDraftFile();
       
       if (!file) {
-        setInPlaceStatus(" Please select the video file to resume...");
+        setInPlaceStatus("Please select the video file to resume...");
         if (fileInputRef.current) {
           fileInputRef.current.onchange = (e: Event) => {
              const target = e.target as HTMLInputElement;
@@ -506,7 +518,7 @@ function HistoryContent() {
   };
 
   const executePipeline = async (post: PostHistoryEntry, file: File) => {
-    setInPlaceStatus(" Starting resumption...");
+    setInPlaceStatus("Starting resumption...");
     try {
       const { stagedFileId, fileName, historyId } = await stageVideoFile({
         file,
@@ -554,6 +566,7 @@ function HistoryContent() {
 
   const renderPlatformPill = (p: PlatformResult, post: PostHistoryEntry) => {
     const resolvedPlatform = p.platform.toLowerCase();
+    const isOptimistic = (post as any).isOptimistic;
     
     // Support multi-local platforms (local1, local2, etc)
     const basePlatform = resolvedPlatform.startsWith('local') ? 'local' : 
@@ -626,10 +639,10 @@ function HistoryContent() {
               <RefreshIcon sx={{ fontSize: 14 }} />
             </button>
           )}
-          {isPending && !isPostStale && (
+          {(isPending || isOptimistic) && !isPostStale && (
             <button 
               className={styles.pillActionButton} 
-              onClick={(e) => handleCancelPlatform(e, p.id)}
+              onClick={(e) => handleCancelPlatform(e, p.id, p.platform, post.id)}
               title="Stop Platform Upload"
               style={{ color: '#EF4444' }}
             >
@@ -833,6 +846,17 @@ function HistoryContent() {
                           return null;
                         })()}
                       </div>
+                    )}
+                    {isOptimistic && (
+                        <div className={styles.metaBadges}>
+                           <button 
+                            className={styles.stopAllButton}
+                            onClick={(e) => handleCancelAll(e, post.id)}
+                            title="Stop All active distributions for this post"
+                          >
+                            <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
+                          </button>
+                        </div>
                     )}
                   </div>
 

@@ -236,6 +236,36 @@ export async function cancelPlatformUploadAction(resultId: string) {
 }
 
 /**
+ * Cancels a specific platform distribution task by post ID and platform name.
+ * Useful for optimistic UI states where the result ID isn't known yet.
+ */
+export async function cancelPlatformByPostAction(historyId: string, platform: string) {
+  return protectedAction(async (userId) => {
+    const result = await prisma.postPlatformResult.findFirst({
+      where: { 
+        postHistoryId: historyId,
+        platform: platform,
+        postHistory: { userId }
+      }
+    });
+
+    if (!result) {
+      throw new Error('Upload result not found.');
+    }
+
+    await prisma.postPlatformResult.update({
+      where: { id: result.id },
+      data: { 
+        status: 'cancelled',
+        errorMessage: 'Stopped by user'
+      }
+    });
+
+    return { success: true };
+  });
+}
+
+/**
  * Cancels all platform distribution tasks for a specific post.
  */
 export async function cancelAllUploadsAction(historyId: string) {
