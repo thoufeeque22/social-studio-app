@@ -48,17 +48,19 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 
 ---
 
-## Test Case 7: UI Layering & Click Response
+## Test Case 8: Individual Platform Progress Bars
 
 ### Steps
-1. Start an upload and wait for the "Initializing..." progress bar to appear on the card.
-2. While the progress bar is active and animated, attempt to click the **STOP ALL** button.
-3. Hover over the platform pills and the button.
+1. Navigate to the **Dashboard** and select multiple platforms (e.g., YouTube and Local Dev).
+2. Click **Launch**.
+3. Once the **Staging** phase completes and the card transitions to **Distribution**, observe the platform pills.
 
 ### Expected Results
-- Hover effects (opacity/color change) MUST work correctly, indicating the elements are on top of the progress bar.
-- Clicking the button MUST trigger the cancellation flow immediately.
-- The progress bar should not "swallow" or block the click event.
+- Each platform pill MUST show its own individual status label (e.g., "In Queue" or "Uploading").
+- As soon as a platform starts distributing, a subtle background progress bar MUST appear inside the pill.
+- The bar should animate smoothly from 0% to 100%.
+- A percentage text (e.g., "45%") MUST be visible next to the label when progress is greater than 0%.
+- Once a platform reaches 100%, it should transition to a successful state with a link.
 
 ---
 

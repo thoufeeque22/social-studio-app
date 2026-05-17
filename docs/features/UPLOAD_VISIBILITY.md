@@ -71,9 +71,12 @@ If a user has multiple tabs open:
 - The background upload process (which might be running in the original Dashboard tab or a worker) polls this signal and terminates immediately.
 - The Dashboard tab observes the global abort and resets its local distribution engine.
 
-### 6. Integrated Activity Hub Indicators
+### 4. Integrated Activity Hub Indicators
 - **Processing Dot**: An animated pulsing dot appears next to the post title in the Activity Hub while any part of the process (staging or distribution) is active.
+- **Individual Progress Bars**: Each platform pill (YouTube, Instagram, etc.) features a subtle, semi-transparent background fill that animates in real-time as the server heartbeats progress back to the database. This allows users to track the distribution status of each platform independently.
+- **Granular Status Labels**: Platforms transition through clear, technical states: **"(In Queue)"**, **"(Uploading)"**, and **"(Distributing)"**, ensuring total transparency into the backend pipeline.
 - **Universal Status Messages**: Status messages are generalized and technical (e.g., "Initializing distribution", "Preparing assets"). Chat emojis have been removed for a professional aesthetic.
+
 
 ## Reliability & Fixes
 

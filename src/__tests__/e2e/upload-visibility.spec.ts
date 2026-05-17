@@ -269,4 +269,46 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
     // 6. Ghost card should be removed from view since it was never in the DB
     await expect(page.getByText('Initial Ghost')).not.toBeVisible();
   });
+
+  test('Distribution: Individual platform progress bars are visible', async ({ page }) => {
+    // 1. Mock history with a platform showing 65% progress
+    await page.route('**/api/history*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: [{
+            id: 'post-progress-test',
+            title: 'Progress Testing',
+            videoFormat: 'short',
+            createdAt: new Date().toISOString(),
+            platforms: [
+              { id: 'p-youtube', platform: 'youtube', status: 'uploading', progress: 65 },
+              { id: 'p-facebook', platform: 'facebook', status: 'pending', progress: 0 }
+            ]
+          }]
+        })
+      });
+    });
+
+    await page.goto('/history');
+
+    const postCard = page.getByTestId('history-post-post-progress-test');
+    
+    // 2. Verify YouTube progress bar and percentage
+    const youtubeBar = postCard.getByTestId('progress-bar-youtube');
+    await expect(youtubeBar).toBeVisible();
+    // Check width style (it's applied via React style prop)
+    await expect(youtubeBar).toHaveAttribute('style', /width: 65%/);
+    await expect(postCard.getByText('65%')).toBeVisible();
+    await expect(postCard.getByText(/YouTube \(Uploading\)/i)).toBeVisible();
+
+    // 3. Verify Facebook progress bar (track should be visible even at 0%)
+    const facebookBar = postCard.getByTestId('progress-bar-facebook');
+    await expect(facebookBar).toBeVisible();
+    await expect(facebookBar).toHaveAttribute('style', /width: 0%/);
+    await expect(postCard.getByText(/Facebook \(In Queue\)/i)).toBeVisible();
+
+    await page.screenshot({ path: 'verification/individual-platform-progress.png', fullPage: true });
+  });
 });

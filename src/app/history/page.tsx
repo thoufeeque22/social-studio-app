@@ -264,11 +264,11 @@ function HistoryContent() {
     }
 
     setInPlaceStatus("Synchronizing Activity Hub...");
-    // REFRESH LIST TO SHOW THE NEW ROW
-    try {
-      const freshData = await fetchHistory();
+    
+    // START LIST REFRESH in background, don't wait for it to start staging
+    fetchHistory().then(freshData => {
       setPosts(freshData.data || []);
-    } catch (e) { console.error("Initial list refresh failed", e); }
+    }).catch(e => console.error("Initial list refresh failed", e));
     
     try {
       setInPlaceStatus("Accessing local video storage...");
@@ -620,14 +620,17 @@ function HistoryContent() {
       isFailed ? styles.failedTooltip : '',
     ].filter(Boolean).join(' ');
 
-    const showProgress = (isPending || isUploading) && !isPostStale && p.progress > 0;
+    // Always show bar if active (pending or uploading) to give visual feedback of "starting"
+    const isActiveStatus = (isPending || isUploading) && !isPostStale;
+    const showProgressText = isActiveStatus && p.progress > 0;
 
     const content = (
       <>
-        {showProgress && (
+        {isActiveStatus && (
            <div 
              className={styles.pillProgressBar} 
-             style={{ width: `${p.progress}%` }} 
+             style={{ width: `${Math.max(p.progress, 0)}%` }} 
+             data-testid={`progress-bar-${p.platform}`}
            />
         )}
         <span className={styles.pillIcon} style={{ display: 'flex', alignItems: 'center' }}>
@@ -642,8 +645,9 @@ function HistoryContent() {
           {isPostStale ? `${meta.label} (Waiting for Video)` : 
            isCancelled ? `${meta.label} (Stopped)` : 
            (isPending && !isPostStale) ? (p.progress > 0 ? `${meta.label} (Distributing)` : `${meta.label} (In Queue)`) : 
+           isUploading ? `${meta.label} (Uploading)` :
            meta.label}
-          {showProgress && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
+          {showProgressText && <span className={styles.progressPercent}>{Math.round(p.progress)}%</span>}
         </span>
         
         {/* ACTION BUTTONS */}
@@ -833,7 +837,7 @@ function HistoryContent() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
                         {isCardActive && <span className={styles.processingDot} />}
-                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
+                        {post.title} {isOptimistic && !isPostCancelled && <span style={{ opacity: 0.6, fontSize: '0.8em' }}></span>}
                       </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
