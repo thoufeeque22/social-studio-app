@@ -150,6 +150,21 @@ function HistoryContent() {
     }
   }, []);
 
+  // Reconciliation: Clear pendingPost once it appears in the main list
+  useEffect(() => {
+    if (pendingPost && posts.length > 0) {
+      const match = posts.find(p => 
+        p.id === pendingPost.resumeHistoryId || 
+        p.id === pendingPost.historyId ||
+        (p.title === pendingPost.title && Math.abs(new Date(p.createdAt).getTime() - Date.now()) < 60000)
+      );
+      if (match) {
+        setPendingPost(null);
+        localStorage.removeItem('SS_PENDING_POST');
+      }
+    }
+  }, [posts, pendingPost]);
+
   useEffect(() => {
     const urlSearch = searchParams.get('search');
     if (urlSearch) {
@@ -212,10 +227,9 @@ function HistoryContent() {
       });
 
       setInPlaceStatus(" Mission Accomplished!");
-      localStorage.removeItem('SS_PENDING_POST');
+      // We no longer clear pendingPost or storage here; let the reconciliation effect handle it
       const data = await fetchHistory();
       setPosts(data.data || []);
-      setPendingPost(null);
       setTimeout(() => {
         setActiveResumingId(null);
         // Clear URL param
@@ -680,6 +694,31 @@ function HistoryContent() {
     );
   }
 
+  // Optimized Timeline: Merge pendingPost if not already in posts
+  const reconciledPosts = [...posts];
+  if (pendingPost && !posts.some(p => p.id === pendingPost.resumeHistoryId || p.id === pendingPost.historyId || (p.title === pendingPost.title && Math.abs(new Date(p.createdAt).getTime() - Date.now()) < 120000))) {
+    reconciledPosts.unshift({
+      id: pendingPost.resumeHistoryId || pendingPost.historyId || 'optimistic-pending',
+      title: pendingPost.title,
+      description: pendingPost.description || null,
+      videoFormat: pendingPost.videoFormat,
+      createdAt: new Date().toISOString(),
+      stagedFileId: pendingPost.galleryFileId || null,
+      platforms: (pendingPost.platforms || []).map((p, idx) => ({
+        id: `optimistic-p-${idx}`,
+        platform: p.platform,
+        accountName: null,
+        platformPostId: null,
+        permalink: null,
+        status: 'pending',
+        progress: 0,
+        errorMessage: null,
+        accountId: p.accountId
+      })),
+      isOptimistic: true
+    } as any);
+  }
+
   return (
     <div className={styles.historyPage}>
       <div className={styles.header}>
@@ -698,26 +737,7 @@ function HistoryContent() {
         placeholder="Search history by title or description..."
       />
 
-      {/* OPTIMISTIC POST */}
-      {pendingPost && (
-        <div className={styles.timeline}>
-          <div className={styles.postCard}>
-            <div className={styles.timelineDot} />
-            <GlassCard className={`${styles.cardInner} ${styles.activePost}`} style={{ opacity: 0.8 }}>
-              <div className={styles.cardHeader} style={{ paddingTop: '1.75rem' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 className={styles.postTitle}>
-                    <span className={`${styles.processingDot} animate-pulse`} />
-                    {pendingPost.title} (Initializing...)
-                  </h3>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
-        </div>
-      )}
-
-      {posts.length === 0 ? (
+      {reconciledPosts.length === 0 ? (
         <GlassCard>
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
@@ -731,15 +751,16 @@ function HistoryContent() {
         </GlassCard>
       ) : (
         <div className={styles.timeline}>
-          {posts.map((post) => {
+          {reconciledPosts.map((post) => {
+            const isOptimistic = (post as any).isOptimistic;
             const isActive = post.platforms.some(p => ['pending', 'uploading', 'processing', 'retrying'].includes(p.status));
             const allPending = post.platforms.every(p => p.status === 'pending');
             const isActiveStaging = stagingStatus.active && stagingStatus.historyId === post.id;
 
             return (
-              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isActive || isActiveStaging ? styles.activePost : ''}`}>
+              <div key={post.id} data-testid={`history-post-${post.id}`} className={`${styles.postCard} ${isActive || isActiveStaging || isOptimistic ? styles.activePost : ''}`}>
                 <div className={styles.timelineDot} />
-                <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden' }}>
+                <GlassCard className={styles.cardInner} style={{ position: 'relative', overflow: 'hidden', opacity: isOptimistic ? 0.7 : 1 }}>
                   {/* LIVE STAGING PROGRESS */}
                   {isActiveStaging && (
                     <div className={styles.globalPrepBar} data-testid="preparation-bar">
@@ -755,62 +776,64 @@ function HistoryContent() {
                   )}
 
                   {/* GLOBAL PREPARATION BAR (Fallback) */}
-                  {!isActiveStaging && allPending && isActive && (
-                    <div className={styles.globalPrepBar}>
+                  {!isActiveStaging && allPending && (isActive || isOptimistic) && (
+                    <div className={styles.globalPrepBar} data-testid={isOptimistic ? "ghost-card-bar" : undefined}>
                       <div className={styles.globalPrepProgress} />
                       <span className={styles.globalPrepText}>
-                        <SettingsIcon className="animate-spin" sx={{ fontSize: 16 }} /> Preparing for distribution...
+                        <SettingsIcon className="animate-spin" sx={{ fontSize: 16 }} /> {isOptimistic ? 'Initializing...' : 'Preparing for distribution...'}
                       </span>
                     </div>
                   )}
 
-                  <div className={styles.cardHeader} style={(allPending && isActive) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
+                  <div className={styles.cardHeader} style={(allPending && (isActive || isOptimistic)) || isActiveStaging ? { paddingTop: '1.75rem' } : {}}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 className={styles.postTitle}>
-                        {(isActive || isActiveStaging) && <span className={styles.processingDot} />}
-                        {post.title}
+                        {(isActive || isActiveStaging || isOptimistic) && <span className={styles.processingDot} />}
+                        {post.title} {isOptimistic && <span style={{ opacity: 0.6, fontSize: '0.8em' }}>(Initializing)</span>}
                       </h3>
                       {post.description && (
                         <p className={styles.postDescription}>{post.description}</p>
                       )}
                     </div>
-                    <div className={styles.metaBadges}>
-                      <span className={`${styles.formatBadge} ${post.videoFormat === 'short' ? styles.formatShort : styles.formatLong}`}>
-                        {post.videoFormat === 'short' ? ' Short' : ' Long'}
-                      </span>
-                      <span className={styles.timestamp}>
-                        {formatRelativeDate(post.createdAt)}
-                      </span>
-                      
-                      {(isActive || isActiveStaging) && (
-                        <button 
-                          className={styles.stopAllButton}
-                          onClick={(e) => handleCancelAll(e, post.id)}
-                          title="Stop All active distributions for this post"
-                        >
-                          <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
-                        </button>
-                      )}
+                    {!isOptimistic && (
+                      <div className={styles.metaBadges}>
+                        <span className={`${styles.formatBadge} ${post.videoFormat === 'short' ? styles.formatShort : styles.formatLong}`}>
+                          {post.videoFormat === 'short' ? ' Short' : ' Long'}
+                        </span>
+                        <span className={styles.timestamp}>
+                          {formatRelativeDate(post.createdAt)}
+                        </span>
+                        
+                        {(isActive || isActiveStaging) && (
+                          <button 
+                            className={styles.stopAllButton}
+                            onClick={(e) => handleCancelAll(e, post.id)}
+                            title="Stop All active distributions for this post"
+                          >
+                            <StopIcon sx={{ fontSize: 16 }} /> STOP ALL
+                          </button>
+                        )}
 
-                      {(() => {
-                        const postCreatedAt = new Date(post.createdAt).getTime();
-                        const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
-                        if (isPostStale && !isActiveStaging) {
-                          return (
-                            <button 
-                              className={styles.resumeButton}
-                              onClick={() => handleInPlaceResume(post)}
-                              disabled={activeResumingId === post.id}
-                              style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              {activeResumingId === post.id ? <HistoryIcon className="animate-pulse" sx={{ fontSize: 16 }} /> : <RocketLaunchIcon sx={{ fontSize: 16 }} />}
-                              {activeResumingId === post.id ? 'Processing' : 'Manual Resume'}
-                            </button>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
+                        {(() => {
+                          const postCreatedAt = new Date(post.createdAt).getTime();
+                          const isPostStale = post.platforms.some(p => p.status === 'pending') && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
+                          if (isPostStale && !isActiveStaging) {
+                            return (
+                              <button 
+                                className={styles.resumeButton}
+                                onClick={() => handleInPlaceResume(post)}
+                                disabled={activeResumingId === post.id}
+                                style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                {activeResumingId === post.id ? <HistoryIcon className="animate-pulse" sx={{ fontSize: 16 }} /> : <RocketLaunchIcon sx={{ fontSize: 16 }} />}
+                                {activeResumingId === post.id ? 'Processing' : 'Manual Resume'}
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.platformRow}>

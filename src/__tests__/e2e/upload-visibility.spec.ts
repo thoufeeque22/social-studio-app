@@ -117,8 +117,47 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
     await page.reload();
 
     // 4. Verify optimistic card
-    const ghostCard = page.getByText('Optimistic Video (Initializing...)');
+    const ghostCard = page.getByText(/Optimistic Video/i);
     await expect(ghostCard).toBeVisible();
+    await expect(page.getByText(/Initializing/i).first()).toBeVisible();
+    
     await page.screenshot({ path: 'verification/optimistic-ghost-card.png', fullPage: true });
+  });
+
+  test('Optimistic UI: Ghost card persists after fetch without record', async ({ page }) => {
+    // 1. Initial empty mock
+    let callCount = 0;
+    await page.route('**/api/history*', async (route) => {
+      callCount++;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [] }) // Still empty
+      });
+    });
+
+    await page.goto('/history');
+
+    // 2. Inject pending post
+    await page.evaluate(() => {
+      localStorage.setItem('SS_PENDING_POST', JSON.stringify({
+        title: 'Persistent Ghost',
+        videoFormat: 'short',
+        platforms: [{ platform: 'youtube', accountId: '1' }]
+      }));
+    });
+
+    await page.reload();
+
+    // 3. Verify it's there
+    await expect(page.getByText('Persistent Ghost')).toBeVisible();
+
+    // 4. Wait for a poll (should be 15s since no active posts, but we can trigger it or wait)
+    // Actually, we mocked the route to return empty. 
+    // Even if it polls, it should stay visible.
+    
+    // We can simulate another load or just wait.
+    // The previous bug was that it disappeared after the FIRST fetch.
+    await expect(page.getByText('Persistent Ghost')).toBeVisible();
   });
 });
