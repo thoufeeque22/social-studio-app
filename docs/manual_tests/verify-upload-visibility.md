@@ -25,7 +25,8 @@ Verify that the user receives real-time, context-specific feedback within the Ac
 - **Optimistic UI:** A "Ghost Card" (skeleton/placeholder) appears at the top of the timeline *before* the real history record is fetched.
 - **Persistence:** Even if the history list fetch takes several seconds (due to throttling), the Ghost Card MUST persist and continue showing real-time progress from `localStorage`. It should not flicker or disappear between polling cycles.
 - A "Processing Dot" (pulsing blue/primary) is visible on this Ghost Card.
-- The card displays "Synchronizing cockpit state..." or "Resuming stream: X%".
+- The card displays technical status messages like "Synchronizing cockpit state..." or "Resuming stream: X%".
+- **Emoji Audit:** Verify that NO emojis are present in any status text (e.g., no rocket, no cloud, no checkmarks).
 - Once the history fetch completes, the Ghost Card should seamlessly transition into the real History Card (reconciled by ID or fuzzy matching).
 - No floating HUD is visible on the Dashboard or Activity Hub.
 
