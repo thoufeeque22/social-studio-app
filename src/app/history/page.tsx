@@ -657,7 +657,7 @@ function HistoryContent() {
               <RefreshIcon sx={{ fontSize: 14 }} />
             </button>
           )}
-          {(isPending || isOptimistic) && !isPostStale && (
+          {(isPending || isOptimistic) && !isCancelled && !isPostStale && (
             <button 
               className={styles.pillActionButton} 
               onClick={(e) => handleCancelPlatform(e, p.id, p.platform, post.id)}
