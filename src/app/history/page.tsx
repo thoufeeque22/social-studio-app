@@ -125,6 +125,7 @@ function HistoryContent() {
   const [activeResumingId, setActiveResumingId] = useState<string | null>(null);
   const [inPlaceStatus, setInPlaceStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cockpitStartedRef = useRef(false);
   const { accounts } = useAccounts();
@@ -410,7 +411,10 @@ function HistoryContent() {
   const handleCancelPlatform = async (e: React.MouseEvent, resultId: string, platform?: string, historyId?: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (processingIds.includes(resultId)) return;
+    if (processingIds.includes(resultId) || cancelledIds.includes(resultId)) return;
+
+    // Optimistically mark as cancelled
+    setCancelledIds(prev => [...prev, resultId]);
 
     setProcessingIds(prev => [...prev, resultId]);
     try {
@@ -426,6 +430,8 @@ function HistoryContent() {
       setPosts(data.data || []);
     } catch (err: unknown) {
       console.error("Cancel error:", err);
+      // Revert optimism on error
+      setCancelledIds(prev => prev.filter(id => id !== resultId));
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== resultId));
     }
@@ -434,6 +440,14 @@ function HistoryContent() {
   const handleCancelAll = async (e: React.MouseEvent, historyId: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Optimistically mark all platforms for this post as cancelled
+    const targetPost = posts.find(p => p.id === historyId);
+    if (targetPost) {
+        setCancelledIds(prev => [...prev, ...targetPost.platforms.map(p => p.id)]);
+    } else if (historyId === 'optimistic-pending' && pendingPost) {
+        setCancelledIds(prev => [...prev, ...pendingPost.platforms.map((_, i) => `optimistic-p-${i}`)]);
+    }
     
     // 1. Signal ABORT to other tabs IMMEDIATELY (Immediate Feedback)
     if (globalThis.localStorage) {
@@ -581,10 +595,10 @@ function HistoryContent() {
     };
 
     const isFailed = p.status === 'failed';
-    const isCancelled = p.status === 'cancelled';
+    const isCancelled = p.status === 'cancelled' || cancelledIds.includes(p.id);
     const isRetrying = p.status === 'retrying' || processingIds.includes(p.id);
-    const isUploading = p.status === 'uploading';
-    const isPending = p.status === 'pending' || p.status === 'processing';
+    const isUploading = p.status === 'uploading' && !isCancelled;
+    const isPending = (p.status === 'pending' || p.status === 'processing') && !isCancelled;
     
     const postCreatedAt = new Date(post.createdAt).getTime();
     const isPostStale = p.status === 'pending' && (Date.now() - postCreatedAt > 60 * 1000) && !post.stagedFileId;
