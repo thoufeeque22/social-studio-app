@@ -237,33 +237,44 @@ export default function DashboardClient({
     }
   }, [stagedFileIdParam, setUploadStatus]);
 
+  // Helper to map account IDs to platform objects safely
+  const mapAccountIdsToPlatforms = (ids: string[], accounts: Account[], isPlatformSpecific: boolean, formData: FormData) => {
+    return ids.map(id => {
+      const isSplit = id.includes(':');
+      const platformKey = isSplit ? id.split(':')[0] : null;
+      const actualAccountId = isSplit ? id.split(':')[1] : id;
+      
+      const account = accounts.find(a => a.id === actualAccountId);
+      if (!account) return null; // CRITICAL: Stop stale IDs from leaking in
+
+      let provider = account.provider === 'google' ? 'youtube' : account.provider;
+      if (isSplit && platformKey) provider = platformKey;
+
+      const customContent = isPlatformSpecific ? {
+        title: formData.get(`title_${provider}`) as string,
+        description: formData.get(`description_${provider}`) as string
+      } : undefined;
+
+      return { 
+        platform: provider, 
+        accountId: actualAccountId,
+        customContent
+      };
+    }).filter((p): p is NonNullable<typeof p> => p !== null && p.platform !== 'unknown');
+  };
+
   // 4. HANDLERS: Orchestrating the flows
   const handleMainAction = async (formData: FormData, targetAccountIds?: string[]) => {
     try {
       const isPlatformSpecific = formData.get('isPlatformSpecific') === 'true';
 
-      // 1. Prepare Metadata for Cockpit Mode
-      const targetPlatforms = (targetAccountIds || selectedAccountIds)
-        .map(id => {
-          const isSplit = id.includes(':');
-          const platformKey = isSplit ? id.split(':')[0] : null;
-          const actualAccountId = isSplit ? id.split(':')[1] : id;
-          const account = devAccounts.find(a => a.id === actualAccountId);
-          let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
-          if (isSplit && platformKey) provider = platformKey;
-
-          const customContent = isPlatformSpecific ? {
-            title: formData.get(`title_${provider}`) as string,
-            description: formData.get(`description_${provider}`) as string
-          } : undefined;
-
-          return { 
-            platform: provider, 
-            accountId: actualAccountId,
-            customContent
-          };
-        })
-        .filter(p => p.platform !== 'unknown');
+      // 1. Prepare Metadata for Cockpit Mode (Strict filtering)
+      const targetPlatforms = mapAccountIdsToPlatforms(
+        targetAccountIds || selectedAccountIds, 
+        devAccounts, 
+        isPlatformSpecific, 
+        formData
+      );
 
       if (targetPlatforms.length === 0) {
         setUploadStatus("️ No valid platforms selected.");
@@ -355,19 +366,16 @@ export default function DashboardClient({
       const { updatePlatformResultsAction } = await import('@/app/actions/history');
       await updatePlatformResultsAction(reviewContext.historyId, updatedPreviews);
 
-      // Reconstruct the pending post for the Cockpit UI
-      const targetPlatforms = selectedAccountIds.map(id => {
-        const isSplit = id.includes(':');
-        const platformKey = isSplit ? id.split(':')[0] : null;
-        const actualAccountId = isSplit ? id.split(':')[1] : id;
-        const account = devAccounts.find(a => a.id === actualAccountId);
-        let provider = account ? (account.provider === 'google' ? 'youtube' : account.provider) : 'unknown';
-        if (isSplit && platformKey) provider = platformKey;
-        return { platform: provider, accountId: actualAccountId };
-      }).filter(p => p.platform !== 'unknown');
+      // Reconstruct the pending post for the Cockpit UI (Strict filtering)
+      const targetPlatforms = mapAccountIdsToPlatforms(
+        selectedAccountIds, 
+        devAccounts, 
+        false, 
+        reviewContext.formData
+      );
 
       const pendingPost = {
-        title: "AI Optimized Post", // Cockpit uses DB anyway, this is just for UI placeholder
+        title: "AI Optimized Post", 
         description: "",
         videoFormat,
         aiTier,
