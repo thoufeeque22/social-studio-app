@@ -184,7 +184,7 @@ function HistoryContent() {
   }, []);
 
   const executeCockpitDistribution = useCallback(async (stagedFileId: string, fileName: string, historyId: string, post: CockpitPost, reviewedContent?: Record<string, AIWriteResult>) => {
-    setInPlaceStatus(" Launching Mission...");
+    setInPlaceStatus("Launching Mission...");
     
     try {
       if (reviewedContent) {
@@ -208,7 +208,7 @@ function HistoryContent() {
       fd.append('title', post.title || '');
       fd.append('description', post.description || '');
 
-      setInPlaceStatus("️ Distributing to Platforms...");
+      setInPlaceStatus("Distributing to Platforms...");
       await distributeToPlatforms({
         stagedFileId,
         fileName,
@@ -226,7 +226,7 @@ function HistoryContent() {
         }
       });
 
-      setInPlaceStatus(" Mission Accomplished!");
+      setInPlaceStatus("Mission Accomplished!");
       // We no longer clear pendingPost or storage here; let the reconciliation effect handle it
       const data = await fetchHistory();
       setPosts(data.data || []);
@@ -243,7 +243,7 @@ function HistoryContent() {
 
   const handleCockpitStart = useCallback(async () => {
     if (accounts.length === 0) {
-      setInPlaceStatus("⏳ Waiting for platform accounts...");
+      setInPlaceStatus("Waiting for platform accounts...");
       return;
     }
     

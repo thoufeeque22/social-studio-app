@@ -17,7 +17,9 @@
       "Merged Ghost Card into the main timeline for seamless visual transition.",
       "Added fuzzy matching (title + timestamp) for reconciliation as a fallback.",
       "Updated E2E tests to verify Ghost Card persistence across multiple history fetches.",
-      "Ensured immediate redirect from Dashboard to Activity Hub."
+      "Ensured immediate redirect from Dashboard to Activity Hub.",
+      "Generalized status messages to handle multi-platform distribution (e.g., 'Distributing to Platforms').",
+      "Removed all chat emojis from user-facing status strings to comply with project mandates."
     ],
     "expected_output": {
       "status": "PASS",
@@ -25,8 +27,9 @@
         "npx tsc --noEmit success.",
         "Ghost Card appears instantly in Activity Hub after redirection.",
         "Ghost Card persists even if initial poll doesn't return the record yet.",
-        "All Playwright tests passed.",
-        "Zero layout shifts or disappearing cards."
+        "All Playwright tests (5/5) passed.",
+        "Zero chat emojis in user-facing status messages.",
+        "Immediate Dashboard redirect confirmed."
       ]
     }
   },

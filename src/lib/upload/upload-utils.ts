@@ -101,7 +101,7 @@ export async function stageVideoFile({
 
   if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
 
-  broadcast(" Synchronizing cockpit state...");
+  broadcast("Synchronizing cockpit state...");
   let existingChunks: number[] = [];
   try {
     const chunksResponse = await fetch(`/api/upload/chunks/${uploadId}`, { signal });
@@ -119,7 +119,7 @@ export async function stageVideoFile({
 
     if (existingChunks.includes(i)) {
       const progress = Math.round(((i + 1) / totalChunks) * 100);
-      broadcast(`🚀 Resuming stream: ${progress}%`, progress);
+      broadcast(`Resuming stream: ${progress}%`, progress);
       continue;
     }
     
@@ -128,7 +128,7 @@ export async function stageVideoFile({
     const chunk = file.slice(start, end);
 
     const progress = Math.round((i / totalChunks) * 100);
-    broadcast(`📤 Streaming to Cloud: ${progress}%`, progress);
+    broadcast(`Streaming to Cloud: ${progress}%`, progress);
 
     let success = false;
     for (let retry = 0; retry < 3; retry++) {
@@ -157,7 +157,7 @@ export async function stageVideoFile({
 
   if (checkGlobalAbort(uploadId)) throw new Error("Upload cancelled by user.");
 
-  broadcast("🔗 Finalizing for launch...", 99);
+  broadcast("Finalizing for launch...", 99);
   const assembleResponse = await fetch(`/api/upload/assemble`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -253,7 +253,7 @@ export async function distributeToPlatforms({
 
     if (checkGlobalAbort(historyId)) return;
 
-    broadcast(`📤 Uploading to ${platform}...`);
+    broadcast(`Uploading to Platforms...`);
 
     try {
       const sanitized = sanitizeMetadata(platform, formData.get('title') as string, formData.get('description') as string);
