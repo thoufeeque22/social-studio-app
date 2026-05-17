@@ -12,7 +12,7 @@ interface UploadHUDProps {
 export const UploadHUD: React.FC<UploadHUDProps> = ({ onStop }) => {
   const { status, percent, active } = useUploadStatus();
 
-  if (!active || !status) return null;
+  if (!active) return null;
 
   const handleStop = () => {
     if (onStop) {

@@ -119,7 +119,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     return Array.from(platformsSet);
   }, [selectedAccountIds, accounts]);
 
-  const { status: currentStatus, percent } = useUploadStatus();
+  const { status: currentStatus, percent, active: isSyncActive } = useUploadStatus();
 
   const [showGallery, setShowGallery] = useState(false);
 
@@ -128,6 +128,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     const formData = new FormData(e.currentTarget);
     onSubmit(formData);
   };
+
+  const showProgress = isUploading || isSyncActive;
 
   return (
     <GlassCard id="create-post-section" style={{ padding: '2rem' }}>
@@ -174,10 +176,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         </div>
       )}
 
-      {isUploading && (
+      {showProgress && (
         <Box sx={{ mb: 2, p: 2, borderRadius: 2, background: 'hsla(var(--primary) / 0.05)', border: '1px solid hsla(var(--primary) / 0.1)' }}>
           <Typography variant="caption" sx={{ color: 'hsl(var(--primary))', fontWeight: 700, mb: 1, display: 'block' }}>
-            {currentStatus || 'Processing...'}
+            {currentStatus || (isUploading ? 'Processing...' : '')}
           </Typography>
           <LinearProgress 
             variant={percent !== null ? "determinate" : "indeterminate"} 

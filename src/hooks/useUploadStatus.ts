@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { z } from 'zod';
 
 const UploadStatusSchema = z.object({
-  status: z.string().nullable(),
-  percent: z.number().nullable(),
+  status: z.string().nullable().optional(),
+  percent: z.number().nullable().optional(),
   active: z.boolean(),
 });
 
-type UploadStatus = z.infer<typeof UploadStatusSchema>;
+type UploadStatus = {
+  status: string | null;
+  percent: number | null;
+  active: boolean;
+};
 
 export const useUploadStatus = (): UploadStatus => {
   const [status, setStatus] = useState<UploadStatus>({
@@ -27,7 +31,11 @@ export const useUploadStatus = (): UploadStatus => {
       try {
         const parsed = JSON.parse(rawData);
         const validated = UploadStatusSchema.parse(parsed);
-        setStatus(validated);
+        setStatus({
+          status: validated.status ?? null,
+          percent: validated.percent ?? null,
+          active: validated.active
+        });
       } catch (error) {
         console.error('Failed to parse SS_STAGING_STATUS', error);
         setStatus({ status: null, percent: null, active: false });
