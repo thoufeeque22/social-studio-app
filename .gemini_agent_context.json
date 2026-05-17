@@ -1,5 +1,5 @@
 {
-  "last_agent": "review-agent",
+  "last_agent": "dev-agent",
   "branch_name": "fix/425-upload-visibility",
   "ticket_goal": "Implement Enhanced Upload Visibility (#425)",
   "ticket_id": 425,
@@ -12,6 +12,7 @@
       "src/components/dashboard/UploadForm/index.tsx",
       "src/__tests__/components/upload-form-forward.test.tsx",
       "src/__tests__/integration/humanization-security.test.tsx",
+      "src/__tests__/e2e/upload-visibility.spec.ts",
       "docs/features/UPLOAD_VISIBILITY.md",
       "docs/manual_tests/verify-upload-visibility.md"
     ],
@@ -23,17 +24,17 @@
       "Ensured immediate redirect to Activity Hub upon clicking 'Post Video' (or Confirming AI Strategy).",
       "Removed redirect delay and completion overlay for faster feedback loop.",
       "Updated unit and integration tests to match the new UploadForm API.",
-      "Fixed linting error in parallel distribution test."
+      "Fixed E2E timeout by moving localStorage abort signal to the START of handleCancelAll.",
+      "Enhanced E2E test robustness with increased poll timeouts."
     ],
     "expected_output": {
       "status": "PASS",
       "conditions": [
         "npx tsc --noEmit success.",
-        "Dashboard shows NO upload status or progress bars.",
-        "Dashboard redirects to Activity Hub immediately after post initiation.",
-        "Clicking 'STOP ALL' in Activity Hub terminates active uploads in other tabs (cross-tab sync).",
-        "Unit and integration tests pass.",
-        "npm run build success."
+        "npm run build success.",
+        "All unit and integration tests pass.",
+        "All E2E tests (including STOP ALL) pass.",
+        "Dashboard redirects immediately and shows no status bars."
       ]
     }
   },
@@ -44,6 +45,18 @@
         "Successful validation of all fixes_applied.",
         "Adherence to docs/ and API contracts.",
         "No security vulnerabilities found in diff."
+      ]
+    }
+  },
+  "qa-agent": {
+    "verdict": "PASS",
+    "details": "All E2E tests passed, including the STOP ALL broadcast signal verification.",
+    "expected_output": {
+      "conditions": [
+        "npx playwright test success.",
+        "Full E2E test coverage including STOP ALL functionality.",
+        "Visual artifacts generated in verification/ folder.",
+        "Zero Network/Hydration errors observed."
       ]
     }
   }

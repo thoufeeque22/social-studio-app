@@ -383,41 +383,49 @@ function HistoryContent() {
     e.preventDefault();
     e.stopPropagation();
     
-    try {
-      const { cancelAllUploadsAction } = await import('@/app/actions/history');
-      await cancelAllUploadsAction(historyId);
-      
-      // Clear local storage if it's the active staging post
-      if (globalThis.localStorage) {
-        const staging = localStorage.getItem('SS_STAGING_STATUS');
-        if (staging) {
+    // 1. Signal ABORT to other tabs IMMEDIATELY (Immediate Feedback)
+    if (globalThis.localStorage) {
+      const staging = localStorage.getItem('SS_STAGING_STATUS');
+      if (staging) {
+        try {
           const { historyId: stagedId } = JSON.parse(staging);
           if (stagedId === historyId) {
-            // Signal ABORT to other tabs
             localStorage.setItem('SS_STAGING_STATUS', JSON.stringify({
               historyId,
               active: false,
               status: 'Stopped by user',
               timestamp: Date.now()
             }));
-            
-            setActiveResumingId(null);
-            setInPlaceStatus(null);
-            
-            // Actually remove after a short delay to let other tabs see it
-            setTimeout(() => {
-              if (localStorage.getItem('SS_STAGING_STATUS')) {
-                const current = JSON.parse(localStorage.getItem('SS_STAGING_STATUS')!);
-                if (current.historyId === historyId && current.active === false) {
-                  localStorage.removeItem('SS_STAGING_STATUS');
-                }
-              }
-            }, 1000);
           }
+        } catch (err) {
+          console.error("Failed to parse staging status for abort", err);
         }
       }
+    }
 
+    setActiveResumingId(null);
+    setInPlaceStatus(null);
+    
+    try {
+      const { cancelAllUploadsAction } = await import('@/app/actions/history');
+      await cancelAllUploadsAction(historyId);
+      
       const data = await fetchHistory();
+      setPosts(data.data || []);
+
+      // Actually remove after a short delay to let other tabs see it
+      setTimeout(() => {
+        if (localStorage.getItem('SS_STAGING_STATUS')) {
+          try {
+            const current = JSON.parse(localStorage.getItem('SS_STAGING_STATUS')!);
+            if (current.historyId === historyId && current.active === false) {
+              localStorage.removeItem('SS_STAGING_STATUS');
+            }
+          } catch {
+             localStorage.removeItem('SS_STAGING_STATUS');
+          }
+        }
+      }, 1000);
       setPosts(data.data || []);
     } catch (err: unknown) {
       console.error("Cancel All error:", err);

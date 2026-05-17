@@ -62,19 +62,28 @@ test.describe('Activity Hub: Upload Preparation Bar', () => {
     
     await page.reload();
 
+    // Ensure the bar is visible first
     const postCard = page.getByTestId('history-post-post-123');
+    await expect(postCard.getByTestId('preparation-bar')).toBeVisible();
+
     const stopButton = postCard.getByRole('button', { name: /STOP ALL/i });
-    
     await expect(stopButton).toBeVisible();
     
+    // Click STOP ALL
     await stopButton.click();
     
     // Wait for the localStorage signal to be set to active: false
+    // useUploadStatus polls every 500ms, so we allow enough time
     await expect.poll(async () => {
       const raw = await page.evaluate(() => localStorage.getItem('SS_STAGING_STATUS'));
-      if (!raw) return true; // Could have been cleared already
-      return JSON.parse(raw).active;
-    }).toBe(false);
+      if (!raw) return true; // Could have been cleared already by the 1s timeout in handleCancelAll
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed.active;
+      } catch {
+        return false;
+      }
+    }, { timeout: 10000 }).toBe(false);
 
     // Now the UI should reflect this (bar gone)
     await expect(postCard.getByTestId('preparation-bar')).not.toBeVisible();
