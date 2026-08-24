@@ -39,6 +39,7 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
   };
 
   const handleGoogleLogin = async () => {
+    import('@/lib/analytics').then(({ trackEvent }) => trackEvent('signup'));
     const isNative = typeof window !== 'undefined' && Capacitor.getPlatform() !== 'web' && (Capacitor.isNativePlatform() || navigator.userAgent.includes(APP_CONFIG.userAgent));
     const redirectUrl = getRedirectUrl();
     if (isNative) {
@@ -50,6 +51,7 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
   };
 
   const handleEmailLogin = async (email: string) => {
+    import('@/lib/analytics').then(({ trackEvent }) => trackEvent('signup'));
     setEmailMsg(null);
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getRedirectUrl() } });
 
@@ -87,7 +89,11 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
         />
         {/* E2E Bypass Form */}
         <E2ELoginForm />
-        <div className={styles.footer}>By continuing, you agree to our <br /> <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a></div>
+        <div className={styles.footer}>
+          By continuing, you agree to our <br /> <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+          <br /><br />
+          <span style={{ opacity: 0.8 }}>🛡️ Privacy-First / Zero Tracking Cookies</span>
+        </div>
       </div>
     </div>
   );

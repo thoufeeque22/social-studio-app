@@ -58,7 +58,7 @@ export const PrivacyThirdParty = () => (
     <Box sx={{ ml: 2 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }} gutterBottom>Infrastructure, Payment & Telemetry</Typography>
       <Typography variant="body1" gutterBottom>
-        We use <strong>Stripe</strong> for secure payment processing and do not store your full credit card details on our servers. For essential infrastructure, we use <strong>Upstash</strong> for rate-limiting and security, and <strong>Resend</strong> for transactional email delivery. We also use <strong>Sentry</strong> for error monitoring and diagnostics to ensure the stability of the Service.
+        We use <strong>Stripe</strong> for secure payment processing and do not store your full credit card details on our servers. For essential infrastructure, we use <strong>Upstash</strong> for rate-limiting and security, and <strong>Resend</strong> for transactional email delivery. We also use <strong>Sentry</strong> for error monitoring and diagnostics to ensure the stability of the Service. We use <strong>Umami Analytics</strong> for cookieless, anonymized website analytics (no PII is collected, and no tracking cookies are used).
       </Typography>
     </Box>
   </section>

@@ -40,9 +40,12 @@ export const LandingFooter = () => {
           ))}
         </Grid>
 
-        <Box sx={{ pt: 4, borderTop: `1px solid ${theme.palette.divider}`, textAlign: 'center' }}>
+        <Box sx={{ pt: 4, borderTop: `1px solid ${theme.palette.divider}`, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
           <Typography variant="caption" color="text.secondary">
             © {new Date().getFullYear()} {BRAND.legal.copyrightOwner}. All rights reserved. Built for the native web.
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+            🛡️ Privacy-First / Zero Tracking Cookies
           </Typography>
         </Box>
       </Container>
