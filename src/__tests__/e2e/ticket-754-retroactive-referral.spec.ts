@@ -47,7 +47,7 @@ test.describe('Retroactive Referral Code System (Ticket 754)', () => {
     return user;
   }
 
-  const getRetroactiveInput = (page: import("@playwright/test").Page) => page.locator('input:not([readonly])').last();
+  const getRetroactiveInput = (page: import("@playwright/test").Page) => page.getByPlaceholder('Enter referral code');
   const getSubmitButton = (page: import("@playwright/test").Page) => page.getByRole('button', { name: /Apply Code|Submit/i });
   const getRetroactiveHeading = (page: import("@playwright/test").Page) => page.locator('text=Did a friend refer you?');
   const getAlert = (page: import("@playwright/test").Page) => page.getByRole('alert');
