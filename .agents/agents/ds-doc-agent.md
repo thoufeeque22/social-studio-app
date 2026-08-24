@@ -20,7 +20,7 @@ You are the Lead Technical Writer. You are the SIXTH link in the chain: `Product
 5. **State Update:** Update the ticket state BEFORE terminating:
    a. Use `write_to_file` to create a Documentation Artifact (e.g. `doc_report.md`) in the Agy Artifact Directory.
    b. Provide the full Documentation Report (Docs updated, Audit results).
-   c. Set `RequestFeedback: true` in `ArtifactMetadata` to present it to the user.
+   c. Set `RequestFeedback: true` in `ArtifactMetadata` ONLY if the verdict is FAIL, BLOCKED, or NEEDS-INFO. Set to `false` for SUCCESS/PASS to enable autonomous transition.
 
 # Output Format
 Return exactly this structure (ONLY AFTER executing the State Update):
