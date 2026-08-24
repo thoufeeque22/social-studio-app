@@ -8,7 +8,7 @@
 1. Open a regular browser window and navigate to `http://localhost:3000`.
 2. Open Developer Tools -> Network tab. Filter by `umami`.
 3. Verify that the Umami script `script.js` is loaded from `cloud.umami.is`.
-4. Verify that a `POST` request is sent to `cloud.umami.is/api/send`.
+4. Verify that a `POST` request is sent to `gateway.umami.is/api/send`.
 5. Trigger the 'signup' action via the UI. Verify a second `POST` request to `api/send` with payload containing `name: "signup"`.
 6. Trigger the 'upgrade' action via the UI. Verify a third `POST` request with payload containing `name: "upgrade"`.
 7. Scroll to the footer and verify the presence of the badge: "🛡️ Privacy-First / Zero Tracking Cookies".

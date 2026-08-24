@@ -11,7 +11,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Phase Throttling (Human-in-the-Loop):** The Orchestrator MUST terminate its turn after calling exactly one sub-agent. NEVER chain sub-agents autonomously. ALL phase transitions (per `PHASE_ORDER` in [VARIABLES.md](base/VARIABLES.md)) MUST be approved by the user.
 - **Artifact-First Protocol (replaces State-First):** Before invoking any sub-agent or performing any action, the Orchestrator MUST create or update an Artifact using Agy's native `write_to_file` tool into `<appDataDir>/brain/<conversation-id>/`. Do NOT write state to `.agents/state/ticket-<id>/` — that path is obsolete.
 - **Ticket Initialization / Initialization Precedence:** Before starting work on a new ticket/task, strictly follow this orchestration:
-  1. **Standard Branch:** Checkout main (`git checkout main`), pull latest (`git pull`), and create branch (`git checkout -b <branch_name>`).
+  1. **Standard Branch:** Stash untracked/local changes (`git stash -u`), checkout main (`git checkout main`), pull latest (`git pull`), and create branch (`git checkout -b <branch_name>`). DO NOT use `BypassSandbox` directly if a simple `git pull` fails due to local changes.
   2. Start working in the appropriate directory.
   Every new ticket MUST also follow the workflow defined in [ORCHESTRATION.md](base/ORCHESTRATION.md).
 - **Explicit Commit Permission & Auto-Handoff:** AI agents MUST NOT commit changes without user permission, EXCEPT during phase handoffs. As defined in [ORCHESTRATION.md](base/ORCHESTRATION.md), the Orchestrator automatically checkpoints changes upon handoff approval.

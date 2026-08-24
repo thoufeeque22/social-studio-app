@@ -89,7 +89,11 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
         />
         {/* E2E Bypass Form */}
         <E2ELoginForm />
-        <div className={styles.footer}>By continuing, you agree to our <br /> <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a></div>
+        <div className={styles.footer}>
+          By continuing, you agree to our <br /> <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+          <br /><br />
+          <span style={{ opacity: 0.8 }}>🛡️ Privacy-First / Zero Tracking Cookies</span>
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Privacy-First Cookieless Analytics (Umami)', () => {
   test('injects umami script and fires pageview', async ({ page }) => {
     const umamiRequestPromise = page.waitForRequest(
-      (request) => request.url().includes('cloud.umami.is') && request.method() === 'POST'
+      (request) => request.url().includes('gateway.umami.is') && request.method() === 'POST'
     );
     
     await page.goto('/');
@@ -12,13 +12,13 @@ test.describe('Privacy-First Cookieless Analytics (Umami)', () => {
     await expect(umamiScript).toBeAttached();
 
     const req = await umamiRequestPromise;
-    expect(req.url()).toContain('cloud.umami.is');
+    expect(req.url()).toContain('gateway.umami.is');
   });
 
   test('fires signup and upgrade conversion events', async ({ page }) => {
     const events: string[] = [];
     page.on('request', (request) => {
-      if (request.url().includes('cloud.umami.is/api/send')) {
+      if (request.url().includes('gateway.umami.is/api/send')) {
         const postData = request.postDataJSON();
         if (postData && postData.payload && postData.payload.name) {
           events.push(postData.payload.name);
@@ -28,6 +28,7 @@ test.describe('Privacy-First Cookieless Analytics (Umami)', () => {
 
     await page.goto('/');
     
+    await page.waitForFunction(() => !!(window as any).umami);
     await page.evaluate(() => {
       if (window.umami && window.umami.track) {
         window.umami.track('signup');
