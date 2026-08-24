@@ -27,13 +27,13 @@
   3. **PR-Only Handoff:** The final handoff to the user MUST be for **Pull Request creation**. The agent must never perform the final merge locally.
   4. **Artifact-First Protocol:** NEVER start a phase without first writing or updating an Artifact in `ARTIFACT_DIR` (see `VARIABLES.md`).
 - **Phase Termination & Failure Protocol:**
-  1. **Atomic Phases:** An agent MUST NOT proceed to the next phase autonomously. It MUST write its final Artifact with `RequestFeedback: true`, set its **Verdict**, and return control to the Orchestrator.
+  1. **Atomic Phases:** Each agent completes a single phase. It MUST write its final Artifact (setting `RequestFeedback: false` on success or `true` on failure), set its **Verdict**, and return control to the Orchestrator for automatic transition.
   2. **Next Step Suggestion:** Upon completing a phase, the agent MUST explicitly suggest the next sub-agent in the sequence to the user.
   3. **Immediate Stop on Failure:** If any phase (especially `Audit` or `QA`) results in a **FAIL** verdict, the current round MUST terminate immediately.
   4. **Round 2+ Entry Point:** If a round fails during `Audit` or `QA`, the next round MUST begin with `ds-dev-agent`. The sequence restarts from `Development`.
-- **Human-in-the-Loop Workflow (HARD STOP):** ALL transitions between agent phases MUST be mediated by the user. **The Orchestrator MUST immediately HALT execution and return control to the User after writing a phase Artifact. The Orchestrator is STRICTLY FORBIDDEN from automatically chaining to the next phase or running multiple sub-agents in a single turn without explicit user approval.**
+- **Autonomous Flow with Strategic Checkpoints:** The Orchestrator SHOULD automatically transition between phases (Discovery -> QA -> Development -> Audit -> Documentation) when a phase completes with a SUCCESS/PASS verdict to minimize user friction.
   1. **Inquiry-First Protocol:** The initial turn of any planning agent (`Product`, `Discovery`) SHOULD focus on asking questions to resolve ambiguity. If the agent is in doubt, it MUST set its Verdict to **NEEDS-INFO** and present its questions to the user.
-  2. **Artifact-First Protocol (Robust Updates):** Agents MUST write their final Artifact using `write_to_file` to `ARTIFACT_DIR` with `ArtifactMetadata.RequestFeedback: true` BEFORE terminating. This natively pauses the Orchestrator and presents a "Proceed" UI to the user.
+  2. **Artifact-First Protocol (Robust Updates):** Agents MUST write their final Artifact using `write_to_file` to `ARTIFACT_DIR` BEFORE terminating. They should set `ArtifactMetadata.RequestFeedback: false` for successful completions to allow the Orchestrator to continue automatically. They MUST set `RequestFeedback: true` ONLY when the verdict is FAIL, BLOCKED, or NEEDS-INFO.
   3. **Manual Review:** The user reviews the Artifact and the ticket state.
   4. **Explicit Approval & Auto-Commit:** When the User provides approval to proceed to the next phase, the Orchestrator MUST automatically commit any pending changes from the current phase before starting the next one. The commit message MUST follow the `COMMIT_MSG_PATTERN`.
 - **Traceable Status:** EVERY agent MUST update their section with a clear **Verdict** before handoff.
@@ -54,7 +54,7 @@ To maintain speed and context efficiency, the project uses a tiered testing mode
 > All command identifiers (`SMOKE_TEST_CMD`, `REGRESSION_TEST_CMD`, etc.) are defined in `VARIABLES.md`.
 
 ## Artifact Templates
-Each phase MUST produce an Artifact in `ARTIFACT_DIR` with `RequestFeedback: true`. Paths and directory constants are in `VARIABLES.md`.
+Each phase MUST produce an Artifact in `ARTIFACT_DIR`. Paths and directory constants are in `VARIABLES.md`.
 
 Required fields in every Artifact:
 1. **Verdict** — from `PHASE_SPECIFIC_VERDICTS` in `VARIABLES.md`.
