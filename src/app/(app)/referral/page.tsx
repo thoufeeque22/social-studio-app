@@ -12,6 +12,8 @@ import { ensureReferralCode } from '@/lib/referral/generateCode';
 import { computeReferralHistory } from '@/lib/referral/history';
 import { ReferralHeader } from '@/components/referral/ReferralHeader';
 import { ReferralProTip } from '@/components/referral/ReferralProTip';
+import { RetroactiveCodeInput } from '@/components/referral/RetroactiveCodeInput';
+
 export default async function ReferralPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -65,6 +67,8 @@ export default async function ReferralPage() {
 
         <Box sx={{ p: { xs: 3, md: 6 } }}>
           <Stack spacing={5}>
+            {!user.referredById && <RetroactiveCodeInput />}
+            
             <ReferralCopier referralUrl={referralUrl} />
 
             <ReferralProTip isFree={isFree} />
