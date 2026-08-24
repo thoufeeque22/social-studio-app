@@ -24,6 +24,7 @@ export const BillingSection: React.FC = () => {
       const res = await fetch('/api/stripe/portal', { method: 'POST' });
       const data = await res.json();
       if (data.url) {
+        import('@/lib/analytics').then(({ trackEvent }) => trackEvent('upgrade'));
         window.location.href = data.url;
       } else {
         setSnackbar({ open: true, message: 'Could not open billing portal', severity: 'error' });

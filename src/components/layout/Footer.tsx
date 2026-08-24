@@ -56,7 +56,12 @@ export function Footer() {
         ))}
       </div>
       <div className={styles.footerBottom}>
-        <p>© {new Date().getFullYear()} {BRAND.legal.copyrightOwner}. All rights reserved.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '1rem' }}>
+          <p>© {new Date().getFullYear()} {BRAND.legal.copyrightOwner}. All rights reserved.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.8, fontSize: '0.875rem' }}>
+            <span>🛡️ Privacy-First / Zero Tracking Cookies</span>
+          </div>
+        </div>
       </div>
     </footer>
   );

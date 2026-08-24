@@ -39,6 +39,7 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
   };
 
   const handleGoogleLogin = async () => {
+    import('@/lib/analytics').then(({ trackEvent }) => trackEvent('signup'));
     const isNative = typeof window !== 'undefined' && Capacitor.getPlatform() !== 'web' && (Capacitor.isNativePlatform() || navigator.userAgent.includes(APP_CONFIG.userAgent));
     const redirectUrl = getRedirectUrl();
     if (isNative) {
@@ -50,6 +51,7 @@ export function LoginContent({ referrerName }: { referrerName?: string | null })
   };
 
   const handleEmailLogin = async (email: string) => {
+    import('@/lib/analytics').then(({ trackEvent }) => trackEvent('signup'));
     setEmailMsg(null);
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getRedirectUrl() } });
 
