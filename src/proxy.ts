@@ -25,7 +25,7 @@ export async function proxy(req: NextRequest) {
   );
 
   let user = null;
-  if (process.env.E2E_TEST_MODE === 'true' && req.cookies.get('e2e-bypass')?.value === 'true') {
+  if (process.env.E2E_TEST_MODE === 'true' && req.cookies.get('e2e-bypass')?.value) {
     user = { id: 'e2e-test-user-id' };
   } else if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://mock.supabase.co') {
     if (['/settings', '/activity', '/media', '/admin', '/app', '/schedule'].some(p => req.nextUrl.pathname.startsWith(p))) {
