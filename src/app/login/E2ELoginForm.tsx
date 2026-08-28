@@ -18,7 +18,7 @@ export function E2ELoginForm() {
     setError(null);
     startTransition(async () => {
       try {
-        document.cookie = "e2e-bypass=true; path=/";
+        document.cookie = `e2e-bypass=${encodeURIComponent(email)}; path=/`;
         window.location.href = '/';
       } catch (err: unknown) {
         setError(`Error: ${err instanceof Error ? err.message : String(err)}`);

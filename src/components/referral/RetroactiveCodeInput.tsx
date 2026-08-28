@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, TextField, Button, Alert, Typography, Stack, CircularProgress } from '@mui/material';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useRouter } from 'next/navigation';
 
 export function RetroactiveCodeInput() {
