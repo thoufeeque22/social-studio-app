@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { PowerPass } from './PowerPass';
 import { PowerUserSection } from './PowerUserSection';
 import { AgencySection } from './AgencySection';
+import { ComparisonMatrix } from '@/components/pricing/ComparisonMatrix';
 
 export const Pricing = () => {
   const coreTiers = pricingTiers.filter(t => ['free-starter', 'creator-pro', 'cloud-pro'].includes(t.id));
@@ -59,9 +60,12 @@ export const Pricing = () => {
         </Grid>
 
         <PowerUserSection lifetimeTier={lifetimeTier} hackerTier={hackerTier} />
+      </Container>
+      
+      <ComparisonMatrix />
 
+      <Container maxWidth="lg" sx={{ mt: 8 }}>
         <AgencySection agencyTier={agencyTier} />
-
       </Container>
     </Box>
   );

@@ -9,10 +9,8 @@ export const metadata: Metadata = {
 
 export default function PricingPage() {
   return (
-    <>
-      <Suspense fallback={<div>Loading pricing...</div>}>
-        <Pricing />
-      </Suspense>
-    </>
+    <Suspense fallback={<div>Loading pricing...</div>}>
+      <Pricing />
+    </Suspense>
   );
 }
