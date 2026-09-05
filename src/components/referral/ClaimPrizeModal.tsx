@@ -39,7 +39,7 @@ export const ClaimPrizeModal: React.FC<Props> = ({ open, onClose, onSuccess }) =
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { borderRadius: 3 } }}>
-      <DialogTitle sx={{ textAlign: 'center', pt: 4 }}>
+      <DialogTitle component="div" sx={{ textAlign: 'center', pt: 4 }}>
         <AutoAwesomeIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
         <Typography variant="h4" sx={{ fontWeight: 800 }}>Choose Your Reward</Typography>
       </DialogTitle>

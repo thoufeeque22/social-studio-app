@@ -376,5 +376,7 @@ model UserPreference {
   emailNotifications Boolean @default(true)
   inAppNotifications Boolean @default(true)
   pushNotifications  Boolean @default(false)
+  hasCompletedOnboarding    Boolean  @default(false)
+  onboardingSocialPlatforms String[]
   user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

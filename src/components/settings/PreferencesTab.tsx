@@ -29,6 +29,8 @@ export const PreferencesTab = () => {
       emailNotifications: preference?.emailNotifications ?? true,
       inAppNotifications: preference?.inAppNotifications ?? true,
       pushNotifications: preference?.pushNotifications ?? false,
+      hasCompletedOnboarding: preference?.hasCompletedOnboarding ?? false,
+      onboardingSocialPlatforms: preference?.onboardingSocialPlatforms ?? [],
       [field]: value
     };
     
