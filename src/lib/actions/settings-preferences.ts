@@ -9,6 +9,8 @@ const preferencesSchema = z.object({
   emailNotifications: z.boolean(),
   inAppNotifications: z.boolean(),
   pushNotifications: z.boolean(),
+  hasCompletedOnboarding: z.boolean().optional(),
+  onboardingSocialPlatforms: z.array(z.string()).optional(),
 });
 
 export async function getUserPreferencesAction() {
@@ -30,6 +32,8 @@ export async function updateUserPreferencesAction(data: {
   emailNotifications: boolean;
   inAppNotifications: boolean;
   pushNotifications: boolean;
+  hasCompletedOnboarding?: boolean;
+  onboardingSocialPlatforms?: string[];
 }) {
   return protectedAction(async function updateUserPrefs(userId) {
     try {
