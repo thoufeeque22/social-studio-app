@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Comparison Matrix Component', () => {
+  // Use localhost instead of app.localhost to hit the marketing proxy rewrite
   test.beforeEach(async ({ page }) => {
-    await page.goto('/pricing');
+    await page.goto('http://localhost:3000/pricing');
   });
 
   test('desktop renders all plans side-by-side with sticky headers', async ({ page, isMobile }) => {

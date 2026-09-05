@@ -97,24 +97,24 @@ export const COMPARISON_CATEGORIES = [
         name: 'High-Speed Scheduling',
         values: {
           'free-starter': 'Standard',
-          'free-hacker': 'BYOK Limits',
+          'free-hacker': 'Instant (Direct API)',
           'power-pass': 'Yes',
-          'creator-pro': 'BYOK Limits',
+          'creator-pro': 'Instant (Direct API)',
           'cloud-pro': 'Yes',
           'agency-pro': 'Yes',
-          'lifetime-deal': 'BYOK Limits'
+          'lifetime-deal': 'Instant (Direct API)'
         }
       },
       {
         name: 'AI Operations',
         values: {
-          'free-starter': '-',
-          'free-hacker': 'BYOK Limits',
+          'free-starter': '10 Credits / mo',
+          'free-hacker': 'Unlimited (Your Key)',
           'power-pass': '50 Credits',
-          'creator-pro': 'BYOK Limits',
+          'creator-pro': 'Unlimited (Your Key)',
           'cloud-pro': '500 / mo',
           'agency-pro': '5,000 / mo',
-          'lifetime-deal': 'BYOK Limits'
+          'lifetime-deal': 'Unlimited (Your Key)'
         }
       }
     ]
@@ -166,8 +166,8 @@ export const COMPARISON_CATEGORIES = [
       {
         name: 'Support Level',
         values: {
-          'free-starter': 'Community',
-          'free-hacker': 'Community',
+          'free-starter': 'Help Center',
+          'free-hacker': 'Help Center',
           'power-pass': 'Standard',
           'creator-pro': 'Standard',
           'cloud-pro': 'Priority',
