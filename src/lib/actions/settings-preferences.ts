@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const preferencesSchema = z.object({
   timezone: z.string().min(1).max(100),
+  showTimeIndicator: z.boolean().optional(),
   emailNotifications: z.boolean(),
   inAppNotifications: z.boolean(),
   pushNotifications: z.boolean(),
@@ -29,6 +30,7 @@ export async function getUserPreferencesAction() {
 
 export async function updateUserPreferencesAction(data: {
   timezone: string;
+  showTimeIndicator?: boolean;
   emailNotifications: boolean;
   inAppNotifications: boolean;
   pushNotifications: boolean;

@@ -8,6 +8,7 @@ import { getUserPreferencesAction, updateUserPreferencesAction } from '@/lib/act
 import { TimezonePicker } from '@/components/settings/TimezonePicker';
 import { NotificationPreferences } from './NotificationPreferences';
 import { PlatformPreferences } from './PlatformPreferences';
+import { DisplayPreferences } from './DisplayPreferences';
 
 const fetcher = async () => {
   try {
@@ -28,6 +29,7 @@ export const PreferencesTab = () => {
     
     const newPrefs = {
       timezone: preference?.timezone || 'UTC',
+      showTimeIndicator: preference?.showTimeIndicator ?? false,
       emailNotifications: preference?.emailNotifications ?? true,
       inAppNotifications: preference?.inAppNotifications ?? true,
       pushNotifications: preference?.pushNotifications ?? false,
@@ -67,6 +69,11 @@ export const PreferencesTab = () => {
         <TimezonePicker
           value={preference?.timezone || 'UTC'}
           onChange={(tz) => handleChange('timezone', tz)}
+        />
+        
+        <DisplayPreferences
+          showTimeIndicator={preference?.showTimeIndicator ?? false}
+          onChange={handleChange}
         />
 
         <NotificationPreferences
