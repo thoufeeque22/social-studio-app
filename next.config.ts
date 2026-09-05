@@ -75,7 +75,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             // Baseline Next.js CSP. Allows inline scripts/styles for React/MUI to function correctly.
             // Tightened to remove https: wildcards and explicitly define form-action/base-uri.
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://eu-assets.i.posthog.com https://va.vercel-scripts.com https://cloud.umami.is https://gateway.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: lh3.googleusercontent.com avatars.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://eu-assets.i.posthog.com https://eu.i.posthog.com https://b57c147986d6e2daad87513d46e7ad85.r2.cloudflarestorage.com https://cloud.umami.is https://gateway.umami.is; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; worker-src 'self' blob:; media-src 'self' blob:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://eu-assets.i.posthog.com https://va.vercel-scripts.com https://cloud.umami.is https://gateway.umami.is; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: lh3.googleusercontent.com avatars.githubusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws://localhost:4400 https://eu-assets.i.posthog.com https://eu.i.posthog.com https://b57c147986d6e2daad87513d46e7ad85.r2.cloudflarestorage.com https://cloud.umami.is https://gateway.umami.is; form-action 'self'; base-uri 'self'; frame-ancestors 'none'; worker-src 'self' blob:; media-src 'self' blob:;",
           },
         ],
       },

@@ -102,7 +102,7 @@ test('should display all 10 major sections @smoke', async ({ page }) => {
     
     // Verify dark background
     const body = page.locator('body');
-    await expect(body).toHaveCSS('background-color', /rgb\([0-9], [0-9], 1[0-9]\)/);
+    await expect(body).toHaveCSS('background-color', /rgb\(18, 14, 12\)|rgba\(18, 14, 12, 1\)/);
     
     // Force the page to be scrollable and naturally sized for the screenshot
     await page.evaluate(() => {
