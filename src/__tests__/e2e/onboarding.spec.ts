@@ -1,6 +1,18 @@
 import { test, expect } from './base-test';
+import { prisma } from '@/lib/infrastructure/database/prisma';
 
 test.describe('Onboarding Social Platforms', () => {
+  test.beforeEach(async ({ workerEmail }) => {
+    const user = await prisma.user.findUnique({ where: { email: workerEmail } });
+    if (user) {
+      await prisma.userPreference.upsert({
+        where: { userId: user.id },
+        update: { hasCompletedOnboarding: false, onboardingSocialPlatforms: [] },
+        create: { userId: user.id, hasCompletedOnboarding: false, onboardingSocialPlatforms: [] }
+      });
+    }
+  });
+
   test('should display the onboarding modal if not completed', async ({ page }) => {
     await page.goto('/');
     

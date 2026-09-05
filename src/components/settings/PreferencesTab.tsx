@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { Box, Typography, Snackbar, Alert, CircularProgress, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Snackbar, Alert, CircularProgress, FormControlLabel, Switch, Checkbox, FormGroup } from '@mui/material';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getUserPreferencesAction, updateUserPreferencesAction } from '@/lib/actions/settings-preferences';
 import { TimezonePicker } from '@/components/settings/TimezonePicker';
+
+const PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'];
 
 const fetcher = async () => {
   try {
@@ -21,7 +23,7 @@ export const PreferencesTab = () => {
   const { data: preference, isLoading, mutate } = useSWR('userPreferences', fetcher);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
 
-  const handleChange = async (field: string, value: string | boolean) => {
+  const handleChange = async (field: string, value: string | boolean | string[]) => {
     if (preference === undefined) return;
     
     const newPrefs = {
@@ -44,6 +46,12 @@ export const PreferencesTab = () => {
       setSnackbar({ open: true, message: res.error || 'Failed to update preferences', severity: 'error' });
       mutate();
     }
+  };
+
+  const handlePlatformToggle = (platform: string) => {
+    const current = preference?.onboardingSocialPlatforms || [];
+    const next = current.includes(platform) ? current.filter((p: string) => p !== platform) : [...current, platform];
+    handleChange('onboardingSocialPlatforms', next);
   };
 
   if (isLoading) return <CircularProgress />;
@@ -77,6 +85,25 @@ export const PreferencesTab = () => {
               label="Push Notifications" 
             />
           </Box>
+        </Box>
+
+        <Box>
+          <Typography variant="h6" sx={{ mb: 2 }}>Platform Preferences</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Select the platforms you use to post videos.</Typography>
+          <FormGroup sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 1 }}>
+            {PLATFORMS.map((platform) => (
+              <FormControlLabel
+                key={platform}
+                control={
+                  <Checkbox 
+                    checked={(preference?.onboardingSocialPlatforms || []).includes(platform)} 
+                    onChange={() => handlePlatformToggle(platform)} 
+                  />
+                }
+                label={platform}
+              />
+            ))}
+          </FormGroup>
         </Box>
       </Box>
       

@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, Typography, Button, Stack, Checkbox, FormControlLabel } from '@mui/material';
 import { completeOnboarding } from '@/app/(app)/actions/onboarding';
 
 const PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'];
 
 export const SocialPlatformSurvey: React.FC = () => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    setOpen(true);
+  }, []);
 
   const handleToggle = (platform: string) => {
     setSelected((prev) => 
@@ -48,7 +53,7 @@ export const SocialPlatformSurvey: React.FC = () => {
       </DialogTitle>
       <DialogContent sx={{ pb: 4, px: 4 }}>
         <Typography color="text.secondary" sx={{ textAlign: 'center', mb: 4 }}>
-          Which social media platforms do you use? We will prioritize our future integrations based on your feedback.
+          Which platforms do you use to post your videos? We will prioritize our future integrations based on your feedback.
         </Typography>
 
         <Stack spacing={1} sx={{ mb: 4 }}>
@@ -61,7 +66,7 @@ export const SocialPlatformSurvey: React.FC = () => {
           ))}
         </Stack>
 
-        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', mb: 2 }}>
           <Button disabled={loading} onClick={handleSkip} color="inherit">
             Skip for now
           </Button>
@@ -69,6 +74,9 @@ export const SocialPlatformSurvey: React.FC = () => {
             Help Us Prioritize!
           </Button>
         </Stack>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center' }}>
+          You can always update this later in Settings &gt; Preferences.
+        </Typography>
       </DialogContent>
     </Dialog>
   );
