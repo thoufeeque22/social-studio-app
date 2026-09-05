@@ -28,6 +28,7 @@ export const PrivacyContent = () => (
         <li><Typography variant="body1">Billing information (processed securely by our payment provider, Stripe).</Typography></li>
         <li><Typography variant="body1">Social media account identifiers and authentication tokens (OAuth).</Typography></li>
         <li><Typography variant="body1">Content you upload (e.g., videos, titles, descriptions).</Typography></li>
+        <li><Typography variant="body1">External platform usage (e.g., &quot;Which platforms do you use to post your videos?&quot;) to inform product prioritization and feature development.</Typography></li>
         <li><Typography variant="body1">Diagnostic data (e.g., IP addresses, crash logs, and device info used strictly for error tracking via Sentry).</Typography></li>
       </ul>
     </section>

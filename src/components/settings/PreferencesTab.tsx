@@ -6,6 +6,8 @@ import { Box, Typography, Snackbar, Alert, CircularProgress, FormControlLabel, S
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getUserPreferencesAction, updateUserPreferencesAction } from '@/lib/actions/settings-preferences';
 import { TimezonePicker } from '@/components/settings/TimezonePicker';
+import { NotificationPreferences } from './NotificationPreferences';
+import { PlatformPreferences } from './PlatformPreferences';
 
 const fetcher = async () => {
   try {
@@ -21,14 +23,17 @@ export const PreferencesTab = () => {
   const { data: preference, isLoading, mutate } = useSWR('userPreferences', fetcher);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
 
-  const handleChange = async (field: string, value: string | boolean) => {
+  const handleChange = async (field: string, value: string | boolean | string[]) => {
     if (preference === undefined) return;
     
     const newPrefs = {
       timezone: preference?.timezone || 'UTC',
+      showTimeIndicator: preference?.showTimeIndicator ?? false,
       emailNotifications: preference?.emailNotifications ?? true,
       inAppNotifications: preference?.inAppNotifications ?? true,
       pushNotifications: preference?.pushNotifications ?? false,
+      hasCompletedOnboarding: preference?.hasCompletedOnboarding ?? false,
+      onboardingSocialPlatforms: preference?.onboardingSocialPlatforms ?? [],
       [field]: value
     };
     
@@ -44,6 +49,12 @@ export const PreferencesTab = () => {
     }
   };
 
+  const handlePlatformToggle = (platform: string) => {
+    const current = preference?.onboardingSocialPlatforms || [];
+    const next = current.includes(platform) ? current.filter((p: string) => p !== platform) : [...current, platform];
+    handleChange('onboardingSocialPlatforms', next);
+  };
+
   if (isLoading) return <CircularProgress />;
 
   return (
@@ -54,28 +65,36 @@ export const PreferencesTab = () => {
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <TimezonePicker
-          value={preference?.timezone || 'UTC'}
-          onChange={(tz) => handleChange('timezone', tz)}
-        />
-
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>Notifications</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <FormControlLabel 
-              control={<Switch name="emailNotifications" checked={preference?.emailNotifications ?? true} onChange={(e) => handleChange('emailNotifications', e.target.checked)} />} 
-              label="Email Notifications" 
-            />
-            <FormControlLabel 
-              control={<Switch checked={preference?.inAppNotifications ?? true} onChange={(e) => handleChange('inAppNotifications', e.target.checked)} />} 
-              label="In-App Notifications" 
-            />
-            <FormControlLabel 
-              control={<Switch checked={preference?.pushNotifications ?? false} onChange={(e) => handleChange('pushNotifications', e.target.checked)} />} 
-              label="Push Notifications" 
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <TimezonePicker
+              value={preference?.timezone || 'UTC'}
+              onChange={(tz) => handleChange('timezone', tz)}
             />
           </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={preference?.showTimeIndicator ?? false}
+                onChange={(e) => handleChange('showTimeIndicator', e.target.checked)}
+                data-testid="show-time-indicator-toggle"
+              />
+            }
+            label="Show time in header"
+          />
         </Box>
+
+        <NotificationPreferences
+          emailNotifications={preference?.emailNotifications ?? true}
+          inAppNotifications={preference?.inAppNotifications ?? true}
+          pushNotifications={preference?.pushNotifications ?? false}
+          onChange={handleChange}
+        />
+
+        <PlatformPreferences
+          selectedPlatforms={preference?.onboardingSocialPlatforms || []}
+          onChange={handlePlatformToggle}
+        />
       </Box>
       
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>

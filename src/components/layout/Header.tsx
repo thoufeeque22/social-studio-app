@@ -8,6 +8,7 @@ import { WhatsNewBadge } from '../WhatsNew/WhatsNewBadge';
 import { UserActions } from './UserActions';
 import { RefreshButton } from './RefreshButton';
 import { ThemeToggle } from './ThemeToggle';
+import { TimeIndicator } from './TimeIndicator';
 
 export const Header = ({ onToggleSidebar, tierName }: { onToggleSidebar: () => void, tierName?: string }) => {
   const router = useRouter();
@@ -37,6 +38,7 @@ export const Header = ({ onToggleSidebar, tierName }: { onToggleSidebar: () => v
         />
       </div>
       <div className={styles.actions}>
+        <TimeIndicator />
         <ThemeToggle />
         <RefreshButton />
         <WhatsNewBadge />

@@ -3,6 +3,7 @@ import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
 import { redirect } from "next/navigation";
+import { SocialPlatformSurvey } from "@/components/onboarding/SocialPlatformSurvey";
 
 export default async function DashboardLayout({
   children,
@@ -35,8 +36,14 @@ export default async function DashboardLayout({
       .join(' ');
   }
 
+  const preferences = await prisma.userPreference.findUnique({
+    where: { userId: session.user.id }
+  });
+  const needsOnboarding = !preferences?.hasCompletedOnboarding;
+
   return (
     <LayoutWrapper session={session} isFreeTier={isFreeTier} tierName={tierName}>
+      {needsOnboarding && <SocialPlatformSurvey />}
       {children}
     </LayoutWrapper>
   );

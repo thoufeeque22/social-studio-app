@@ -121,3 +121,7 @@ For any significant feature or codebase audit, the following 7 vulnerabilities m
 ### 15. Form Hydration & Large Media Mocking
 - **Hydration Crash Rule:** `localStorage` must NEVER be accessed inside `useMemo` or directly in a component body during SSR. It must be initialized with a stable default (`false`/`null`) and hydrated inside a `useEffect`.
 - **Large Media OOM Hazard:** When mocking large media files for client-side forms (e.g., Demo Videos), NEVER use `await res.blob()` to load the data into a new File object in main memory. Use a 0-byte payload (`new File([], 'name', { type: 'video/mp4' })`) and rely on URL mapping for previews/exports to prevent Out Of Memory (OOM) crashes on mobile devices.
+
+### 16. Onboarding & Copywriting Standards
+- **Settings Fallback for Skippable Features:** Always provide a fallback configuration option in the user Settings for any onboarding features or surveys that can be skipped by the user. If an onboarding step is bypassed, the user must still be able to complete it later via Settings.
+- **Specific & Action-Oriented Copy:** Change generic copywriting to be highly specific and action-oriented. For example, instead of "Select platforms", use "Which platforms do you use to post your videos?". Educate the user on the implications of their actions (e.g., explaining what "Skip" means or entails).

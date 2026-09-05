@@ -28,11 +28,12 @@ test.describe('Privacy-First Cookieless Analytics (Umami)', () => {
 
     await page.goto('/');
     
-    await page.waitForFunction(() => !!(window as any).umami);
+    await page.waitForFunction(() => !!(window as unknown as { umami?: { track: (e: string) => void } }).umami);
     await page.evaluate(() => {
-      if (window.umami && window.umami.track) {
-        window.umami.track('signup');
-        window.umami.track('upgrade');
+      const w = window as unknown as { umami?: { track: (e: string) => void } };
+      if (w.umami && w.umami.track) {
+        w.umami.track('signup');
+        w.umami.track('upgrade');
       }
     });
 
@@ -53,8 +54,9 @@ test.describe('Privacy-First Cookieless Analytics (Umami)', () => {
     });
 
     await page.evaluate(() => {
-      if (typeof window !== 'undefined' && window.umami && window.umami.track) {
-        window.umami.track('signup');
+      const w = window as unknown as { umami?: { track: (e: string) => void } };
+      if (typeof w !== 'undefined' && w.umami && w.umami.track) {
+        w.umami.track('signup');
       }
     });
 

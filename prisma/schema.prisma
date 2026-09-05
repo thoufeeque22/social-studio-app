@@ -370,11 +370,14 @@ model ProcessedWebhook {
 }
 
 model UserPreference {
-  id                 String  @id @default(cuid())
-  userId             String  @unique
-  timezone           String  @default("UTC")
-  emailNotifications Boolean @default(true)
-  inAppNotifications Boolean @default(true)
-  pushNotifications  Boolean @default(false)
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  timezone                  String   @default("UTC")
+  showTimeIndicator         Boolean  @default(false)
+  emailNotifications        Boolean  @default(true)
+  inAppNotifications        Boolean  @default(true)
+  pushNotifications         Boolean  @default(false)
+  hasCompletedOnboarding    Boolean  @default(false)
+  onboardingSocialPlatforms String[]
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
