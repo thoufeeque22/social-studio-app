@@ -52,7 +52,7 @@ export const SocialPlatformSurvey: React.FC = () => {
       </DialogTitle>
       <DialogContent sx={{ pb: 4, px: 4 }}>
         <Typography color="text.secondary" sx={{ textAlign: 'center', mb: 4 }}>
-          Which platforms do you use to post your videos? We will prioritize our future integrations based on your feedback.
+          Select the platforms you use to post videos so we can prioritize which integrations to build next.
         </Typography>
 
         <Stack spacing={1} sx={{ mb: 4 }}>

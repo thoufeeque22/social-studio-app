@@ -46,6 +46,7 @@ export const TimeIndicator = () => {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZoneName: 'short',
     }).format(currentTime);
   } catch {
     timeString = 'Invalid';

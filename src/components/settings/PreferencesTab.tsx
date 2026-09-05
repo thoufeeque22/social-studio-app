@@ -2,13 +2,12 @@
 
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { Box, Typography, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Snackbar, Alert, CircularProgress, FormControlLabel, Switch } from '@mui/material';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getUserPreferencesAction, updateUserPreferencesAction } from '@/lib/actions/settings-preferences';
 import { TimezonePicker } from '@/components/settings/TimezonePicker';
 import { NotificationPreferences } from './NotificationPreferences';
 import { PlatformPreferences } from './PlatformPreferences';
-import { DisplayPreferences } from './DisplayPreferences';
 
 const fetcher = async () => {
   try {
@@ -66,15 +65,24 @@ export const PreferencesTab = () => {
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <TimezonePicker
-          value={preference?.timezone || 'UTC'}
-          onChange={(tz) => handleChange('timezone', tz)}
-        />
-        
-        <DisplayPreferences
-          showTimeIndicator={preference?.showTimeIndicator ?? false}
-          onChange={handleChange}
-        />
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <TimezonePicker
+              value={preference?.timezone || 'UTC'}
+              onChange={(tz) => handleChange('timezone', tz)}
+            />
+          </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={preference?.showTimeIndicator ?? false}
+                onChange={(e) => handleChange('showTimeIndicator', e.target.checked)}
+                data-testid="show-time-indicator-toggle"
+              />
+            }
+            label="Show time in header"
+          />
+        </Box>
 
         <NotificationPreferences
           emailNotifications={preference?.emailNotifications ?? true}

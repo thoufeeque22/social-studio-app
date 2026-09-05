@@ -11,7 +11,7 @@ export const PlatformPreferences: React.FC<PlatformPreferencesProps> = ({ select
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2 }}>Platform Preferences</Typography>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Select the platforms you use to post videos.</Typography>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Select the platforms you use to post videos so we can prioritize which integrations to build next.</Typography>
       <FormGroup sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 1 }}>
         {SURVEY_SOCIAL_PLATFORMS.map((platform) => (
           <FormControlLabel
