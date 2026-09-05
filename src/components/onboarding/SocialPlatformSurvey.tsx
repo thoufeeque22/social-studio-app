@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, Typography, Button, Stack, Checkbox, FormControlLabel } from '@mui/material';
 import { completeOnboarding } from '@/app/(app)/actions/onboarding';
-
-const PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'];
+import { SURVEY_SOCIAL_PLATFORMS } from '@/lib/core/constants';
 
 export const SocialPlatformSurvey: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -57,7 +56,7 @@ export const SocialPlatformSurvey: React.FC = () => {
         </Typography>
 
         <Stack spacing={1} sx={{ mb: 4 }}>
-          {PLATFORMS.map((platform) => (
+          {SURVEY_SOCIAL_PLATFORMS.map((platform) => (
             <FormControlLabel
               key={platform}
               control={<Checkbox checked={selected.includes(platform)} onChange={() => handleToggle(platform)} />}

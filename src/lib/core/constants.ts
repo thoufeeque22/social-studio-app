@@ -12,6 +12,8 @@ export const PLATFORMS = [
 export type PlatformStatus = 'active' | 'coming-soon';
 export type Platform = typeof PLATFORMS[number];
 
+export const SURVEY_SOCIAL_PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'] as const;
+
 /** OAuth providers that have a login button on the sign-in page. */
 export const LOGIN_PROVIDERS = ['google', 'facebook', 'tiktok', 'linkedin'] as const;
 export type AuthProvider = typeof LOGIN_PROVIDERS[number];

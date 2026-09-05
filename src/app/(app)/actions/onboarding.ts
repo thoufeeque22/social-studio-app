@@ -3,8 +3,8 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/core/prisma";
 import { revalidatePath } from "next/cache";
+import { SURVEY_SOCIAL_PLATFORMS } from "@/lib/core/constants";
 
-const VALID_PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'];
 const MAX_PLATFORMS = 10;
 
 export async function completeOnboarding(platforms: string[]) {
@@ -16,7 +16,7 @@ export async function completeOnboarding(platforms: string[]) {
     throw new Error("Too many platforms selected");
   }
   
-  const isValid = platforms.every(p => typeof p === 'string' && VALID_PLATFORMS.includes(p));
+  const isValid = platforms.every(p => typeof p === 'string' && (SURVEY_SOCIAL_PLATFORMS as readonly string[]).includes(p));
   if (!isValid) {
     throw new Error("Invalid platform selected");
   }

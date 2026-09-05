@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { Box, Typography, Snackbar, Alert, CircularProgress, FormControlLabel, Switch, Checkbox, FormGroup } from '@mui/material';
+import { Box, Typography, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getUserPreferencesAction, updateUserPreferencesAction } from '@/lib/actions/settings-preferences';
 import { TimezonePicker } from '@/components/settings/TimezonePicker';
-
-const PLATFORMS = ['TikTok', 'Instagram', 'X/Twitter', 'LinkedIn', 'Facebook', 'Pinterest', 'Reddit'];
+import { NotificationPreferences } from './NotificationPreferences';
+import { PlatformPreferences } from './PlatformPreferences';
 
 const fetcher = async () => {
   try {
@@ -69,42 +69,17 @@ export const PreferencesTab = () => {
           onChange={(tz) => handleChange('timezone', tz)}
         />
 
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>Notifications</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <FormControlLabel 
-              control={<Switch name="emailNotifications" checked={preference?.emailNotifications ?? true} onChange={(e) => handleChange('emailNotifications', e.target.checked)} />} 
-              label="Email Notifications" 
-            />
-            <FormControlLabel 
-              control={<Switch checked={preference?.inAppNotifications ?? true} onChange={(e) => handleChange('inAppNotifications', e.target.checked)} />} 
-              label="In-App Notifications" 
-            />
-            <FormControlLabel 
-              control={<Switch checked={preference?.pushNotifications ?? false} onChange={(e) => handleChange('pushNotifications', e.target.checked)} />} 
-              label="Push Notifications" 
-            />
-          </Box>
-        </Box>
+        <NotificationPreferences
+          emailNotifications={preference?.emailNotifications ?? true}
+          inAppNotifications={preference?.inAppNotifications ?? true}
+          pushNotifications={preference?.pushNotifications ?? false}
+          onChange={handleChange}
+        />
 
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>Platform Preferences</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>Select the platforms you use to post videos.</Typography>
-          <FormGroup sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 1 }}>
-            {PLATFORMS.map((platform) => (
-              <FormControlLabel
-                key={platform}
-                control={
-                  <Checkbox 
-                    checked={(preference?.onboardingSocialPlatforms || []).includes(platform)} 
-                    onChange={() => handlePlatformToggle(platform)} 
-                  />
-                }
-                label={platform}
-              />
-            ))}
-          </FormGroup>
-        </Box>
+        <PlatformPreferences
+          selectedPlatforms={preference?.onboardingSocialPlatforms || []}
+          onChange={handlePlatformToggle}
+        />
       </Box>
       
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
